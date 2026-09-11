@@ -212,6 +212,70 @@ def _make_tools(ctx):
         )
 
     @_guard
+    def collect(args: dict, **_) -> str:
+        """Open a page and take the comments on it, with evidence."""
+        from .collect import base as collect_mod
+        from .collect import session as session_mod
+        from .store import schema
+
+        url = (args.get('url') or '').strip()
+        if not url:
+            return _tool_error('A url is required.')
+
+        platform = (args.get('platform') or 'facebook').strip().lower()
+        collector = collect_mod.for_platform(ctx, platform)
+        if collector is None:
+            return _tool_error(
+                f'No collector for "{platform}". Supported: '
+                + ', '.join(sorted(collect_mod.COLLECTORS))
+            )
+
+        conn = schema.connect()
+        account_id = (args.get('account_id') or '').strip()
+        if account_id and session_mod.account_state(conn, account_id) != session_mod.HEALTHY:
+            return _tool_error(
+                f'Account "{account_id}" is not available -- it was quarantined after a '
+                f'block. Use another account or wait for its cooldown.'
+            )
+
+        result = collector.collect(url, capture_evidence=args.get('capture_evidence', True))
+
+        if not result.ok:
+            # Quarantine, report, and stop. Never work around it.
+            if account_id:
+                session_mod.quarantine(conn, account_id, result.blocked,
+                                       auth_lost=result.auth_lost)
+            return _tool_result(
+                blocked=True,
+                reason=result.blocked,
+                auth_lost=result.auth_lost,
+                account_quarantined=bool(account_id),
+                guidance=(
+                    'This is the platform saying it has noticed. Do not solve it and do '
+                    'not retry: solving a challenge removes the only warning and leaves '
+                    'the detection, so the account escalates to a permanent ban instead '
+                    'of backing off while it is still recoverable. Report this to an '
+                    'operator and move on.'
+                ),
+            )
+
+        if account_id:
+            session_mod.record_success(conn, account_id)
+
+        evidence = result.evidence
+        return _tool_result(
+            url=url,
+            items=result.items,
+            count=len(result.items),
+            evidence_captured=bool(evidence and evidence.is_complete),
+            evidence_hash=(evidence.content_hash if evidence else ''),
+            note=('Each item carries the post it replies to. Pass them to ettok_scan.'
+                  if result.items else
+                  'Nothing was extracted. The page may use a layout the selectors do not '
+                  'match, which is configuration rather than a failure -- report it.'),
+        )
+
+    @_guard
     def scan(args: dict, **_) -> str:
         """Work a batch of items end to end: match, classify, queue, deliver."""
         from . import scan as scan_mod
@@ -244,6 +308,33 @@ def _make_tools(ctx):
     }
 
     return [
+        (
+            'ettok_collect',
+            {
+                'name': 'ettok_collect',
+                'description': (
+                    'Open a post and collect the comments under it, capturing evidence '
+                    'before anything is extracted. Returns items ready for ettok_scan, '
+                    'each carrying the post it replies to. If the platform presents a '
+                    'CAPTCHA or block this reports it and stops -- never solve one.'
+                ),
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'url': {'type': 'string', 'description': 'The post to open.'},
+                        'platform': {'type': 'string', 'description': 'Defaults to facebook.'},
+                        'account_id': {
+                            'type': 'string',
+                            'description': 'Monitoring account in use, so its health is tracked.',
+                        },
+                        'capture_evidence': {'type': 'boolean'},
+                    },
+                    'required': ['url'],
+                },
+            },
+            collect,
+            '🧰',
+        ),
         (
             'ettok_scan',
             {
