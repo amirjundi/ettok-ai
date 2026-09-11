@@ -1,3 +1,57 @@
+# Ettok AI
+
+<p align="center">
+  <a href="https://github.com/NousResearch/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
+  <a href="THIRD-PARTY-LICENSES.md"><img src="https://img.shields.io/badge/Built%20on-Hermes%20Agent-blueviolet?style=for-the-badge" alt="Built on Hermes Agent"></a>
+</p>
+
+**A hate speech monitoring agent for minority communities in Iraq.**
+
+Ettok AI monitors public social media discourse for hate speech targeting Yazidi,
+Assyrian, Christian, Mandaean and other minority communities, and delivers
+evidence-backed findings to the Ettok platform for expert review.
+
+Hate speech in Iraq is episodic — a campaign flares against one community around
+an incident, cools, goes dormant, and reactivates weeks later against another.
+Ettok AI is organised around **cases**: bounded monitoring episodes with defined
+targets, schedules, budgets and stop conditions.
+
+What makes it different from a generic hate-speech classifier is **context**. The
+phrase *اعوذ بالله من الشيطان الرجيم* is ordinary piety on most posts, and the
+devil-worship libel under Yazidi content. Ettok AI judges a comment together with
+what it replies to, against a dictionary of coded language curated by people from
+the affected communities — not against a general-purpose model's idea of offence.
+
+Findings are advisory. Every one is reviewed by a human before it goes anywhere.
+
+- **Specification**: [`specs/001-ettok-ai-agent/spec.md`](../specs/001-ettok-ai-agent/spec.md)
+- **Platform contract**: the Ettok platform is the system of record for the
+  lexicon, tropes, cases and review queue. The agent holds no authoritative
+  knowledge and caches what it fetches only for the duration of one run.
+
+## Built on Hermes Agent
+
+Ettok AI is built on [Hermes Agent](https://github.com/NousResearch/hermes-agent)
+by [Nous Research](https://nousresearch.com), used under the MIT Licence — see
+[THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
+
+Hermes supplies the agent runtime: the agent loop, scheduling, local state and
+search, provider adapters, browser tooling and the operator interface. None of
+that is rebuilt here, which is why the engineering goes into Iraqi-specific
+detection instead of into plumbing. Internal module names, environment variables
+and state paths inherited from Hermes are intentionally left unchanged so that
+upstream fixes can still be merged.
+
+The command is `ettok`; `hermes` remains as an alias so upstream documentation
+works unmodified.
+
+---
+
+The remainder of this file is the upstream Hermes Agent documentation, which
+still describes the runtime accurately.
+
+---
+
 <p align="center">
   <img src="assets/banner.png" alt="Hermes Agent" width="100%">
 </p>
