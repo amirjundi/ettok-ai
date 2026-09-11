@@ -438,6 +438,19 @@ def register(ctx) -> None:
     except Exception:
         log.debug('ettok: system prompt section unavailable', exc_info=True)
 
+    # Guidance the agent loads when it works a case. Deliberately a skill rather
+    # than more system prompt: it is long, it is only relevant during a run, and
+    # the system prompt is charged on every turn whether or not it is used.
+    try:
+        from pathlib import Path
+        skills_dir = Path(__file__).parent / 'skills'
+        for child in sorted(skills_dir.iterdir()):
+            skill_md = child / 'SKILL.md'
+            if child.is_dir() and skill_md.exists():
+                ctx.register_skill(child.name, skill_md)
+    except Exception:
+        log.debug('ettok: skill registration unavailable', exc_info=True)
+
 
 _OPERATING_RULES = (
     'You are operating Ettok AI, a hate speech monitoring agent. Four rules govern '

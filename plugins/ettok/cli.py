@@ -30,6 +30,14 @@ def register_cli(subparser) -> None:
     outbox = commands.add_parser('outbox', help='Inspect or drain the delivery queue')
     outbox.add_argument('action', nargs='?', default='status', choices=['status', 'drain', 'failed'])
 
+    schedule = commands.add_parser(
+        'schedule', help='Run unattended on a recurring schedule',
+    )
+    schedule.add_argument('--every', default='6h',
+                          help='Interval, e.g. 30m, 6h, or a 5-field cron expression')
+    schedule.add_argument('--name', default='ettok-scan')
+    schedule.add_argument('--remove', action='store_true', help='Remove the scheduled run')
+
     subparser.set_defaults(func=handle_cli)
 
 
@@ -40,10 +48,11 @@ def handle_cli(args) -> int:
         'doctor': _doctor,
         'status': _status,
         'outbox': _outbox,
+        'schedule': _schedule,
     }
     handler = handlers.get(command)
     if handler is None:
-        print('Usage: ettok {connect|doctor|status|outbox}')
+        print('Usage: ettok {connect|doctor|status|outbox|schedule}')
         return 1
     return handler(args)
 
@@ -221,4 +230,52 @@ def _outbox(args) -> int:
         print(f'Recovered {reclaimed} submission(s) interrupted by an earlier shutdown.')
     result = outbox_mod.drain(conn, PlatformClient(cfg))
     print(json.dumps({**result, 'queue': outbox_mod.status(conn)}, indent=2))
+    return 0
+
+
+def _schedule(args) -> int:
+    """Run unattended, through the runtime's cron rather than a loop of our own.
+
+    cron survives restarts, reboots and a closed laptop; an in-process timer does
+    not. For an agent that is supposed to work on its own machine while nobody is
+    watching, that difference is the entire feature.
+    """
+    from cron import jobs as cron_jobs
+
+    cfg = _load_config(args)
+    name = getattr(args, 'name', 'ettok-scan')
+
+    if getattr(args, 'remove', False):
+        removed = 0
+        for job in cron_jobs.load_jobs():
+            if job.get('name') == name:
+                cron_jobs.remove_job(job['id'])
+                removed += 1
+        print(f'Removed {removed} scheduled run(s) named "{name}".')
+        return 0
+
+    if not cfg.is_paired:
+        print('Not paired. Run `ettok connect` first, or the scheduled run has '
+              'nowhere to report to.', file=sys.stderr)
+        return 1
+
+    prompt = (
+        'Work the current Ettok monitoring case. Load the ettok:working-a-case '
+        'skill first and follow it. Sync knowledge, find posts that concern the '
+        "case's communities, collect comments together with the posts they reply "
+        'to, and scan them. Report what you found, what stopped the run, and '
+        'anything an operator should act on.'
+    )
+
+    job = cron_jobs.create_job(
+        prompt=prompt,
+        schedule=getattr(args, 'every', '6h'),
+        name=name,
+        skills=['ettok:working-a-case'],
+        enabled_toolsets=['ettok', 'browser'],
+    )
+    job_id = job.get('id') if isinstance(job, dict) else job
+    print(f'Scheduled "{name}" every {getattr(args, "every", "6h")} (job {job_id}).')
+    print('It survives restarts. `hermes cron list` to inspect, '
+          f'`ettok schedule --remove --name {name}` to stop.')
     return 0
