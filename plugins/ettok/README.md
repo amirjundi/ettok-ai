@@ -30,9 +30,38 @@ cd ettok-ai
 
 uv venv --python 3.11
 uv pip install -e ".[all,dev]"
+```
 
+**Then activate the environment.** The `ettok` command is installed inside the
+virtual environment, not system-wide, so without this step the shell reports
+`ettok: not recognized` even though everything installed correctly.
+
+Windows, PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Windows, cmd.exe:
+
+```bat
+.venv\Scriptsctivate.bat
+```
+
+macOS and Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+If PowerShell refuses with an execution-policy error, use `cmd.exe` instead, or
+skip activation altogether and prefix commands with `uv run` — `uv run ettok
+doctor` works from a fresh shell with nothing activated, which is also the form
+to use in a scheduled task or a service.
+
+```bash
 # The plugin is opt-in, so the runtime's own test suite stays unaffected.
-hermes plugins enable ettok
+ettok plugins enable ettok
 ```
 
 ## Pair with a platform
@@ -43,6 +72,9 @@ granted.
 
 ```bash
 ettok connect --platform https://your-platform-host
+
+# or, from a shell with nothing activated:
+uv run ettok connect --platform https://your-platform-host
 ```
 
 It prints a short code and a link, then waits. An administrator opens the link

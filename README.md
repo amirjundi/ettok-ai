@@ -42,8 +42,17 @@ cd ettok-ai
 uv venv --python 3.11
 uv pip install -e ".[all,dev]"
 
+# Activate, or the shell will report `ettok: not recognized` -- the command is
+# installed inside the virtual environment rather than system-wide.
+.venv\Scripts\Activate.ps1     # Windows PowerShell
+# .venv\Scriptsctivate.bat   # Windows cmd.exe
+# source .venv/bin/activate     # macOS / Linux
+
 ettok        # the CLI; `hermes` still works as an alias
 ```
+
+From a shell with nothing activated, prefix with `uv run` instead:
+`uv run ettok doctor`. That is also the form to use in a scheduled task.
 
 The upstream one-liner further down this file (`hermes-agent.nousresearch.com/install.sh`)
 installs **Nous's Hermes, not Ettok AI**. It is left in place because the rest of
