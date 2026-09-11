@@ -37,10 +37,34 @@ a model call per post in a feed is unaffordable.
    is context-dependent. Capture the parent's image or video text too — a large
    share of this material is a meme, and a text-only reading sees an empty post
    above a hostile comment.
-4. **`ettok_scan`** — deduplicates, matches, classifies what matched if there is
+4. **`ettok_collect`** on each post worth reading. It captures evidence before it
+   extracts anything, and stops if the platform presents a challenge.
+5. **`ettok_scan`** — deduplicates, matches, classifies what matched if there is
    budget, queues findings and delivers them.
-5. **Check the result.** `stop_reason` says why the run ended. `budget_note` says
+6. **Check the result.** `stop_reason` says why the run ended. `budget_note` says
    whether you ran degraded. `readiness` says what this case can actually detect.
+
+## When collection finds nothing
+
+This is expected, not a failure. These sites generate their class names and change
+them without notice, so a selector that worked last month finds nothing today.
+**You are better at this than a hardcoded constant is** — you can read the page.
+
+`ettok_collect` returns a `page_outline` when it extracts nothing. Work from it:
+
+1. Read the outline and find the structure — the container that holds one post,
+   the containers that hold individual comments, and the element carrying an
+   author name.
+2. Test your guess with **`ettok_try_selectors`**. It reports how many comments
+   the selectors would find and shows you a sample, without attributing anything
+   to a case.
+3. When they work, save them with **`ettok_learn_selectors`**. Later runs use them
+   directly, so the next run does not pay to rediscover what you just worked out.
+4. Collect again.
+
+If several attempts find nothing, stop and say so. A page that resists extraction
+may be a login wall or a challenge rather than a layout change, and those are
+answered by stopping, not by trying harder.
 
 ## What you may not decide
 

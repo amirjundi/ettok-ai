@@ -70,7 +70,8 @@ def test_loads_and_registers_its_tools_when_enabled(hermes_home):
 
     registered = set(manager._plugin_tool_names)
     for tool in ('ettok_sync_knowledge', 'ettok_submit', 'ettok_case_status',
-                 'ettok_match', 'ettok_classify', 'ettok_explain', 'ettok_scan', 'ettok_collect'):
+                 'ettok_match', 'ettok_classify', 'ettok_explain', 'ettok_scan', 'ettok_collect',
+                 'ettok_try_selectors', 'ettok_learn_selectors'):
         assert tool in registered, f'{tool} was not registered (have: {sorted(registered)})'
 
 

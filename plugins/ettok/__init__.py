@@ -54,6 +54,14 @@ def _guard(fn):
     return wrapper
 
 
+def _learned_selectors(ctx, platform: str):
+    """Selectors the agent worked out on a previous run, if any."""
+    try:
+        return (ctx.get_config('selectors', {}) or {}).get(platform)
+    except Exception:
+        return None
+
+
 def _services(ctx):
     """Config, database and client, assembled the same way everywhere."""
     from . import config as config_mod
@@ -223,8 +231,7 @@ def _make_tools(ctx):
             return _tool_error('A url is required.')
 
         platform = (args.get('platform') or 'facebook').strip().lower()
-        collector = collect_mod.for_platform(ctx, platform)
-        if collector is None:
+        if platform not in collect_mod.COLLECTORS:
             return _tool_error(
                 f'No collector for "{platform}". Supported: '
                 + ', '.join(sorted(collect_mod.COLLECTORS))
@@ -238,6 +245,10 @@ def _make_tools(ctx):
                 f'block. Use another account or wait for its cooldown.'
             )
 
+        learned = _learned_selectors(ctx, platform)
+        collector = collect_mod.for_platform(
+            ctx, platform, selectors=args.get('selectors') or learned,
+        )
         result = collector.collect(url, capture_evidence=args.get('capture_evidence', True))
 
         if not result.ok:
@@ -269,10 +280,66 @@ def _make_tools(ctx):
             count=len(result.items),
             evidence_captured=bool(evidence and evidence.is_complete),
             evidence_hash=(evidence.content_hash if evidence else ''),
+            selectors_in_use=('learned' if learned else 'default'),
             note=('Each item carries the post it replies to. Pass them to ettok_scan.'
                   if result.items else
-                  'Nothing was extracted. The page may use a layout the selectors do not '
-                  'match, which is configuration rather than a failure -- report it.'),
+                  'Nothing was extracted, which usually means this page uses a layout the '
+                  'current selectors do not match -- these sites change their markup '
+                  'without notice. Read the page_outline below, work out selectors for '
+                  'the post container, the comment containers and the author element, '
+                  'test them with ettok_try_selectors, and save the working set with '
+                  'ettok_learn_selectors. Then collect again.'),
+            page_outline=('' if result.items else collector.page_outline()),
+        )
+
+    @_guard
+    def try_selectors(args: dict, **_) -> str:
+        """Test a guess at the page's layout before committing to it."""
+        from .collect import base as collect_mod
+
+        selectors = args.get('selectors') or {}
+        missing = [k for k in ('post', 'comment', 'author') if not selectors.get(k)]
+        if missing:
+            return _tool_error(f'selectors must include: {", ".join(missing)}')
+
+        collector = collect_mod.for_platform(
+            ctx, (args.get('platform') or 'facebook').lower(), selectors=selectors,
+        )
+        if collector is None:
+            return _tool_error('No collector for that platform.')
+
+        outcome = collector.probe(selectors)
+        return _tool_result(
+            **outcome,
+            note=('These work. Save them with ettok_learn_selectors so later runs '
+                  'do not have to work them out again.' if outcome.get('ok') else
+                  'These found nothing. Try a different container selector.'),
+        )
+
+    @_guard
+    def learn_selectors(args: dict, **_) -> str:
+        """Remember a working layout, so the next run starts from it.
+
+        Saved to plugin config rather than code: these change when the site
+        changes, and an agent that re-derives them every run pays for the same
+        discovery repeatedly.
+        """
+        selectors = args.get('selectors') or {}
+        platform = (args.get('platform') or 'facebook').strip().lower()
+        missing = [k for k in ('post', 'comment', 'author') if not selectors.get(k)]
+        if missing:
+            return _tool_error(f'selectors must include: {", ".join(missing)}')
+
+        try:
+            store = dict(ctx.get_config('selectors', {}) or {})
+            store[platform] = selectors
+            ctx.set_config('selectors', store)
+        except Exception as exc:                      # noqa: BLE001
+            return _tool_error(f'could not save selectors: {exc}')
+
+        return _tool_result(
+            saved=True, platform=platform, selectors=selectors,
+            note='Later runs will use these without re-deriving them.',
         )
 
     @_guard
@@ -334,6 +401,55 @@ def _make_tools(ctx):
             },
             collect,
             '🧰',
+        ),
+        (
+            'ettok_try_selectors',
+            {
+                'name': 'ettok_try_selectors',
+                'description': (
+                    'Test CSS selectors against the page currently open, and report how '
+                    'many comments they would find. Use this after reading a page_outline '
+                    'when collection found nothing.'
+                ),
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'selectors': {
+                            'type': 'object',
+                            'description': 'Keys: post, comment, author.',
+                            'properties': {
+                                'post': {'type': 'string'},
+                                'comment': {'type': 'string'},
+                                'author': {'type': 'string'},
+                            },
+                        },
+                        'platform': {'type': 'string'},
+                    },
+                    'required': ['selectors'],
+                },
+            },
+            try_selectors,
+            '🧪',
+        ),
+        (
+            'ettok_learn_selectors',
+            {
+                'name': 'ettok_learn_selectors',
+                'description': (
+                    'Save a working set of selectors so later runs use them directly. Do '
+                    'this once ettok_try_selectors confirms they find comments.'
+                ),
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'selectors': {'type': 'object'},
+                        'platform': {'type': 'string'},
+                    },
+                    'required': ['selectors'],
+                },
+            },
+            learn_selectors,
+            '📝',
         ),
         (
             'ettok_scan',

@@ -80,10 +80,14 @@ class BrowserCollector:
 
     platform = 'unknown'
 
-    def __init__(self, ctx, *, pacer=None, extractors=None):
+    def __init__(self, ctx, *, pacer=None, extractors=None, selectors=None):
         self._ctx = ctx
         self._pacer = pacer or session_mod.Pacer()
         self._extractors = extractors or DEFAULT_EXTRACTORS
+        # An override the agent supplies after reading the page itself. Selectors
+        # against a social platform are a moving target, and an agent that can look
+        # at the DOM beats a constant that was right last month.
+        self._selectors = selectors
 
     # -- tool plumbing ----------------------------------------------------
 
@@ -105,6 +109,44 @@ class BrowserCollector:
         return json.dumps(snapshot, ensure_ascii=False)
 
     # -- the run ----------------------------------------------------------
+
+    def page_outline(self, *, limit: int = 6000) -> str:
+        """What the page looks like, for an agent that has to work out the layout.
+
+        Returned when the configured selectors find nothing, so the agent can read
+        the structure itself rather than an operator guessing at class names that
+        changed last week.
+        """
+        return self._page_text()[:limit]
+
+    def probe(self, selectors: dict) -> dict:
+        """Try a set of selectors and report what they would yield.
+
+        Lets the agent test a guess cheaply before committing to it, and before
+        anything is attributed to a case.
+        """
+        expression = _EXTRACT_JS % json.dumps(selectors)
+        try:
+            payload = self._call('browser_console', {'expression': expression})
+        except Exception as exc:                      # noqa: BLE001
+            return {'ok': False, 'error': str(exc)}
+
+        blob = payload.get('result') or payload.get('value') or payload.get('raw') or ''
+        if isinstance(blob, str):
+            try:
+                blob = json.loads(blob)
+            except ValueError:
+                return {'ok': False, 'error': 'selectors returned unusable output'}
+        if not isinstance(blob, dict):
+            return {'ok': False, 'error': 'selectors returned no object'}
+
+        comments = blob.get('comments', [])
+        return {
+            'ok': bool(comments),
+            'comments_found': len(comments),
+            'parent_post_found': bool((blob.get('parent_post_text') or '').strip()),
+            'sample': [c.get('text', '')[:120] for c in comments[:3]],
+        }
 
     def collect(self, url: str, *, capture_evidence: bool = True) -> CollectionResult:
         """Open one page and take what is on it.
@@ -142,7 +184,7 @@ class BrowserCollector:
 
     def _extract(self, url: str, page_text: str) -> list:
         """Pull comments and their parent post out of the loaded page."""
-        selectors = self._extractors.get(self.platform)
+        selectors = self._selectors or self._extractors.get(self.platform)
         if not selectors:
             return []
 
