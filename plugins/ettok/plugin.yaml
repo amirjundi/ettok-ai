@@ -1,0 +1,30 @@
+name: ettok
+version: 0.1.0
+description: >-
+  Hate speech monitoring for minority communities in Iraq. Collects public social
+  media content, matches it against expert-curated terms and tropes, and delivers
+  evidence-backed findings to the Ettok platform for human review.
+author: Ettok
+# standalone, so it loads only when enabled. `backend` would auto-load it into
+# every session including the runtime's own test suite, where this plugin's
+# system-prompt section broke an upstream test asserting an exact prompt. Fixing
+# that test would mean carrying a conflict on every `git merge upstream/main`
+# forever; requiring `hermes plugins enable ettok` costs one line in the installer.
+kind: standalone
+provides_tools:
+  - ettok_sync_knowledge
+  - ettok_collect
+  - ettok_match
+  - ettok_classify
+  - ettok_discover
+  - ettok_submit
+  - ettok_case_status
+  - ettok_explain
+optional_env:
+  - name: ETTOK_PLATFORM_URL
+    description: "Base URL of the Ettok platform, e.g. https://ettok.example. Defaults to localhost."
+  - name: ETTOK_AGENT_KEY
+    description: "Agent key issued by the platform. Written by `ettok connect`; do not set by hand."
+    secret: true
+  - name: ETTOK_AGENT_ID
+    description: "This machine's agent id, chosen during `ettok connect`."
