@@ -1,0 +1,10 @@
+{
+  "name": "ettok",
+  "label": "Ettok",
+  "description": "Monitoring state: delivery queue, account health, recent runs, and what the agent cannot yet detect.",
+  "icon": "Shield",
+  "version": "0.1.0",
+  "tab": { "path": "/ettok", "position": "after:analytics" },
+  "entry": "dist/index.js",
+  "api": "plugin_api.py"
+}
