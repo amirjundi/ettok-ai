@@ -48,7 +48,7 @@ uv pip install -e ".[all,dev]"
 # .venv\Scripts\activate.bat   # Windows cmd.exe
 # source .venv/bin/activate     # macOS / Linux
 
-ettok        # the CLI; `hermes` still works as an alias
+ettok        # the CLI
 ```
 
 From a shell with nothing activated, prefix with `uv run` instead:
@@ -101,7 +101,7 @@ still describes the runtime accurately.
 
 **The self-improving AI agent built by [Nous Research](https://nousresearch.com).** It's the only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, searches its own past conversations, and builds a deepening model of who you are across sessions. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle. It's not tied to your laptop — talk to it from Telegram while it works on a cloud VM.
 
-Use any model you want — [Nous Portal](https://portal.nousresearch.com), OpenRouter, OpenAI, your own endpoint, and [many others](https://hermes-agent.nousresearch.com/docs/integrations/providers). Switch with `hermes model` — no code changes, no lock-in.
+Use any model you want — [Nous Portal](https://portal.nousresearch.com), OpenRouter, OpenAI, your own endpoint, and [many others](https://hermes-agent.nousresearch.com/docs/integrations/providers). Switch with `ettok model` — no code changes, no lock-in.
 
 <table>
 <tr><td><b>A real terminal interface</b></td><td>Full TUI with multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output.</td></tr>
@@ -145,7 +145,7 @@ After installation:
 
 ```bash
 source ~/.bashrc    # reload shell (or: source ~/.zshrc)
-hermes              # start chatting!
+ettok              # start chatting!
 ```
 
 ### Troubleshooting
@@ -188,16 +188,16 @@ For more context, see the upstream Astral reports: [astral-sh/uv#13553](https://
 ## Getting Started
 
 ```bash
-hermes              # Interactive CLI — start a conversation
-hermes model        # Choose your LLM provider and model
-hermes tools        # Configure which tools are enabled
-hermes config set   # Set individual config values
-hermes config get   # Print individual config values
-hermes gateway      # Start the messaging gateway (Telegram, Discord, etc.)
-hermes setup        # Run the full setup wizard (configures everything at once)
-hermes claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
-hermes update       # Update to the latest version
-hermes doctor       # Diagnose any issues
+ettok              # Interactive CLI — start a conversation
+ettok model        # Choose your LLM provider and model
+ettok tools        # Configure which tools are enabled
+ettok config set   # Set individual config values
+ettok config get   # Print individual config values
+ettok gateway      # Start the messaging gateway (Telegram, Discord, etc.)
+ettok setup        # Run the full setup wizard (configures everything at once)
+ettok claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
+ettok update       # Update to the latest version
+ettok doctor       # Diagnose any issues
 ```
 
 📖 **[Full documentation →](https://hermes-agent.nousresearch.com/docs/)**
@@ -214,7 +214,7 @@ Hermes works with whatever provider you want — that's not changing. But if you
 One command from a fresh install:
 
 ```bash
-hermes setup --portal
+ettok setup --portal
 ```
 
 That logs you in via OAuth, sets Nous as your provider, and turns on the Tool Gateway. Check what's wired up any time with `hermes portal info`. Full details on the [Tool Gateway docs page](https://hermes-agent.nousresearch.com/docs/user-guide/features/tool-gateway).
@@ -229,7 +229,7 @@ Hermes has two entry points: start the terminal UI with `hermes`, or run the gat
 
 | Action                         | CLI                                           | Messaging platforms                                                              |
 | ------------------------------ | --------------------------------------------- | -------------------------------------------------------------------------------- |
-| Start chatting                 | `hermes`                                      | Run `hermes gateway setup` + `hermes gateway start`, then send the bot a message |
+| Start chatting                 | `hermes`                                      | Run `ettok gateway setup` + `ettok gateway start`, then send the bot a message |
 | Start fresh conversation       | `/new` or `/reset`                            | `/new` or `/reset`                                                               |
 | Change model                   | `/model [provider:model]`                     | `/model [provider:model]`                                                        |
 | Set a personality              | `/personality [name]`                         | `/personality [name]`                                                            |
@@ -271,15 +271,15 @@ All documentation lives at **[hermes-agent.nousresearch.com/docs](https://hermes
 
 If you're coming from OpenClaw, Hermes can automatically import your settings, memories, skills, and API keys.
 
-**During first-time setup:** The setup wizard (`hermes setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
+**During first-time setup:** The setup wizard (`ettok setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
 
 **Anytime after install:**
 
 ```bash
-hermes claw migrate              # Interactive migration (full preset)
-hermes claw migrate --dry-run    # Preview what would be migrated
-hermes claw migrate --preset user-data   # Migrate without secrets
-hermes claw migrate --overwrite  # Overwrite existing conflicts
+ettok claw migrate              # Interactive migration (full preset)
+ettok claw migrate --dry-run    # Preview what would be migrated
+ettok claw migrate --preset user-data   # Migrate without secrets
+ettok claw migrate --overwrite  # Overwrite existing conflicts
 ```
 
 What gets imported:
@@ -293,7 +293,7 @@ What gets imported:
 - **TTS assets** — workspace audio files
 - **Workspace instructions** — AGENTS.md (with `--workspace-target`)
 
-See `hermes claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration with dry-run previews.
+See `ettok claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration with dry-run previews.
 
 ---
 
@@ -303,7 +303,7 @@ We welcome contributions! See the [Contributing Guide](https://hermes-agent.nous
 
 Quick start for contributors — use the standard installer, then work from the
 full git checkout it creates at `$HERMES_HOME/hermes-agent` (usually
-`~/.hermes/hermes-agent`). This matches the layout used by `hermes update`, the
+`~/.hermes/hermes-agent`). This matches the layout used by `ettok update`, the
 managed venv, lazy dependencies, gateway, and docs tooling.
 
 ```bash

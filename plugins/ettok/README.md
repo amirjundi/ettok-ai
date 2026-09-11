@@ -62,7 +62,19 @@ to use in a scheduled task or a service.
 ```bash
 # The plugin is opt-in, so the runtime's own test suite stays unaffected.
 ettok plugins enable ettok
+
+# Then let it walk you through the rest.
+ettok setup
 ```
+
+`ettok setup` asks which platform to report to, requests access from an
+administrator, checks whether a model is configured, reports what the agent can
+actually detect with the knowledge currently curated, and offers to schedule
+unattended runs. It is safe to run again — every step detects what is already
+done.
+
+Run from a script rather than a terminal, it skips anything that would wait on a
+person and tells you what is left, instead of hanging on a prompt nobody can see.
 
 ## Pair with a platform
 

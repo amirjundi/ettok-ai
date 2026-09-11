@@ -24,6 +24,12 @@ def register_cli(subparser) -> None:
     connect.add_argument('--name', help='Name the administrator will see when approving')
     connect.add_argument('--timeout', type=float, default=600.0, help='Seconds to wait for approval')
 
+    wizard = commands.add_parser(
+        'setup', help='Set this machine up: platform, pairing, model, schedule',
+    )
+    wizard.add_argument('--platform', help='Platform base URL')
+    wizard.add_argument('--name', help='Name the administrator will see when approving')
+
     commands.add_parser('doctor', help='Check everything this agent needs in order to work')
     commands.add_parser('status', help='Show pairing, open cases and the delivery queue')
 
@@ -44,6 +50,7 @@ def register_cli(subparser) -> None:
 def handle_cli(args) -> int:
     command = getattr(args, 'ettok_command', None)
     handlers = {
+        'setup': _setup,
         'connect': _connect,
         'doctor': _doctor,
         'status': _status,
@@ -52,7 +59,11 @@ def handle_cli(args) -> int:
     }
     handler = handlers.get(command)
     if handler is None:
-        print('Usage: ettok {connect|doctor|status|outbox|schedule}')
+        # No subcommand is how a new operator arrives here. Point at setup
+        # rather than printing a list they have no basis for choosing from.
+        print('Usage: ettok {setup|connect|doctor|status|outbox|schedule}')
+        print()
+        print('New here? Run:  ettok setup')
         return 1
     return handler(args)
 
@@ -279,3 +290,8 @@ def _schedule(args) -> int:
     print('It survives restarts. `hermes cron list` to inspect, '
           f'`ettok schedule --remove --name {name}` to stop.')
     return 0
+
+
+def _setup(args) -> int:
+    from .setup_wizard import run
+    return run(args)
