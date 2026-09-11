@@ -69,7 +69,8 @@ def test_loads_and_registers_its_tools_when_enabled(hermes_home):
     assert loaded.enabled, f'plugin failed to load: {loaded.error}'
 
     registered = set(manager._plugin_tool_names)
-    for tool in ('ettok_sync_knowledge', 'ettok_submit', 'ettok_case_status'):
+    for tool in ('ettok_sync_knowledge', 'ettok_submit', 'ettok_case_status',
+                 'ettok_match', 'ettok_classify', 'ettok_explain'):
         assert tool in registered, f'{tool} was not registered (have: {sorted(registered)})'
 
 

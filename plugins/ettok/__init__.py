@@ -119,7 +119,169 @@ def _make_tools(ctx):
             knowledge_loaded=bool(know),
         )
 
+    @_guard
+    def match_item(args: dict, **_) -> str:
+        """Deterministic matching. Free, and always available."""
+        from .detect import match as match_mod
+
+        know = getattr(ctx, '_ettok_knowledge', None)
+        if know is None:
+            return _tool_error('No knowledge loaded. Run ettok_sync_knowledge first.')
+
+        item = {
+            'text': args.get('text', ''),
+            'parent_post_text': args.get('parent_post_text', ''),
+            'parent_media_text': args.get('parent_media_text', ''),
+        }
+        result = match_mod.evaluate(item, know)
+        return _tool_result(
+            matched=result.matched,
+            explanation=result.explain(),
+            fired_terms=[t['term'] for t in result.fired_terms],
+            fired_tropes=[{'name': t['name'], 'why': t['activation_reason']}
+                          for t in result.fired_tropes],
+            post_concerns=result.topic_groups,
+            exemptions_to_respect=result.exemption_hints,
+            skipped_terms=result.skipped_terms,
+        )
+
+    @_guard
+    def classify_item(args: dict, **_) -> str:
+        """Advisory verdict. The platform re-evaluates and its verdict stands."""
+        from .detect import classify as classify_mod
+        from .detect import match as match_mod
+
+        know = getattr(ctx, '_ettok_knowledge', None)
+        if know is None:
+            return _tool_error('No knowledge loaded. Run ettok_sync_knowledge first.')
+
+        item = {
+            'text': args.get('text', ''),
+            'parent_post_text': args.get('parent_post_text', ''),
+            'parent_media_text': args.get('parent_media_text', ''),
+        }
+        result = match_mod.evaluate(item, know)
+
+        background = ''
+        for case in know.cases:
+            for group in case.get('target_groups', []):
+                if group.get('slug') in result.topic_groups and group.get('background'):
+                    background = group['background']
+                    break
+
+        if args.get('match_only'):
+            verdict = classify_mod.from_match_only(result, know.versions)
+        else:
+            verdict = classify_mod.classify(
+                ctx, item, result, versions=know.versions, group_background=background,
+            )
+
+        return _tool_result(**verdict.as_payload(result), explanation=result.explain())
+
+    @_guard
+    def explain_item(args: dict, **_) -> str:
+        """Why an item was flagged, or why it was not.
+
+        Distinguishes the three answers a reviewer actually needs apart: nothing
+        matched, the gate was not satisfied, or an exemption applies.
+        """
+        from .detect import match as match_mod
+
+        know = getattr(ctx, '_ettok_knowledge', None)
+        if know is None:
+            return _tool_error('No knowledge loaded. Run ettok_sync_knowledge first.')
+
+        item = {
+            'text': args.get('text', ''),
+            'parent_post_text': args.get('parent_post_text', ''),
+        }
+        result = match_mod.evaluate(item, know)
+
+        if result.matched:
+            verdict = 'flagged'
+        elif result.topic_groups:
+            verdict = 'not flagged: the post concerns a monitored community, but no term or gate fired'
+        else:
+            verdict = 'not flagged: the post concerns no monitored community'
+
+        return _tool_result(
+            verdict=verdict,
+            detail=result.explain(),
+            post_concerns=result.topic_groups,
+            exemptions_that_would_apply=result.exemption_hints,
+        )
+
+    _TEXT_ARGS = {
+        'text': {'type': 'string', 'description': 'The comment being judged.'},
+        'parent_post_text': {
+            'type': 'string',
+            'description': 'The post it replies to. Context-dependent hate is invisible without this.',
+        },
+        'parent_media_text': {
+            'type': 'string',
+            'description': "Text read out of the parent post's image or video.",
+        },
+    }
+
     return [
+        (
+            'ettok_match',
+            {
+                'name': 'ettok_match',
+                'description': (
+                    'Match a comment against the synced lexicon and tropes. Deterministic '
+                    'and free -- no model call -- so it works with no budget at all. Use it '
+                    'to decide whether an item is worth classifying.'
+                ),
+                'parameters': {
+                    'type': 'object', 'properties': dict(_TEXT_ARGS), 'required': ['text'],
+                },
+            },
+            match_item,
+            '🔎',
+        ),
+        (
+            'ettok_classify',
+            {
+                'name': 'ettok_classify',
+                'description': (
+                    'Form an advisory verdict on a comment, judged together with the post '
+                    'it replies to. The Ettok platform re-evaluates every submission and a '
+                    'human reviews it, so this opinion informs triage rather than deciding '
+                    'anything. Pass match_only to skip the model call entirely.'
+                ),
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        **_TEXT_ARGS,
+                        'match_only': {
+                            'type': 'boolean',
+                            'description': 'Skip the model and report only what matched.',
+                        },
+                    },
+                    'required': ['text'],
+                },
+            },
+            classify_item,
+            '🧭',
+        ),
+        (
+            'ettok_explain',
+            {
+                'name': 'ettok_explain',
+                'description': (
+                    'Explain why a comment was or was not flagged: whether nothing matched, '
+                    'the activation gate was unmet, or an exemption applies.'
+                ),
+                'parameters': {
+                    'type': 'object',
+                    'properties': {k: _TEXT_ARGS[k] for k in ('text', 'parent_post_text')},
+                    'required': ['text'],
+                },
+            },
+            explain_item,
+            '💡',
+        ),
         (
             'ettok_sync_knowledge',
             {
