@@ -45,7 +45,7 @@ Windows, PowerShell:
 Windows, cmd.exe:
 
 ```bat
-.venv\Scriptsctivate.bat
+.venv\Scripts\activate.bat
 ```
 
 macOS and Linux:

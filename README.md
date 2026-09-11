@@ -45,7 +45,7 @@ uv pip install -e ".[all,dev]"
 # Activate, or the shell will report `ettok: not recognized` -- the command is
 # installed inside the virtual environment rather than system-wide.
 .venv\Scripts\Activate.ps1     # Windows PowerShell
-# .venv\Scriptsctivate.bat   # Windows cmd.exe
+# .venv\Scripts\activate.bat   # Windows cmd.exe
 # source .venv/bin/activate     # macOS / Linux
 
 ettok        # the CLI; `hermes` still works as an alias
