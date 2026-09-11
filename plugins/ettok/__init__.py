@@ -211,6 +211,26 @@ def _make_tools(ctx):
             exemptions_that_would_apply=result.exemption_hints,
         )
 
+    @_guard
+    def scan(args: dict, **_) -> str:
+        """Work a batch of items end to end: match, classify, queue, deliver."""
+        from . import scan as scan_mod
+
+        items = args.get('items') or []
+        if not isinstance(items, list) or not items:
+            return _tool_error(
+                'No items supplied. Pass items: [{text, parent_post_text, url, platform}]. '
+                'Each comment needs the post it replies to, or context-dependent hate '
+                'cannot be judged.'
+            )
+        return _tool_result(**scan_mod.run(
+            ctx,
+            items=items,
+            case_id=args.get('case_id'),
+            classify=args.get('classify', True),
+            submit=args.get('submit', True),
+        ))
+
     _TEXT_ARGS = {
         'text': {'type': 'string', 'description': 'The comment being judged.'},
         'parent_post_text': {
@@ -224,6 +244,47 @@ def _make_tools(ctx):
     }
 
     return [
+        (
+            'ettok_scan',
+            {
+                'name': 'ettok_scan',
+                'description': (
+                    'Work a batch of collected comments end to end for the current case: '
+                    'deduplicate, match against the synced lexicon and tropes, classify '
+                    'what matched if there is budget, queue the findings and deliver them. '
+                    'Each item needs the post it replies to. Safe to re-run: items already '
+                    'seen are skipped and delivery never duplicates.'
+                ),
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'items': {
+                            'type': 'array',
+                            'description': 'Collected comments, each with its parent post.',
+                            'items': {
+                                'type': 'object',
+                                'properties': {
+                                    'text': {'type': 'string'},
+                                    'parent_post_text': {'type': 'string'},
+                                    'parent_media_text': {'type': 'string'},
+                                    'url': {'type': 'string'},
+                                    'platform': {'type': 'string'},
+                                    'author_name': {'type': 'string'},
+                                    'author_id': {'type': 'string'},
+                                },
+                                'required': ['text'],
+                            },
+                        },
+                        'case_id': {'type': 'integer', 'description': 'Case to attribute this to.'},
+                        'classify': {'type': 'boolean', 'description': 'Skip the model pass if false.'},
+                        'submit': {'type': 'boolean', 'description': 'Queue only, do not deliver.'},
+                    },
+                    'required': ['items'],
+                },
+            },
+            scan,
+            '🛰',
+        ),
         (
             'ettok_match',
             {
