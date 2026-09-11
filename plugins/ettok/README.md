@@ -76,6 +76,28 @@ done.
 Run from a script rather than a terminal, it skips anything that would wait on a
 person and tells you what is left, instead of hanging on a prompt nobody can see.
 
+## Before the agent browses
+
+Collection needs a real browser. Install it now rather than letting the agent ask
+mid-run — an unattended run has nobody to answer, and an attended one gets
+interrupted by a question about npm at the worst moment.
+
+```bash
+npm install -g agent-browser
+agent-browser install
+```
+
+`ettok doctor` reports whether it is present.
+
+### A note on Windows terminals
+
+Use **PowerShell**, **cmd.exe** or **Windows Terminal**. Git Bash and MinTTY do
+not give Python a real console, so arrow-key menus and yes/no prompts render but
+do not accept keystrokes — the prompt appears and nothing you press reaches it.
+
+If a menu asks for a number instead of offering arrow keys, `curses` is missing;
+re-run `uv pip install -e .` to pick up `windows-curses`.
+
 ## Pair with a platform
 
 The agent is open source, so anyone can run it. Being able to reach a platform and

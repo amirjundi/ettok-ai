@@ -185,6 +185,30 @@ def _doctor(args) -> int:
         check('browser tooling present', True)
     except Exception as exc:
         check('browser tooling present', False, str(exc))
+    else:
+        # Importing the module proves nothing about whether a browser exists.
+        # Without one the agent asks permission to download 170MB mid-run, which
+        # is the worst moment to ask -- an unattended run has nobody to answer,
+        # and an attended one is interrupted by a question about npm.
+        try:
+            from tools.browser_tool_install import _chromium_installed
+            if _chromium_installed():
+                check('browser installed', True)
+            else:
+                check('browser installed', False,
+                      'run: npm install -g agent-browser && agent-browser install')
+                print('        Collection needs a real browser. Installing it now means the '
+                      'agent never has to stop mid-run to ask.')
+        except Exception:
+            check('browser installed', False, 'could not determine; install it to be sure')
+
+    try:
+        import curses  # noqa: F401
+        check('interactive menus available', True)
+    except ImportError:
+        # Windows ships no curses, and the setup wizard's arrow-key menus need it.
+        check('interactive menus available', False,
+              'reinstall to pick up windows-curses, or menus fall back to numbers')
 
     failed = [label for label, ok, _ in checks if not ok]
     print('\n' + ('All checks passed.' if not failed else f'{len(failed)} check(s) failed.'))

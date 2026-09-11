@@ -114,6 +114,12 @@ dependencies = [
   # Python resolves automatically.  No-op on Linux/macOS (which have
   # /usr/share/zoneinfo).  Credits: PR #13182 (@sprmn24).
   "tzdata==2025.3; sys_platform == 'win32'",
+  # Python ships no `curses` on Windows, and the setup wizard's arrow-key menus
+  # are built on it (`hermes_cli/curses_ui.py`). Without this, choosing a model
+  # provider degrades to typing a number at a list -- it still works, it just
+  # silently becomes a worse tool on the one platform where the omission is
+  # invisible until a user hits it. No-op everywhere else.
+  "windows-curses==2.4.1; sys_platform == 'win32'",
   # Cross-platform process / PID management.  `psutil` is the canonical
   # answer for "is this PID alive" and process-tree walking across Linux,
   # macOS and Windows.  It replaces POSIX-only idioms like `os.kill(pid, 0)`
