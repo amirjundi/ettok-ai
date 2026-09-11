@@ -29,6 +29,26 @@ Findings are advisory. Every one is reviewed by a human before it goes anywhere.
   lexicon, tropes, cases and review queue. The agent holds no authoritative
   knowledge and caches what it fetches only for the duration of one run.
 
+## Installing
+
+Ettok AI is not published to a package index; install it from this repository.
+
+```bash
+git clone https://github.com/amirjundi/ettok-ai.git
+cd ettok-ai
+
+# uv fetches its own Python 3.11 -- the runtime caps at <3.14 deliberately,
+# because the Rust-backed dependencies have no wheels above it.
+uv venv --python 3.11
+uv pip install -e ".[all,dev]"
+
+ettok        # the CLI; `hermes` still works as an alias
+```
+
+The upstream one-liner further down this file (`hermes-agent.nousresearch.com/install.sh`)
+installs **Nous's Hermes, not Ettok AI**. It is left in place because the rest of
+the upstream documentation refers to it, but it is not the way to install this.
+
 ## Built on Hermes Agent
 
 Ettok AI is built on [Hermes Agent](https://github.com/NousResearch/hermes-agent)
