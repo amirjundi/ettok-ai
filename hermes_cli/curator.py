@@ -696,7 +696,7 @@ def register_cli(parent: argparse.ArgumentParser) -> None:
 
 def cli_main(argv=None) -> int:
     """Standalone entry (also usable by hermes_cli.main fallthrough)."""
-    parser = argparse.ArgumentParser(prog="hermes curator")
+    parser = argparse.ArgumentParser(prog="ettok curator")
     register_cli(parser)
     args = parser.parse_args(argv)
     return int(args.func(args) or 0)
