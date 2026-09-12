@@ -334,7 +334,7 @@ def _finish_dashboard_update_cleanup(
     print()
     print("⚠ A web dashboard/serve process was stopped during update and could not be auto-restarted.")
     print("  Re-launch it when you want the web UI back:")
-    print("    hermes dashboard --port <port>")
+    print("    ettok dashboard --port <port>")
 
 
 def _print_update_completion(message: str) -> None:

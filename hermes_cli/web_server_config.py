@@ -548,8 +548,8 @@ def _dashboard_skew_restart_hint() -> str:
             "(use Restart backend in Hermes Desktop, or quit and reopen the app)"
         )
     return (
-        "restart this Hermes process to load the new code "
-        "(hermes dashboard --port <port>, or the equivalent service restart for this install)"
+        "restart this Ettok process to load the new code "
+        "(ettok dashboard --port <port>, or the equivalent service restart for this install)"
     )
 
 

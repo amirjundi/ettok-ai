@@ -12,10 +12,26 @@ from pathlib import Path
 
 # Cmdline substrings identifying the long-lived server (``serve`` = the headless name Desktop
 # spawns; reaped on update for the same reason).
+#
+# ``ettok`` is this build's console script and ``hermes`` the upstream one; both are kept so a
+# mixed or partially-migrated install is still recognised.
+#
+# The suffixes are what makes this work on Windows. A console script there is an ``.exe``
+# shim, and the cmdline reads ``"C:\...\ettok.exe" dashboard`` -- quoted whenever the path
+# holds a space, which the default install path does. Matching only ``ettok dashboard`` found
+# nothing on Windows, so update left the old process running and the user met a stale-code
+# 503 instead of a restarted dashboard. A failure to match is silent by construction: the
+# reaper simply reports no processes.
 _DASHBOARD_PATTERNS = tuple(
     f"{launcher} {cmd}"
     for cmd in ("dashboard", "serve")
-    for launcher in ("hermes", "hermes_cli.main", "hermes_cli/main.py"))
+    for launcher in (
+        # Console scripts, each also as the Windows .exe shim, quoted and not.
+        *(f"{name}{suffix}"
+          for name in ("ettok", "hermes")
+          for suffix in ("", ".exe", '.exe"')),
+        # Module invocations; no shim involved.
+        "hermes_cli.main", "hermes_cli/main.py"))
 _PS_RUN_KWARGS = dict(capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
@@ -376,7 +392,7 @@ def _kill_stale_dashboard_processes(
     else:
         unrecovered = list(killed)
         if killed:
-            print("  Restart the dashboard when you're ready:\n    hermes dashboard --port <port>")
+            print("  Restart the dashboard when you're ready:\n    ettok dashboard --port <port>")
     return {"matched": list(pids), "killed": list(killed), "failed": list(failed),
             "unrecovered": list(unrecovered)}
 
@@ -417,7 +433,7 @@ def _restart_killed_backends(
     if failed_cmds:
         unrecovered.extend(p for p in killed if pid_cmdline.get(p) in failed_cmds)
     if failed_restarts or unrecovered:
-        print("  Restart anything not auto-restarted when you're ready:\n    hermes dashboard --port <port>")
+        print("  Restart anything not auto-restarted when you're ready:\n    ettok dashboard --port <port>")
     return unrecovered
 
 
