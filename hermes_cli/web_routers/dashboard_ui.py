@@ -76,7 +76,7 @@ async def set_dashboard_theme(body: ThemeSetBody):
 _FONT_DEFAULT_ID = "theme"
 _FONT_CHOICES = frozenset({
     "system-sans", "system-serif", "system-mono",
-    "inter", "ibm-plex-sans", "work-sans", "atkinson-hyperlegible", "dm-sans",
+    "inter", "instrument-sans", "ibm-plex-sans", "work-sans", "atkinson-hyperlegible", "dm-sans",
     "spectral", "fraunces", "source-serif",
     "jetbrains-mono", "ibm-plex-mono", "space-mono",
 })

@@ -116,10 +116,10 @@
     + '.ettok-mdh{margin:13px 0 6px;font-weight:600}'
     + '.ettok-ul{margin:0 0 9px;padding-left:22px}.ettok-ul li{margin:3px 0}'
     + '.ettok-code{background:rgba(128,128,128,.16);padding:1px 5px;border-radius:3px;'
-    + 'font-family:ui-monospace,Menlo,monospace;font-size:.9em}'
+    + 'font-family:var(--theme-font-mono, ui-monospace, Menlo, monospace);font-size:.9em}'
     + '.ettok-pre{background:rgba(128,128,128,.12);padding:12px 14px;border-radius:5px;'
     + 'overflow-x:auto;margin:0 0 10px}'
-    + '.ettok-pre code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.5}';
+    + '.ettok-pre code{font-family:var(--theme-font-mono, ui-monospace, Menlo, monospace);font-size:12.5px;line-height:1.5}';
 
   function useMarkdownStyles() {
     useEffect(function () {
@@ -132,26 +132,61 @@
   }
 
   const C = {
-    page: { display: "flex", flexDirection: "column", height: "100%", maxWidth: "900px",
-            margin: "0 auto", padding: "20px 24px", gap: "12px", boxSizing: "border-box" },
-    head: { display: "flex", alignItems: "baseline", gap: "10px" },
+    shell: { display: "flex", height: "100%", minHeight: 0 },
+
+    // Sidebar
+    side: { width: "232px", flexShrink: 0, borderRight: "1px solid rgba(128,128,128,0.2)",
+            display: "flex", flexDirection: "column", padding: "14px 10px", gap: "8px",
+            minHeight: 0 },
+    newBtn: { padding: "8px 12px", borderRadius: "6px", cursor: "pointer", textAlign: "left",
+              border: "1px solid rgba(128,128,128,0.3)", background: "transparent",
+              color: "inherit", font: "inherit", fontSize: "13px", fontWeight: 600 },
+    sideList: { flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "2px",
+                minHeight: 0 },
+    sideItem: { padding: "7px 9px", borderRadius: "5px", cursor: "pointer", textAlign: "left",
+                border: "none", background: "transparent", color: "inherit", font: "inherit",
+                display: "block", width: "100%" },
+    sideItemActive: { background: "rgba(90,130,190,0.14)" },
+    sideTitle: { fontSize: "13px", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden",
+                 textOverflow: "ellipsis" },
+
+    // Main column
+    page: { flex: 1, display: "flex", flexDirection: "column", maxWidth: "900px",
+            margin: "0 auto", padding: "16px 24px", gap: "12px", minHeight: 0,
+            boxSizing: "border-box" },
+    head: { display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" },
     h1: { fontSize: "18px", fontWeight: 600, margin: 0 },
-    sub: { fontSize: "12px", opacity: 0.55, margin: 0 },
+    meta: { fontSize: "11.5px", opacity: 0.55, whiteSpace: "nowrap" },
+    select: { background: "transparent", color: "inherit", font: "inherit", fontSize: "11.5px",
+              border: "1px solid rgba(128,128,128,0.3)", borderRadius: "5px", padding: "3px 6px" },
+
+    // Transcript
     log: { flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "14px",
-           paddingRight: "6px" },
+           paddingRight: "6px", minHeight: 0 },
     who: { fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em",
            opacity: 0.55, fontWeight: 600, marginBottom: "3px" },
     body: { fontSize: "14px", lineHeight: 1.62 },
     userBody: { fontSize: "14px", lineHeight: 1.62, background: "rgba(128,128,128,0.10)",
                 padding: "10px 14px", borderRadius: "6px" },
     tools: { display: "flex", flexDirection: "column", gap: "2px", fontSize: "12px",
-             fontFamily: "ui-monospace,Menlo,monospace", opacity: 0.75, margin: "0 0 8px" },
+             fontFamily: "var(--theme-font-mono, ui-monospace, Menlo, monospace)",
+             opacity: 0.75, margin: "0 0 8px" },
+
+    // Composer
+    chips: { display: "flex", flexWrap: "wrap", gap: "6px" },
+    chip: { display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px",
+            background: "rgba(128,128,128,0.14)", borderRadius: "4px", padding: "3px 4px 3px 8px" },
+    chipX: { border: "none", background: "transparent", color: "inherit", cursor: "pointer",
+             fontSize: "14px", lineHeight: 1, padding: "0 4px" },
     row: { display: "flex", gap: "8px", alignItems: "flex-end" },
+    attach: { padding: "10px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "15px",
+              border: "1px solid rgba(128,128,128,0.3)", background: "transparent", color: "inherit" },
     input: { flex: 1, resize: "none", minHeight: "44px", maxHeight: "180px", padding: "11px 13px",
              borderRadius: "6px", border: "1px solid rgba(128,128,128,0.3)", background: "transparent",
              color: "inherit", font: "inherit", fontSize: "14px" },
     send: { padding: "11px 20px", borderRadius: "6px", border: "none", cursor: "pointer",
             fontWeight: 600, background: "rgb(90,130,190)", color: "#fff" },
+
     warn: { background: "rgba(200,140,40,0.12)", borderLeft: "3px solid rgb(180,120,30)",
             color: "rgb(180,120,30)", padding: "10px 14px", borderRadius: "0 4px 4px 0",
             fontSize: "13px" },
@@ -167,46 +202,195 @@
     });
   }
 
+  function ago(iso) {
+    if (!iso) return "";
+    const t = typeof iso === "number" ? iso * 1000 : new Date(iso).getTime();
+    const secs = Math.max(0, (Date.now() - t) / 1000);
+    if (secs < 60) return "just now";
+    if (secs < 3600) return Math.round(secs / 60) + "m ago";
+    if (secs < 86400) return Math.round(secs / 3600) + "h ago";
+    return Math.round(secs / 86400) + "d ago";
+  }
+
+  function compact(n) {
+    if (!n) return "0";
+    if (n < 1000) return String(n);
+    if (n < 1000000) return (n / 1000).toFixed(n < 10000 ? 1 : 0) + "k";
+    return (n / 1000000).toFixed(1) + "M";
+  }
+
+  /** Tokens in this conversation against what the model can hold.
+   *
+   *  Worth the screen space: the agent silently compresses a session that
+   *  outgrows its window, and a long case discussion losing its early context
+   *  looks like the agent forgetting rather than a limit being hit. */
+  function ContextMeter(props) {
+    const used = props.used || 0;
+    const limit = props.limit || 0;
+    if (!limit) return null;
+    const pct = Math.min(100, (used / limit) * 100);
+    const tone = pct > 85 ? "rgb(200,70,50)" : pct > 60 ? "rgb(180,120,30)" : "rgb(90,130,190)";
+    return h("div", { style: { display: "flex", alignItems: "center", gap: "7px" },
+                      title: used.toLocaleString() + " of " + limit.toLocaleString() + " tokens" },
+      h("div", { style: { width: "54px", height: "4px", borderRadius: "2px",
+                          background: "rgba(128,128,128,0.25)", overflow: "hidden" } },
+        h("div", { style: { width: pct + "%", height: "100%", background: tone } })),
+      h("span", { style: C.meta }, compact(used) + " / " + compact(limit)));
+  }
+
+  function Sessions(props) {
+    return h("div", { style: C.side },
+      h("button", {
+        style: C.newBtn,
+        onClick: props.onNew,
+      }, "+  New chat"),
+      h("div", { style: C.sideList },
+        (props.sessions || []).length === 0
+          ? h("div", { style: Object.assign({}, C.meta, { padding: "8px 4px" }) },
+              "No conversations yet.")
+          : props.sessions.map(function (s) {
+              const active = s.id === props.activeId;
+              return h("button", {
+                key: s.id,
+                onClick: function () { props.onOpen(s.id); },
+                style: Object.assign({}, C.sideItem, active ? C.sideItemActive : {}),
+                title: s.preview || s.title || s.id,
+              },
+                h("div", { style: C.sideTitle }, s.title || "Untitled"),
+                h("div", { style: C.meta },
+                  ago(s.last_activity_at || s.started_at)
+                  + (s.message_count ? "  ·  " + s.message_count + " msgs" : "")));
+            })));
+  }
+
   function EttokChatPage() {
     useMarkdownStyles();
     const [messages, setMessages] = useState([]);
     const [draft, setDraft] = useState("");
     const [busy, setBusy] = useState(false);
     const [health, setHealth] = useState(null);
+    const [model, setModel] = useState(null);
+    const [sessions, setSessions] = useState([]);
+    const [sessionId, setSessionId] = useState(null);
+    const [effort, setEffort] = useState("");
+    const [attachments, setAttachments] = useState([]);
+    const [usedTokens, setUsedTokens] = useState(0);
     const logRef = useRef(null);
-    const sessionId = useRef("ettok-dash-" + Math.random().toString(36).slice(2, 10));
+    const fileRef = useRef(null);
 
-    useEffect(function () {
-      // Checked up front so the page can say "start the gateway" rather than
-      // failing on the first message, which is when a user decides it is broken.
-      // SDK.fetchJSON attaches the dashboard session auth; a bare fetch 401s.
-      SDK.fetchJSON(API + "/chat/health")
-        .then(setHealth)
-        .catch(function (e) { setHealth({ available: false, reason: String(e) }); });
+    const loadSessions = useCallback(function () {
+      // The gateway tags everything it runs as `api_server`, which is exactly
+      // this chat plus anything else on the OpenAI-compatible endpoint. Cron
+      // runs carry their own source and stay out of the list.
+      SDK.fetchJSON("/api/sessions?limit=30&order=recent&source=api_server&min_messages=1")
+        .then(function (d) { setSessions((d && d.sessions) || []); })
+        .catch(function () { /* the list is a convenience; chat still works */ });
     }, []);
 
     useEffect(function () {
-      // Follow the tail while a reply streams in.
+      SDK.fetchJSON(API + "/chat/health").then(setHealth)
+        .catch(function (e) { setHealth({ available: false, reason: String(e) }); });
+      SDK.fetchJSON("/api/model/info").then(setModel).catch(function () {});
+      loadSessions();
+    }, [loadSessions]);
+
+    useEffect(function () {
       if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
     }, [messages]);
 
+    const openSession = useCallback(function (id) {
+      setSessionId(id);
+      setMessages([{ role: "assistant", content: "_Loading…_" }]);
+      SDK.fetchJSON("/api/sessions/" + encodeURIComponent(id) + "/messages?limit=200&order=oldest")
+        .then(function (d) {
+          const rows = (d && d.messages) || [];
+          const out = [];
+          let used = 0;
+          for (const m of rows) {
+            used += m.token_count || 0;
+            if (m.role !== "user" && m.role !== "assistant") continue;
+            let text = m.content;
+            if (Array.isArray(text)) {
+              // Stored multimodal turns: keep the words, name the rest.
+              text = text.map(function (b) {
+                return b && b.type === "text" ? b.text : "_[" + ((b && b.type) || "attachment") + "]_";
+              }).join("\n");
+            }
+            if (!text) continue;
+            out.push({ role: m.role, content: String(text) });
+          }
+          setMessages(out);
+          setUsedTokens(used);
+        })
+        .catch(function (e) {
+          setMessages([{ role: "assistant", content: "**Could not load that conversation.** " + e }]);
+        });
+    }, []);
+
+    const newChat = useCallback(function () {
+      setSessionId(null);
+      setMessages([]);
+      setUsedTokens(0);
+      setAttachments([]);
+    }, []);
+
+    const addFiles = useCallback(function (fileList) {
+      // Read locally into data URLs. The agent is a local process, but the file
+      // still has to travel as part of the message -- there is no shared path
+      // between a browser file picker and the gateway.
+      for (const file of Array.from(fileList || [])) {
+        if (file.size > 8 * 1024 * 1024) {
+          setAttachments(function (a) {
+            return a.concat([{ name: file.name, error: "larger than 8 MB" }]);
+          });
+          continue;
+        }
+        const reader = new FileReader();
+        reader.onload = function () {
+          setAttachments(function (a) {
+            return a.concat([{ name: file.name, type: file.type, dataUrl: reader.result }]);
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    }, []);
+
     const send = useCallback(function () {
       const text = draft.trim();
-      if (!text || busy) return;
+      const usable = attachments.filter(function (a) { return a.dataUrl; });
+      if ((!text && !usable.length) || busy) return;
 
-      const history = messages.concat([{ role: "user", content: text }]);
+      // OpenAI content blocks when there is anything but text, a plain string
+      // otherwise -- some providers reject the block form for text-only turns.
+      let content = text;
+      if (usable.length) {
+        content = [{ type: "text", text: text || "(see attachment)" }].concat(
+          usable.map(function (a) {
+            return a.type && a.type.indexOf("image/") === 0
+              ? { type: "image_url", image_url: { url: a.dataUrl } }
+              : { type: "text", text: "[attached file: " + a.name + "]" };
+          }));
+      }
+
+      const shown = text + (usable.length
+        ? "\n\n" + usable.map(function (a) { return "`📎 " + a.name + "`"; }).join(" ")
+        : "");
+      const history = messages.concat([{ role: "user", content: shown }]);
       setMessages(history.concat([{ role: "assistant", content: "" }]));
       setDraft("");
+      setAttachments([]);
       setBusy(true);
 
-      // authedFetch rather than fetchJSON: this reply is a stream, and we need the
-      // Response to read from, not parsed JSON.
+      const wire = messages.map(function (m) { return { role: m.role, content: m.content }; })
+        .concat([{ role: "user", content: content }]);
+
       SDK.authedFetch(API + "/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: history.map(function (m) { return { role: m.role, content: m.content }; }),
-          session_id: sessionId.current,
+          messages: wire,
+          resume_session_id: sessionId || "",
+          reasoning_effort: effort || undefined,
         }),
       }).then(function (res) {
         const reader = res.body.getReader();
@@ -214,10 +398,16 @@
         let buffer = "";
         let acc = "";
         let tools = [];
+        let landed = sessionId;
 
         function pump() {
           return reader.read().then(function (r) {
-            if (r.done) { setBusy(false); return; }
+            if (r.done) {
+              setBusy(false);
+              // Titles and counts are written as the turn completes.
+              setTimeout(loadSessions, 800);
+              return;
+            }
             buffer += decoder.decode(r.value, { stream: true });
             const parts = buffer.split("\n\n");
             buffer = parts.pop();
@@ -238,12 +428,18 @@
                     return t.id === obj.toolCallId ? Object.assign({}, t, { done: true }) : t;
                   });
                 }
+              } else if (obj.session_id) {
+                // Which session this turn landed in; send it back to continue.
+                landed = obj.session_id;
+                if (!sessionId) setSessionId(obj.session_id);
+                continue;
               } else if (obj.error) {
                 acc += "\n\n**" + obj.error + "**" + (obj.hint ? "\n\n" + obj.hint : "");
               } else {
                 const choice = (obj.choices || [])[0] || {};
                 const delta = choice.delta || choice.message || {};
                 if (delta.content) acc += delta.content;
+                if (obj.usage && obj.usage.total_tokens) setUsedTokens(obj.usage.total_tokens);
               }
               setMessages(history.concat([{ role: "assistant", content: acc, tools: tools }]));
             }
@@ -258,58 +454,107 @@
         }]));
         setBusy(false);
       });
-    }, [draft, busy, messages]);
+    }, [draft, busy, messages, sessionId, effort, attachments, loadSessions]);
 
-    return h("div", { style: C.page },
-      h("div", { style: C.head },
-        h("h1", { style: C.h1 }, "Ettok AI"),
-        h("p", { style: C.sub }, "The agent on this machine, with its tools.")),
+    const vision = model && model.capabilities && model.capabilities.supports_vision;
+    const reasoning = model && model.capabilities && model.capabilities.supports_reasoning;
 
-      (health && !health.available)
-        ? h("div", { style: C.warn },
-            "The agent gateway is not running, so there is nothing here to talk to. "
-            + "Start it with `ettok gateway run`."
-            + (health.reason ? "  (" + health.reason + ")" : ""))
-        : null,
+    return h("div", { style: C.shell },
+      h(Sessions, { sessions: sessions, activeId: sessionId, onOpen: openSession, onNew: newChat }),
 
-      h("div", { style: C.log, ref: logRef },
-        messages.length === 0
-          ? h("div", { style: C.muted },
-              "Ask the agent about a case, a finding, or why something was or was not "
-              + "flagged. It can also run commands and use the browser on this machine, "
-              + "and will show you when it does.")
-          : messages.map(function (m, i) {
-              return h("div", { key: i },
-                h("div", { style: C.who }, m.role === "user" ? "You" : "Ettok AI"),
-                (m.tools && m.tools.length)
-                  ? h("div", { style: C.tools }, m.tools.map(function (t, j) {
-                      return h("div", { key: j, style: { opacity: t.done ? 0.5 : 1 } },
-                        (t.emoji ? t.emoji + " " : "") + t.label + (t.done ? "" : " …"));
-                    }))
-                  : null,
-                m.content
-                  ? h(Markdown, { text: m.content, role: m.role })
-                  : (m.tools && m.tools.length)
-                      ? null
-                      : h("div", { style: C.muted }, "thinking…"));
-            })),
+      h("div", { style: C.page },
+        h("div", { style: C.head },
+          h("h1", { style: C.h1 }, "Ettok AI"),
+          model && model.model
+            ? h("span", { style: C.meta }, model.provider + " · " + model.model)
+            : null,
+          h("div", { style: { flex: 1 } }),
+          h(ContextMeter, { used: usedTokens, limit: model && model.effective_context_length }),
+          reasoning
+            ? h("select", {
+                style: C.select, value: effort,
+                title: "How long the agent thinks before answering",
+                onChange: function (e) { setEffort(e.target.value); },
+              },
+                h("option", { value: "" }, "effort: default"),
+                h("option", { value: "low" }, "effort: low"),
+                h("option", { value: "medium" }, "effort: medium"),
+                h("option", { value: "high" }, "effort: high"))
+            : null),
 
-      h("div", { style: C.row },
-        h("textarea", {
-          style: C.input,
-          value: draft,
-          placeholder: "Ask the agent…  (Enter to send, Shift+Enter for a new line)",
-          onChange: function (e) { setDraft(e.target.value); },
-          onKeyDown: function (e) {
-            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-          },
-        }),
-        h("button", {
-          style: Object.assign({}, C.send,
-            (busy || !draft.trim()) ? { opacity: 0.45, cursor: "default" } : {}),
-          onClick: send,
-          disabled: busy || !draft.trim(),
-        }, busy ? "…" : "Send")));
+        (health && !health.available)
+          ? h("div", { style: C.warn },
+              "The agent gateway is not running, so there is nothing here to talk to. "
+              + "Start it with `ettok gateway run`."
+              + (health.reason ? "  (" + health.reason + ")" : ""))
+          : null,
+
+        h("div", { style: C.log, ref: logRef },
+          messages.length === 0
+            ? h("div", { style: C.muted },
+                "Ask the agent about a case, a finding, or why something was or was not "
+                + "flagged. It can also run commands and use the browser on this machine, "
+                + "and will show you when it does.")
+            : messages.map(function (m, i) {
+                return h("div", { key: i },
+                  h("div", { style: C.who }, m.role === "user" ? "You" : "Ettok AI"),
+                  (m.tools && m.tools.length)
+                    ? h("div", { style: C.tools }, m.tools.map(function (t, j) {
+                        return h("div", { key: j, style: { opacity: t.done ? 0.5 : 1 } },
+                          (t.emoji ? t.emoji + " " : "") + t.label + (t.done ? "" : " …"));
+                      }))
+                    : null,
+                  m.content
+                    ? h(Markdown, { text: m.content, role: m.role })
+                    : (m.tools && m.tools.length)
+                        ? null
+                        : h("div", { style: C.muted }, "thinking…"));
+              })),
+
+        attachments.length
+          ? h("div", { style: C.chips }, attachments.map(function (a, i) {
+              return h("span", { key: i, style: C.chip },
+                (a.error ? "⚠ " : "📎 ") + a.name + (a.error ? " — " + a.error : ""),
+                h("button", {
+                  style: C.chipX,
+                  onClick: function () {
+                    setAttachments(attachments.filter(function (_, j) { return j !== i; }));
+                  },
+                }, "×"));
+            }))
+          : null,
+
+        h("div", { style: C.row },
+          h("input", {
+            ref: fileRef, type: "file", multiple: true, style: { display: "none" },
+            onChange: function (e) { addFiles(e.target.files); e.target.value = ""; },
+          }),
+          h("button", {
+            style: Object.assign({}, C.attach, vision ? {} : { opacity: 0.4 }),
+            onClick: function () { if (fileRef.current) fileRef.current.click(); },
+            title: vision
+              ? "Attach an image or file"
+              : "This model does not accept images; files are sent as a note naming them",
+          }, "📎"),
+          h("textarea", {
+            style: C.input,
+            value: draft,
+            placeholder: "Ask the agent…  (Enter to send, Shift+Enter for a new line)",
+            onChange: function (e) { setDraft(e.target.value); },
+            onPaste: function (e) {
+              const files = e.clipboardData && e.clipboardData.files;
+              if (files && files.length) { e.preventDefault(); addFiles(files); }
+            },
+            onKeyDown: function (e) {
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+            },
+          }),
+          h("button", {
+            style: Object.assign({}, C.send,
+              (busy || (!draft.trim() && !attachments.length)) ? { opacity: 0.45, cursor: "default" } : {}),
+            onClick: send,
+            disabled: busy || (!draft.trim() && !attachments.length),
+          }, busy ? "…" : "Send"))));
   }
 
   window.__HERMES_PLUGINS__.register("ettok-chat", EttokChatPage);

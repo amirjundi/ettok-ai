@@ -66,6 +66,8 @@
                color: ok ? "rgb(60,140,90)" : "rgb(180,120,30)" };
     },
     muted: { opacity: 0.6, fontSize: "13px" },
+    linkBtn: { border: "none", background: "transparent", color: "rgb(90,130,190)",
+               cursor: "pointer", font: "inherit", fontSize: "12px", padding: "0 8px 0 0" },
   };
 
   // ---- data -----------------------------------------------------------
@@ -265,6 +267,185 @@
             "Nothing has been submitted yet, or nothing has been confirmed."));
   }
 
+  // ---- goals ----------------------------------------------------------
+  //
+  // A goal is a standing instruction the agent wakes up and works on: "watch
+  // Sinjar-related pages every six hours", "check the outbox each morning".
+  //
+  // It is a cron job, not a timer of our own. cron survives restarts, reboots
+  // and a closed laptop; an in-process loop does not, and for an agent whose
+  // whole point is working unattended on someone else's machine that difference
+  // is the feature. The dashboard already exposes the cron API, so this panel
+  // speaks to it directly rather than adding a second way to schedule things.
+
+  const GOAL_PREFIX = "ettok-goal";
+  const CADENCES = [
+    ["30m", "every 30 minutes"],
+    ["1h", "hourly"],
+    ["6h", "every 6 hours"],
+    ["12h", "twice a day"],
+    ["1d", "daily"],
+    ["0 9 * * *", "every day at 09:00"],
+    ["0 9 * * 1", "Mondays at 09:00"],
+  ];
+
+  function scheduleLabel(job) {
+    // The stored shape is normalised, not the string that was submitted: "6h"
+    // comes back as {kind:"interval", minutes:360, display:"every 360m"}. Read
+    // `display` first and only fall back to guessing.
+    const s = job.schedule || {};
+    if (s.display) return String(s.display);
+    if (s.expr) {
+      const known = CADENCES.find(function (c) { return c[0] === s.expr; });
+      return known ? known[1] : String(s.expr);
+    }
+    if (s.minutes) {
+      return s.minutes % 60 === 0
+        ? "every " + (s.minutes / 60) + "h"
+        : "every " + s.minutes + "m";
+    }
+    return String(s.kind || "once");
+  }
+
+  function Goals(props) {
+    const [jobs, setJobs] = useState(null);
+    const [text, setText] = useState("");
+    const [every, setEvery] = useState("6h");
+    const [error, setError] = useState(null);
+    const [saving, setSaving] = useState(false);
+
+    const load = useCallback(function () {
+      SDK.fetchJSON("/api/cron/jobs")
+        .then(function (d) {
+          const all = (d && (d.jobs || d)) || [];
+          setJobs(all.filter(function (j) {
+            const n = j.name || "";
+            return n.indexOf(GOAL_PREFIX) === 0 || n === "ettok-scan";
+          }));
+          setError(null);
+        })
+        .catch(function (e) { setError(String(e.message || e)); });
+    }, []);
+
+    useEffect(load, [load]);
+
+    function add() {
+      const goal = text.trim();
+      if (!goal || saving) return;
+      setSaving(true);
+      SDK.fetchJSON("/api/cron/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // The goal IS the prompt. The skill is loaded alongside so the agent
+          // works a case the way it is supposed to rather than improvising.
+          prompt: goal + "\n\nLoad the ettok:working-a-case skill and follow it. "
+                + "Report what you found, what stopped you, and anything an operator "
+                + "should act on.",
+          schedule: every,
+          name: GOAL_PREFIX + ": " + goal.slice(0, 60),
+          skills: ["ettok:working-a-case"],
+          enabled_toolsets: ["ettok", "browser"],
+          deliver: "local",
+        }),
+      }).then(function () {
+        setText("");
+        setSaving(false);
+        load();
+      }).catch(function (e) {
+        setError(String(e.message || e));
+        setSaving(false);
+      });
+    }
+
+    function act(id, path, method) {
+      SDK.fetchJSON("/api/cron/jobs/" + encodeURIComponent(id) + (path || ""),
+                    { method: method || "POST" })
+        .then(load)
+        .catch(function (e) { setError(String(e.message || e)); });
+    }
+
+    return h("div", { style: S.section },
+      h("h2", { style: S.h2 }, "Goals"),
+      h("p", { style: S.sub },
+        "A standing instruction the agent wakes up and works on. It runs through "
+        + "cron, so it survives a restart or a reboot."),
+
+      error ? h("div", { style: S.alert("warning") }, error) : null,
+
+      h("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap" } },
+        h("input", {
+          style: {
+            flex: "1 1 340px", minWidth: "220px", padding: "9px 12px", borderRadius: "6px",
+            border: "1px solid rgba(128,128,128,0.3)", background: "transparent",
+            color: "inherit", font: "inherit", fontSize: "13px",
+          },
+          placeholder: "e.g. Watch Sinjar-related pages and report anything targeting Yazidis",
+          value: text,
+          onChange: function (e) { setText(e.target.value); },
+          onKeyDown: function (e) { if (e.key === "Enter") add(); },
+        }),
+        h("select", {
+          style: {
+            padding: "9px 10px", borderRadius: "6px", border: "1px solid rgba(128,128,128,0.3)",
+            background: "transparent", color: "inherit", font: "inherit", fontSize: "13px",
+          },
+          value: every,
+          onChange: function (e) { setEvery(e.target.value); },
+        }, CADENCES.map(function (c) {
+          return h("option", { key: c[0], value: c[0] }, c[1]);
+        })),
+        h("button", {
+          style: {
+            padding: "9px 18px", borderRadius: "6px", border: "none", cursor: "pointer",
+            fontWeight: 600, background: "rgb(90,130,190)", color: "#fff",
+            opacity: (text.trim() && !saving) ? 1 : 0.45,
+          },
+          onClick: add,
+          disabled: !text.trim() || saving,
+        }, saving ? "…" : "Give goal")),
+
+      jobs === null
+        ? h("div", { style: S.muted }, "Loading…")
+        : jobs.length === 0
+          ? h("div", { style: S.muted },
+              "No standing goals. Without one the agent only works when you ask it to "
+              + "in chat, or when a case is scheduled with `ettok schedule`.")
+          : h("table", { style: S.table },
+              h("thead", null, h("tr", null,
+                h("th", { style: S.th }, "goal"),
+                h("th", { style: S.th }, "runs"),
+                h("th", { style: S.th }, "last"),
+                h("th", { style: S.th }, "next"),
+                h("th", { style: S.th }, ""))),
+              h("tbody", null, jobs.map(function (j) {
+                const paused = j.paused || j.enabled === false;
+                const name = String(j.name || "");
+                const label = name.indexOf(GOAL_PREFIX + ": ") === 0
+                  ? name.slice(GOAL_PREFIX.length + 2)
+                  : name;
+                return h("tr", { key: j.id },
+                  h("td", { style: S.td },
+                    label,
+                    paused ? h("span", { style: Object.assign({}, S.pill(false),
+                                                              { marginLeft: "6px" }) }, "paused") : null),
+                  h("td", { style: S.td }, scheduleLabel(j)),
+                  h("td", { style: S.td }, ago(j.last_run_at)),
+                  h("td", { style: S.td }, paused ? "—" : ago(j.next_run_at)),
+                  h("td", { style: Object.assign({}, S.td, { whiteSpace: "nowrap" }) },
+                    h("button", { style: S.linkBtn, onClick: function () { act(j.id, "/trigger"); } },
+                      "run now"),
+                    h("button", {
+                      style: S.linkBtn,
+                      onClick: function () { act(j.id, paused ? "/resume" : "/pause"); },
+                    }, paused ? "resume" : "pause"),
+                    h("button", {
+                      style: Object.assign({}, S.linkBtn, { color: "rgb(200,70,50)" }),
+                      onClick: function () { act(j.id, "", "DELETE"); },
+                    }, "remove")));
+              }))));
+  }
+
   // ---- page -----------------------------------------------------------
 
   function EttokPage() {
@@ -290,6 +471,8 @@
 
       h(Alerts, { alerts: status.alerts }),
       h(Connection, { status: status }),
+
+      h(Goals, null),
 
       h("div", { style: S.section },
         h("h2", { style: S.h2 }, "Delivery"),

@@ -306,13 +306,26 @@ def chat_health() -> dict:
         }
 
 
+# Fields the page may set on a turn. An allow-list rather than a spread of the
+# payload: this body reaches the agent, and a field nobody vetted arriving from
+# the browser is how a chat box turns into a config surface.
+_PASSTHROUGH_FIELDS = ('reasoning_effort', 'temperature', 'max_tokens')
+
+
 @router.post('/chat')
 async def chat(payload: dict) -> Any:
-    """Stream one exchange through the gateway, unchanged.
+    """Stream one exchange through the gateway.
 
-    Deliberately a pass-through. Anything this rewrote would be a second place
-    where the agent's behaviour is defined, and the whole reason for proxying
-    rather than reimplementing is to avoid exactly that.
+    Deliberately close to a pass-through. Anything this rewrote would be a
+    second place where the agent's behaviour is defined, and the whole reason
+    for proxying rather than reimplementing is to avoid exactly that.
+
+    The session header is the exception worth explaining. `X-Hermes-Session-Id`
+    is how the gateway resumes a conversation instead of starting a new one, and
+    it comes back on the response naming the session the turn actually landed
+    in. Both directions matter: without the request header every message is a
+    fresh session, and without reading the response the page never learns the id
+    it would need to send.
     """
     import httpx
     from fastapi.responses import StreamingResponse
@@ -322,8 +335,14 @@ async def chat(payload: dict) -> Any:
         'messages': payload.get('messages') or [],
         'stream': True,
     }
-    if payload.get('session_id'):
-        body['user'] = payload['session_id']
+    for field in _PASSTHROUGH_FIELDS:
+        if payload.get(field) not in (None, ''):
+            body[field] = payload[field]
+
+    headers = _gateway_headers()
+    resume = (payload.get('resume_session_id') or '').strip()
+    if resume:
+        headers['X-Hermes-Session-Id'] = resume
 
     url = f'{_gateway_url()}/v1/chat/completions'
 
@@ -331,11 +350,18 @@ async def chat(payload: dict) -> Any:
         try:
             async with httpx.AsyncClient(timeout=_CHAT_TIMEOUT_SECONDS) as client:
                 async with client.stream('POST', url, json=body,
-                                          headers=_gateway_headers()) as response:
+                                          headers=headers) as response:
                     if response.status_code >= 400:
                         detail = (await response.aread()).decode('utf-8', 'replace')[:400]
                         yield _sse({'error': f'gateway returned {response.status_code}: {detail}'})
                         return
+                    # Announced in-band rather than as a response header: the
+                    # header is written before the agent has resolved which
+                    # session the turn belongs to, and a stream's headers are
+                    # long flushed by the time it is known.
+                    landed = response.headers.get('X-Hermes-Session-Id')
+                    if landed:
+                        yield _sse({'session_id': landed})
                     # Raw bytes, not lines. The gateway announces tool activity as
                     # an `event: hermes.tool.progress` line followed by its `data:`
                     # line, and re-framing line by line would split that pair --

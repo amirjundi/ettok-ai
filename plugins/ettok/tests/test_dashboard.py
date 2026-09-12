@@ -52,3 +52,37 @@ def test_chat_bundle_parsers():
         capture_output=True, text=True, timeout=60,
     )
     assert result.returncode == 0, result.stderr or result.stdout
+
+
+def test_panel_offers_goals():
+    """A goal is a cron job, not a timer of our own.
+
+    cron survives restarts, reboots and a closed laptop; an in-process loop does
+    not, and an agent whose whole purpose is working unattended on someone
+    else's machine lives or dies on that difference. Asserting the panel talks
+    to the cron API keeps a future "simpler" rewrite from quietly regressing it.
+    """
+    source = (PANEL / 'dist' / 'index.js').read_text(encoding='utf-8')
+    assert '/api/cron/jobs' in source
+    assert 'ettok:working-a-case' in source          # goals load the skill
+    assert "enabled_toolsets" in source
+
+
+def test_chat_has_the_controls_an_operator_needs():
+    source = (CHAT / 'dist' / 'index.js').read_text(encoding='utf-8')
+    # Conversations survive a reload: without the resume id every message would
+    # start a new session, which reads as the agent forgetting.
+    assert 'resume_session_id' in source
+    assert '/api/sessions' in source
+    # Context pressure is visible before the agent silently compresses.
+    assert 'effective_context_length' in source
+    # Attachments and effort are gated on what the model actually supports.
+    assert 'supports_vision' in source
+    assert 'reasoning_effort' in source
+
+
+def test_bundles_follow_the_dashboard_font():
+    """Fonts come from the theme, so the plugins never fight the font picker."""
+    source = (CHAT / 'dist' / 'index.js').read_text(encoding='utf-8')
+    assert '--theme-font-mono' in source
+    assert 'ui-monospace,Menlo,monospace' not in source

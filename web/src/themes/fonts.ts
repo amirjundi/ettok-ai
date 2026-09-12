@@ -68,6 +68,15 @@ export const FONT_CHOICES: FontChoice[] = [
     fontUrl: GF("Inter:wght@400;500;600;700"),
   },
   {
+    // OpenClaw's default UI face. Ettok matches it so the two products read as
+    // one family to an operator who runs both.
+    id: "instrument-sans",
+    label: "Instrument Sans",
+    category: "sans",
+    stack: `"Instrument Sans", ${SYSTEM_SANS}`,
+    fontUrl: GF("Instrument+Sans:wght@400;500;600;700"),
+  },
+  {
     id: "ibm-plex-sans",
     label: "IBM Plex Sans",
     category: "sans",
