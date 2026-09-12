@@ -77,7 +77,7 @@ class TestApplyProfileOverrideHermesHomeGuard:
         HERMES_HOME to .../profiles/coder.
 
         Bug scenario from #22502: systemd sets HERMES_HOME to the hermes root
-        and the user switches to a profile via `hermes profile use`.
+        and the user switches to a profile via `ettok profile use`.
         Before the fix, the guard returned early and active_profile was ignored.
         """
         hermes_root = tmp_path / ".hermes"
@@ -130,7 +130,7 @@ class TestSupervisedChildIgnoresStickyProfile:
     """The reserved default gateway s6 slot must not follow active_profile.
 
     Inside the Docker s6 image the ``gateway-default`` service slot runs a
-    bare ``hermes gateway run`` (no ``-p``) to mean "the root HERMES_HOME
+    bare ``ettok gateway run`` (no ``-p``) to mean "the root HERMES_HOME
     profile". The run-script exports ``HERMES_S6_SUPERVISED_CHILD=1``.
     Without a guard, ``_apply_profile_override`` would read the sticky
     ``active_profile`` file (set by e.g. the dashboard profile switcher) and
@@ -142,7 +142,7 @@ class TestSupervisedChildIgnoresStickyProfile:
     def test_non_supervised_run_still_follows_active_profile(
         self, tmp_path, monkeypatch
     ):
-        """Without the sentinel, a normal `hermes gateway run` still honors
+        """Without the sentinel, a normal `ettok gateway run` still honors
         active_profile — the guard is scoped strictly to supervised children."""
         result = _run_apply_profile_override(
             tmp_path,

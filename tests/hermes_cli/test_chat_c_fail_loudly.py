@@ -1,6 +1,6 @@
 """Tests for `chat -c <title>` failing loudly (stderr) and `--create-if-missing`.
 
-Regression for #86794: a background/quiet `hermes chat -c "<title>" -q "..."`
+Regression for #86794: a background/quiet `ettok chat -c "<title>" -q "..."`
 against a not-yet-existing titled session silently no-oped — the error message
 was written to stdout (which quiet/programmatic callers treat as the "final
 response" channel) instead of stderr, and there was no way to create the
@@ -131,7 +131,7 @@ class TestChatCFailLoudlyOnStderr:
 
         assert ei.value.args[0] == 1
         assert any("No session found matching 'Bot Chat'" in l for l in stderr_lines)
-        assert not stderr_lines[0].startswith("Use 'hermes sessions list'")
+        assert not stderr_lines[0].startswith("Use 'ettok sessions list'")
 
     def test_create_if_missing_sets_resume(self, isolated_home, monkeypatch):
         """--create-if-missing resolves to a new session id on args.resume."""

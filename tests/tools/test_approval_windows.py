@@ -5,7 +5,7 @@ icacls, reg, vssadmin, bcdedit, diskpart, cipher) and PowerShell cmdlets
 that the POSIX-shaped DANGEROUS_PATTERNS never matched — destructive
 commands passed approval silently. These tests pin the Windows tier and
 the backslash-path detection variant. Platform-independent: the patterns
-must match regardless of host OS (a Linux-hosted Hermes can still drive a
+must match regardless of host OS (a Linux-hosted Ettok can still drive a
 Windows box over SSH).
 """
 

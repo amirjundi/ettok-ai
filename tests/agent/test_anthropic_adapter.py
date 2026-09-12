@@ -270,7 +270,7 @@ class TestResolveAnthropicToken:
         monkeypatch.setattr("agent.anthropic_credentials.Path.home", lambda: tmp_path)
         # Isolate source #5 (credential_pool): ensure source #4 (Claude Code
         # creds, incl. the macOS keychain read which Path.home does not cover)
-        # returns nothing, mirroring a Hermes-PKCE-only setup.
+        # returns nothing, mirroring a Ettok-PKCE-only setup.
         monkeypatch.setattr("agent.anthropic_credentials.read_claude_code_credentials", lambda: None)
 
         pool_entry = PooledCredential.from_dict("anthropic", {

@@ -131,7 +131,7 @@ class TestContracts:
         repo_root = Path(__file__).resolve().parents[2]
         arm_sites = {
             # (file, reason) — each must contain an arm_startup_watchdog call
-            "hermes_cli/main.py": "argv fast-path (standard `hermes gateway run`)",
+            "hermes_cli/main.py": "argv fast-path (standard `ettok gateway run`)",
             "hermes_cli/gateway.py": "run_gateway() config-bridge re-arm",
             "gateway/run.py": "gateway.run.main() backstop arm",
             "cli.py": "legacy `--gateway` entry point",

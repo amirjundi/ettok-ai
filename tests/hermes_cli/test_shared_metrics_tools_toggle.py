@@ -1,7 +1,7 @@
-"""Tests for the `hermes tools` shared-metrics consent toggle.
+"""Tests for the `ettok tools` shared-metrics consent toggle.
 
 AGENTS.md requires outbound telemetry to be reachable from a config gate, the
-setup prompt, AND `hermes tools`. These cover the third surface.
+setup prompt, AND `ettok tools`. These cover the third surface.
 """
 
 from __future__ import annotations

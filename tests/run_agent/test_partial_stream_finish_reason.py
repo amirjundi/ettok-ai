@@ -916,7 +916,7 @@ class TestPortalLastOneWithoutDone:
 class TestStreamIncludeUsageFinalChunk:
     """OpenAI / vLLM streaming with stream_options={'include_usage': True} emits
     a final usage-only chunk with empty choices (choices=[]) and no finish_reason.
-    Hermes must recognize that the presence of usage proves the stream completed
+    Ettok must recognize that the presence of usage proves the stream completed
     cleanly and must NOT misclassify it as a mid-stream network drop (#91373).
     """
 

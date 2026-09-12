@@ -1,7 +1,7 @@
 """#70337/#87331: the ZIP swap must preserve apps/desktop/release/.
 
 The GitHub source ZIP carries only source; the BUILT desktop app
-(release/win-unpacked/Hermes.exe) exists only in the live tree. Swapping
+(release/win-unpacked/Ettok.exe) exists only in the live tree. Swapping
 `apps` without grafting the live release dir deletes the desktop build.
 """
 
@@ -23,7 +23,7 @@ def test_staged_apps_swap_preserves_live_release_dir(tmp_path, monkeypatch):
     root = tmp_path / "install"
     live_apps = root / "apps" / "desktop"
     (live_apps / "release" / "win-unpacked").mkdir(parents=True)
-    (live_apps / "release" / "win-unpacked" / "Hermes.exe").write_bytes(b"MZbuilt")
+    (live_apps / "release" / "win-unpacked" / "Ettok.exe").write_bytes(b"MZbuilt")
     (live_apps / "electron").mkdir()
     (live_apps / "electron" / "main.ts").write_text("old source")
 

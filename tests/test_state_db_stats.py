@@ -1,4 +1,4 @@
-"""Tests for state.db health/stats collection (hermes doctor section).
+"""Tests for state.db health/stats collection (ettok doctor section).
 
 Covers:
 - ``hermes_state_dbfile.collect_state_db_stats``: read-only, best-effort stats

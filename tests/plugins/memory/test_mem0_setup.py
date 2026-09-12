@@ -256,7 +256,7 @@ class TestConnectivityChecks:
 
 
 def test_discovery_loaded_setup_module_exposes_post_setup(monkeypatch):
-    """`hermes memory setup mem0` reaches the wizard when the package is first imported by plugin
+    """`ettok memory setup mem0` reaches the wizard when the package is first imported by plugin
     discovery, which execs sibling modules before ``__init__`` (#103078). The invariant is on the
     module the loader actually cached, not on a normal top-level import."""
     from plugins.memory import load_memory_provider

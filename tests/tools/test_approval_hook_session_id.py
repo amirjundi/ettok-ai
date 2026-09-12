@@ -1,4 +1,4 @@
-"""Approval hooks must carry the Hermes session id to observer plugins.
+"""Approval hooks must carry the Ettok session id to observer plugins.
 
 Staging defect 2026-08-10: approval marks were emitted under a synthetic
 "default" relay session because the approval hook payload carried only

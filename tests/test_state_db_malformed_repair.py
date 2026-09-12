@@ -422,7 +422,7 @@ def test_repair_stale_btree_index_preserves_rows(tmp_path):
 # Cross-process serialisation of the schema surgery
 # ---------------------------------------------------------------------------
 # A normal host runs several independent processes against one state.db: the
-# gateway service, the Desktop app's own `hermes serve` backend, interactive
+# gateway service, the Desktop app's own `ettok serve` backend, interactive
 # CLI sessions and the TUI slash worker. `_repair_attempt_lock` is a
 # threading.Lock and covers none of that, so two of them hitting a malformed
 # DB at once each ran the full writable_schema surgery + VACUUM on a private

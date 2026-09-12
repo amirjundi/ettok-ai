@@ -118,7 +118,7 @@ def test_computer_use_status_returns_nonzero_for_incompatible_standard_driver(
     assert _invoke(monkeypatch, "status") == 1
     output = capsys.readouterr().out
     assert "Repair required" in output
-    assert "Run: hermes computer-use install" in output
+    assert "Run: ettok computer-use install" in output
 
 
 def test_computer_use_status_returns_nonzero_for_incompatible_custom_driver(

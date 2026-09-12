@@ -114,7 +114,7 @@ class TestTerminatePidIdentityLive:
 
 class TestPidIsHermesLive:
     def test_foreign_real_process_is_refused(self):
-        """A live non-Hermes process (bare python sleeper in a temp-ish argv)
+        """A live non-Ettok process (bare python sleeper in a temp-ish argv)
         must never be judged safe for taskkill."""
         from hermes_cli._subprocess_compat import pid_is_hermes
 

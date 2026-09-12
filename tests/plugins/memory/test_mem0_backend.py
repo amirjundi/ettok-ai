@@ -433,7 +433,7 @@ class TestOSSBackend:
             models=["router-model"],
             route="lowest-latency",
             site_url="https://hermes.example",
-            app_name="Hermes",
+            app_name="Ettok",
             store=True,
             response_callback=lambda *args: callback_calls.append(args),
         )

@@ -1,6 +1,6 @@
 """Gateway enroll: secondary-multiplex-profile warning for relay routing stamps.
 
-``hermes gateway enroll --connector-url/--wake-url`` persists GATEWAY_RELAY_URL /
+``ettok gateway enroll --connector-url/--wake-url`` persists GATEWAY_RELAY_URL /
 GATEWAY_RELAY_WAKE_URL into the active profile's .env. Those are process-global
 deployment stamps (agent/secret_scope.py): a multiplexed gateway reads them from
 the process environment only, never from a secondary profile's isolated secret

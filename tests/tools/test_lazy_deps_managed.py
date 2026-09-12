@@ -1,6 +1,6 @@
 """Managed-install guard in :func:`tools.lazy_deps.ensure` (#48628).
 
-A package-manager install (NixOS, and anything else shipping Hermes from a
+A package-manager install (NixOS, and anything else shipping Ettok from a
 read-only store) cannot receive lazy pip installs: the venv's site-packages
 lives in the store, so the uv -> pip -> ensurepip ladder burns ~15s
 bootstrapping ensurepip only to fail. ``ensure()`` must fail fast instead.

@@ -474,7 +474,7 @@ def test_lazy_marker_alone_does_not_trigger_core_install(tmp_path, monkeypatch):
 def test_core_marker_from_dead_updater_is_recovered_on_update_retry(
     tmp_path, monkeypatch
 ):
-    """Retrying ``hermes update`` must consume a prior deferral marker.
+    """Retrying ``ettok update`` must consume a prior deferral marker.
 
     The self-lock preflight exits after writing this marker.  Desktop and CLI
     retries both keep ``update`` in argv, so an argv-only skip loops forever.

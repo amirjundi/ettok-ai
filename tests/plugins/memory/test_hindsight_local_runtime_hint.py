@@ -16,7 +16,7 @@ from plugins.memory.hindsight import HindsightMemoryProvider, _local_runtime_hin
 def test_hint_for_missing_hindsight_all():
     hint = _local_runtime_hint("No module named 'hindsight'")
     assert "hindsight-all" in hint
-    assert "hermes memory setup" in hint
+    assert "ettok memory setup" in hint
     assert sys.executable in hint
 
 

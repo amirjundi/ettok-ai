@@ -48,7 +48,7 @@ def test_poll_observes_a_replaced_state_db(tmp_path):
     finally:
         first.close()
 
-    # `hermes sessions recover` writes a clean database, which the operator
+    # `ettok sessions recover` writes a clean database, which the operator
     # then installs over the corrupt one.
     recovered = tmp_path / "recovered-state.db"
     rebuilt = SessionDB(db_path=recovered)

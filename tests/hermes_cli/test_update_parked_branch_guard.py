@@ -1,4 +1,4 @@
-"""Regression tests for the parked-branch guard in ``hermes update``.
+"""Regression tests for the parked-branch guard in ``ettok update``.
 
 Live incident (2026-08-17, Teknium's Linux box): the source checkout was
 parked on a stale feature branch (``claude-code-inspired/local-terminal-
@@ -187,7 +187,7 @@ def test_skip_warning_names_branch_behind_count_and_commands(repo_pair, capsys):
     assert "CODE UPDATE SKIPPED" in out
     assert "old-feature" in out
     assert "2 commit(s) BEHIND" in out
-    assert f"git -C {repo_pair} checkout main && hermes update" in out
+    assert f"git -C {repo_pair} checkout main && ettok update" in out
 
 
 def test_skip_warning_dirty_reason(repo_pair, capsys):

@@ -411,7 +411,7 @@ class TestDockerHostBindApproval:
         Same import-time freeze applies to ``_YOLO_MODE_FROZEN``: it reads
         HERMES_YOLO_MODE off the environment when the module is imported at
         collection time, before conftest's per-test env blanking runs. A test
-        run launched from a --yolo Hermes session (or any shell exporting
+        run launched from a --yolo Ettok session (or any shell exporting
         HERMES_YOLO_MODE=1) freezes True and every guard auto-approves.
         Reset it explicitly so the tests exercise the guard, not the bypass.
         """

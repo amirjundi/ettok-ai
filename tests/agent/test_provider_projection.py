@@ -1,11 +1,11 @@
 """Agent-as-provider transcript projection + skill-nudge tick.
 
 A provider that IS an agent executes its own tools inside its own session. Those
-calls never come back as pending ``tool_calls`` (Hermes would re-run finished
+calls never come back as pending ``tool_calls`` (Ettok would re-run finished
 work), so two subsystems would otherwise be blind to them:
 
   * the self-improvement loop, which distils skills/memories from ``messages``;
-  * the skill-review nudge, whose counter only moves on Hermes tool iterations.
+  * the skill-review nudge, whose counter only moves on Ettok tool iterations.
 
 ``splice_provider_projection`` closes both gaps. The helper is unit tested here,
 and the wiring is exercised for real: the last tests drive a whole

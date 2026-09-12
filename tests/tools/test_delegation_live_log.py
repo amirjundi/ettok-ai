@@ -38,7 +38,7 @@ def test_writer_precreates_file_with_header():
     w = LiveTranscriptWriter("deleg_test1", 0, "do the thing", context="some ctx")
     assert w.path is not None and w.path.exists()
     text = w.path.read_text(encoding="utf-8")
-    assert "Hermes subagent live transcript" in text
+    assert "Ettok subagent live transcript" in text
     assert "delegation: deleg_test1" in text
     assert "goal: do the thing" in text
     assert "kickoff" in text

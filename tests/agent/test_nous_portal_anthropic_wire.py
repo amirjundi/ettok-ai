@@ -65,7 +65,7 @@ class TestApiModeRouting:
 
     def test_determine_api_mode_honors_the_model_for_nous(self):
         """Callers that skip resolve_runtime_provider (fallback, switch_model
-        empty-mode path) must still land Claude on Messages — the Hermes
+        empty-mode path) must still land Claude on Messages — the Ettok
         overlay alone advertises openai_chat for every Nous model."""
         from hermes_cli.providers import determine_api_mode
 

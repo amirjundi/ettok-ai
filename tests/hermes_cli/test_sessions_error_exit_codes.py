@@ -1,4 +1,4 @@
-"""Regression tests: `hermes sessions` error paths return non-zero (SES-04).
+"""Regression tests: `ettok sessions` error paths return non-zero (SES-04).
 
 Before this, delete/rename not-found, prune bad-arg, blank rename, and import
 of a missing file all printed an error and returned exit 0 — a scripting/CI

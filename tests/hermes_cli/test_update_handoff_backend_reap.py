@@ -1,7 +1,7 @@
 """Tests for the GUI-updater hand-off backend reap (_handoff_reapable_backend_pids).
 
 Field incident (2026-08-20, Teknium's Windows box): a Desktop update hand-off
-(`hermes update --yes --gateway --force`) left a *swarm* of per-profile `serve`
+(`ettok update --yes --gateway --force`) left a *swarm* of per-profile `serve`
 backends (mr-tester, probe-inherit, turqoise, clippy, maroon, …) holding
 `cryptography\\_rust.pyd`. Some still had a live parent (the tearing-down
 Electron process, or the venv launcher→worker two-hop chain mid-exit), so the
@@ -11,7 +11,7 @@ stranded bot sessions.
 
 _handoff_reapable_backend_pids is the additional rung that ONLY runs in the
 hand-off context (caller gates on args.gateway + the update-incomplete marker +
-no live hermes.exe shim). There, any surviving Hermes `serve`/`dashboard`
+no live hermes.exe shim). There, any surviving Ettok `serve`/`dashboard`
 backend from this venv is a leak — live parent or not — and safe to reap.
 A non-backend holder still disqualifies the whole set.
 

@@ -478,7 +478,7 @@ class TestClaimingAndBounds:
         assert outcome.sent == MAX_PACKAGES_PER_PASS
 
     def test_two_concurrent_passes_do_not_double_send(self, store):
-        """Claiming is what stops two Hermes processes duplicating work.
+        """Claiming is what stops two Ettok processes duplicating work.
 
         The second pass must RECORD what it saw rather than raise: _send_one
         catches every exception as a retryable transport failure, so an

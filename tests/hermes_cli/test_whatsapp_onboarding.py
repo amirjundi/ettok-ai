@@ -83,7 +83,7 @@ def test_start_whatsapp_onboarding_existing_creds_returns_linked_account(monkeyp
     session_dir = tmp_path / "session"
     session_dir.mkdir()
     (session_dir / "creds.json").write_text(
-        '{"me":{"id":"15551234567:1@s.whatsapp.net","name":"Hermes Bot"}}',
+        '{"me":{"id":"15551234567:1@s.whatsapp.net","name":"Ettok Bot"}}',
         encoding="utf-8",
     )
 
@@ -111,7 +111,7 @@ def test_start_whatsapp_onboarding_existing_creds_returns_linked_account(monkeyp
     assert result["status"] == "connected"
     assert result["qr_payload"] is None
     assert result["account_id"] == "15551234567:1@s.whatsapp.net"
-    assert result["account_name"] == "Hermes Bot"
+    assert result["account_name"] == "Ettok Bot"
     assert result["account_phone"] == "15551234567"
     assert old_record.status == "cancelled"
     assert old_proc.terminated is True

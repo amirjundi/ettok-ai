@@ -164,7 +164,7 @@ class TestSend:
         assert call_args[0][0] == "https://dingtalk.example/webhook"
         payload = call_args[1]["json"]
         assert payload["msgtype"] == "markdown"
-        assert payload["markdown"]["title"] == "Hermes"
+        assert payload["markdown"]["title"] == "Ettok"
         assert payload["markdown"]["text"] == "Hello!"
 
 

@@ -4,7 +4,7 @@ Coatue data-residency report, issues 3 and 4: with
 ``model.base_url: https://us.api.openai.com/v1`` in config and
 ``$OPENAI_BASE_URL`` unset, model discovery probed ``api.openai.com`` (the
 wrong endpoint) and the catalog-cache fingerprint did not change when the
-configured endpoint changed, so ``hermes config set model.base_url ...``
+configured endpoint changed, so ``ettok config set model.base_url ...``
 kept serving the stale cached catalog. Regional hosts also bypassed the
 curated intersection, flooding the picker with whisper/tts/embedding rows.
 

@@ -272,7 +272,7 @@ class TestAnalyticsAuxRows:
 
 class TestInsightsAuxTotals:
     def test_overview_totals_include_aux_usage(self, db):
-        """`hermes insights` overview must count aux tokens, not just the
+        """`ettok insights` overview must count aux tokens, not just the
         sessions counters (issues #58592, #9979)."""
         from agent.insights import InsightsEngine
 

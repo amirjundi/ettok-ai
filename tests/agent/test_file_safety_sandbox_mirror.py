@@ -4,7 +4,7 @@ The guard fires when a tool tries to write into the per-task mirror
 directory created by a non-local terminal backend (Docker, Daytona, etc.).
 Those paths look like ``…/sandboxes/<backend>/<task>/home/.hermes/…`` and
 they accumulate divergent copies of authoritative profile state (SOUL.md,
-config.yaml, memories/*.md) because the host Hermes process never reads
+config.yaml, memories/*.md) because the host Ettok process never reads
 them. Soft guard — defense in depth, NOT a security boundary.
 
 Reference: #32049 — under ``terminal.backend: docker``, the agent's

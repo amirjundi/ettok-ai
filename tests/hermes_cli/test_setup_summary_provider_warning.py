@@ -41,8 +41,8 @@ def _summary_output(capsys, provider_ready: bool):
 def test_summary_warns_when_no_provider(capsys):
     out = _summary_output(capsys, provider_ready=False)
     assert "No inference provider is configured" in out
-    assert "hermes model" in out
-    assert "hermes setup --portal" in out
+    assert "ettok model" in out
+    assert "ettok setup --portal" in out
 
 
 def test_summary_quiet_when_provider_ready(capsys):

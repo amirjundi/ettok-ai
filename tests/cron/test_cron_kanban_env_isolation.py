@@ -1,7 +1,7 @@
 """Cron sessions must not inherit a kanban worker's dispatcher identity.
 
 A cron job can be fired *in-process* from a kanban worker: the worker is a
-normal ``hermes chat -q`` CLI agent (its default toolset includes ``cronjob``)
+normal ``ettok chat -q`` CLI agent (its default toolset includes ``cronjob``)
 running with ``HERMES_KANBAN_TASK`` legitimately set in its own environment,
 and ``cronjob(action="run")`` calls ``run_one_job()`` -> ``run_job()`` in that
 same process.

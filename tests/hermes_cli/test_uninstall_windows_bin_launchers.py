@@ -1,7 +1,7 @@
 """Uninstall must not leave a dangling ``hermes`` command on Windows.
 
 Every uninstall mode deletes the code checkout, but the launchers install.ps1
-staged in the managed binary dir (the default Hermes root's ``bin``, shared
+staged in the managed binary dir (the default Ettok root's ``bin``, shared
 with the managed uv) live outside it. A surviving launcher makes ``hermes``
 in a new terminal resolve and then error on its missing venv target — worse
 than command-not-found. The managed uv next to them must survive keep-data

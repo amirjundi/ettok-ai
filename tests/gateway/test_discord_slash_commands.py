@@ -445,7 +445,7 @@ async def test_rename_thread_edits_only_when_current_name_matches(adapter):
     assert result is True
     thread.edit.assert_awaited_once_with(
         name="Semantic Session Title",
-        reason="Hermes semantic session title",
+        reason="Ettok semantic session title",
     )
 
 

@@ -1,4 +1,4 @@
-"""Tests for ``hermes dashboard register``.
+"""Tests for ``ettok dashboard register``.
 
 Covers the CLI half of self-hosted dashboard registration:
   - Docker-style auto-name generation
@@ -56,7 +56,7 @@ class TestFastFails:
         assert exc.value.code == 1
         out = capsys.readouterr().out
         assert "not logged into Nous Portal" in out
-        assert "hermes setup" in out
+        assert "ettok setup" in out
 
     def test_managed_install_refuses(self, capsys):
         with patch("hermes_cli.config.is_managed", return_value=True):

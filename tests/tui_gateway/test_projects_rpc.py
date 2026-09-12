@@ -300,7 +300,7 @@ def test_record_repos_persists_and_shows_zero_session_repo(tmp_path):
     repo = tmp_path / "fresh-repo"
     repo.mkdir()
 
-    # Repo-first: a scanned repo with no hermes sessions still surfaces.
+    # Repo-first: a scanned repo with no ettok sessions still surfaces.
     _call("projects.record_repos", {"repos": [{"root": str(repo), "label": "fresh-repo"}]})
 
     by_label = {r["label"]: r for r in _call("projects.discover_repos")["repos"]}
@@ -314,7 +314,7 @@ def test_scan_time_is_not_treated_as_session_activity(tmp_path):
     ``discovered_repos.last_seen`` records when the disk scan last saw the
     directory. Folding it into ``last_active`` stamped every scanned checkout
     with the scan time — i.e. "just now" — so repos the user has never opened
-    in Hermes outranked the ones they actually work in.
+    in Ettok outranked the ones they actually work in.
     """
     worked_in = tmp_path / "worked-in"
     worked_in.mkdir()

@@ -71,11 +71,11 @@ def test_list_authenticated_providers_includes_full_models_list_from_user_provid
 
 def test_list_authenticated_providers_enumerates_dict_format_models(monkeypatch):
     """providers: dict entries with ``models:`` as a dict keyed by model id
-    (canonical Hermes write format) should surface every key in the picker.
+    (canonical Ettok write format) should surface every key in the picker.
 
     Regression: the ``providers:`` dict path previously only accepted
     list-format ``models:`` and silently dropped dict-format entries,
-    even though Hermes's own writer and downstream readers use dict format.
+    even though Ettok's own writer and downstream readers use dict format.
     """
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
     monkeypatch.setattr("hermes_cli.providers.HERMES_OVERLAYS", {})
@@ -176,12 +176,12 @@ def test_list_authenticated_providers_uses_live_models_for_user_provider(monkeyp
 
 
 def test_list_authenticated_providers_accepts_base_url_and_singular_model(monkeypatch):
-    """providers: dict entries written in canonical Hermes shape
+    """providers: dict entries written in canonical Ettok shape
     (``base_url`` + singular ``model``) should resolve the same as the
     legacy ``api`` + ``default_model`` shape.
 
     Regression: section 3 previously only read ``api``/``url`` and
-    ``default_model``, so new-shape entries written by Hermes's own writer
+    ``default_model``, so new-shape entries written by Ettok's own writer
     surfaced with empty ``api_url`` and no default.
     """
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})

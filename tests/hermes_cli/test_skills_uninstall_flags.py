@@ -1,5 +1,5 @@
 """
-Tests for --yes / -y flag in `hermes skills uninstall` CLI subcommand.
+Tests for --yes / -y flag in `ettok skills uninstall` CLI subcommand.
 
 Verifies the parser registers the flag and the value reaches
 ``do_uninstall(skip_confirm=True)`` through the real ``skills_command``

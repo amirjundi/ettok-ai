@@ -109,7 +109,7 @@ async def test_async_call_llm_auto_provider_evicts_stale_client_end_to_end(monke
     kwarg at the async acquisition site fails this test.
     """
     task = "session_search"
-    main_runtime = {"provider": "nous", "model": "Hermes-4-405B"}
+    main_runtime = {"provider": "nous", "model": "Ettok-4-405B"}
     stale = _nous_mock_client(async_mode=True, raises=_Auth401("stale creds"))
     fresh = _nous_mock_client(async_mode=True, returns={"ok": True})
 

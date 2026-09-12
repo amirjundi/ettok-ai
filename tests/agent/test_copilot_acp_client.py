@@ -323,7 +323,7 @@ def test_probe_skipped_for_custom_args_without_acp():
 #
 # `copilot --acp` validates but IGNORES the `--model` spawn flag; the ACP
 # session runs the CLI's own default unless the client issues the ACP-native
-# `session/set_model` call. Without it, picking gpt-5.6-terra in Hermes
+# `session/set_model` call. Without it, picking gpt-5.6-terra in Ettok
 # visibly answers as the CLI's default model.
 
 

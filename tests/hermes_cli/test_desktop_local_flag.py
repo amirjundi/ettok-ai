@@ -1,7 +1,7 @@
 """The desktop subcommand's --local launch flag.
 
-Local models ship on main behind this flag: `hermes desktop --local` (or
-`Hermes.exe --local` directly) shows the local-models GUI surfaces; without
+Local models ship on main behind this flag: `ettok desktop --local` (or
+`Ettok.exe --local` directly) shows the local-models GUI surfaces; without
 it the desktop hides them all, even when local models are configured. These
 tests pin the argparse contract; the pass-through to the Electron argv lives
 in cmd_gui's launch paths.

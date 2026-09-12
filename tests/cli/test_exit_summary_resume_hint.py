@@ -68,7 +68,7 @@ class TestExitSummaryResumeHint:
 
     def test_resume_hint_falls_back_when_profile_lookup_fails(self, capsys):
         """If `get_active_profile_name` raises (e.g. profiles module
-        missing during ``hermes update`` mid-flight), fall back to no
+        missing during ``ettok update`` mid-flight), fall back to no
         flag rather than crashing the exit summary.
         """
         cli_obj = _make_cli()

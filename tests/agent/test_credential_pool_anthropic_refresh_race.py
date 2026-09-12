@@ -4,7 +4,7 @@
 above the ``if self.provider in ("openai-codex", "xai-oauth", "anthropic"):`` branch in
 ``agent/credential_pool.py``) that single-use OAuth refresh tokens require
 the whole sync -> POST -> write-back sequence to be serialized across
-Hermes *processes* via the cross-process ``_auth_store_lock`` flock,
+Ettok *processes* via the cross-process ``_auth_store_lock`` flock,
 otherwise "two processes can both adopt the same on-disk token, both POST
 it, and the loser gets ``refresh_token_reused``".
 
@@ -238,10 +238,10 @@ def test_concurrent_hermes_pkce_refresh_loses_credential_despite_valid_token_on_
     assert loser_entry_after.last_status != STATUS_EXHAUSTED, (
         "regression: the losing process marked its Anthropic hermes_pkce "
         "credential STATUS_EXHAUSTED after a lost refresh race, even "
-        "though the account is not actually exhausted -- a sibling Hermes "
+        "though the account is not actually exhausted -- a sibling Ettok "
         "process holds a perfectly valid rotated token. This causes "
         "spurious 're-authenticate with Anthropic' failures under "
-        "ordinary concurrent Hermes usage (fleet workers, cron jobs, "
+        "ordinary concurrent Ettok usage (fleet workers, cron jobs, "
         "multiple CLI sessions)."
     )
 

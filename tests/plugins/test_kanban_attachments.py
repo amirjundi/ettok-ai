@@ -253,7 +253,7 @@ def test_store_attachment_bytes_roundtrip(kanban_home):
 
 
 # ---------------------------------------------------------------------------
-# CLI — hermes kanban attach / attachments / attach-rm
+# CLI — ettok kanban attach / attachments / attach-rm
 # ---------------------------------------------------------------------------
 
 

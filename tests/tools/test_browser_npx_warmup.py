@@ -1,13 +1,13 @@
 """Tests for tools.browser_tool_install.warm_agent_browser_npx_cache (#43564, security
 hardening follow-up on PR #44772 review).
 
-warm_agent_browser_npx_cache() is the fire-and-forget helper `hermes update` /
-`hermes doctor --fix` call to pre-fetch agent-browser via npx so the first real
+warm_agent_browser_npx_cache() is the fire-and-forget helper `ettok update` /
+`ettok doctor --fix` call to pre-fetch agent-browser via npx so the first real
 browser-tool invocation in a session doesn't pay npx's registry-lookup cost.
 It must never raise, must accurately report success/failure via its return
 value, must use a credential-scrubbed and PATH-propagated environment (it
 runs registry-fetched, potentially install-scripted npm code on every
-`hermes update` — not only when a browser tool is actually used), must pass
+`ettok update` — not only when a browser tool is actually used), must pass
 --ignore-scripts (AGENT_BROWSER_NPX_SPEC is a floating ^0.26.0 range, not an
 exact pin), and must kill the whole process tree — not just the top-level
 npx PID — on timeout.
@@ -74,7 +74,7 @@ def test_stdin_is_explicitly_devnull_not_inherited():
 
 
 def test_captures_stdout_and_stderr_instead_of_inheriting_parent_fds():
-    """The npx registry fetch runs on every `hermes update` — its stdout/
+    """The npx registry fetch runs on every `ettok update` — its stdout/
     stderr must not bleed into the caller's own output (and, on POSIX, an
     inherited fd is one more handle a runaway grandchild could hold open)."""
     with patch("tools.browser_tool_install._resolve_npx_bin", return_value="/usr/bin/npx"), \
@@ -89,7 +89,7 @@ def test_captures_stdout_and_stderr_instead_of_inheriting_parent_fds():
 def test_uses_credential_scrubbed_environment():
     """Must not inherit the full parent environment — matching every other
     agent-browser subprocess spawn (_build_browser_env), not the ambient
-    os.environ with every provider/gateway credential Hermes holds."""
+    os.environ with every provider/gateway credential Ettok holds."""
     scrubbed_env = {"PATH": "/scrubbed/bin", "SCRUBBED": "1"}
     with patch("tools.browser_tool_install._resolve_npx_bin", return_value="/usr/bin/npx"), \
          patch("tools.browser_tool._build_browser_env", return_value=dict(scrubbed_env)), \
@@ -103,7 +103,7 @@ def test_uses_credential_scrubbed_environment():
 
 
 def test_merges_extended_path_so_managed_only_npx_can_find_sibling_node():
-    """If npx was resolved via the Hermes-managed/extended search (not the
+    """If npx was resolved via the Ettok-managed/extended search (not the
     ambient PATH), the child's own PATH must include that same directory —
     npx's #!/usr/bin/env node shebang resolves `node` via the child's PATH
     at exec time, not the resolving process's PATH."""

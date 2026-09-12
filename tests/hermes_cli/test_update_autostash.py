@@ -654,7 +654,7 @@ def test_update_parser_accepts_keep_stash():
 
 def test_bootstrap_marker_not_autostashed_by_update(tmp_path):
     """#38529: the Desktop bootstrap marker must be git-ignored so that
-    ``hermes update``'s ``git stash push --include-untracked`` does not sweep it
+    ``ettok update``'s ``git stash push --include-untracked`` does not sweep it
     into an autostash on every run.
 
     Behavioral + hermetic: build a throwaway repo that adopts the project's real
@@ -685,7 +685,7 @@ def test_bootstrap_marker_not_autostashed_by_update(tmp_path):
     marker = tmp_path / ".hermes-bootstrap-complete"
     marker.write_text("")
 
-    # Exact flags used by hermes update (hermes_cli/main.py).
+    # Exact flags used by ettok update (hermes_cli/main.py).
     git("stash", "push", "--include-untracked", "-m", "hermes-update-autostash")
 
     assert marker.exists(), (
@@ -800,7 +800,7 @@ def test_restore_rejects_invalid_python_and_keeps_clean_updated_tree(
     assert git("status", "--porcelain").stdout == ""
     assert git("stash", "list").stdout.strip()
     output = capsys.readouterr().out
-    assert "made the Hermes agent unexecutable" in output
+    assert "made the Ettok agent unexecutable" in output
     assert "gateway was not restarted" in output
     assert f"git stash apply {stash_ref}" in output
 

@@ -1,4 +1,4 @@
-"""Regression for #86721 — a one-shot `hermes cron run` invocation's
+"""Regression for #86721 — a one-shot `ettok cron run` invocation's
 dispatched runner thread dies with the exiting process, leaving a stale
 'claimed'/'running' row in cron/executions.db that blocks every subsequent
 manual run of the same job. recover_interrupted_executions() already
@@ -86,7 +86,7 @@ def test_recover_interrupted_executions_reaps_the_stale_claim_from_a_dead_proces
     execution_id = create.stdout.strip()
 
     # This is what #86721's fix now calls, from a FRESH process, mirroring
-    # exactly what a subsequent `hermes cron run` invocation would trigger
+    # exactly what a subsequent `ettok cron run` invocation would trigger
     # before attempting its own claim.
     recover = subprocess.run(
         [
@@ -132,7 +132,7 @@ def test_try_dispatch_background_run_calls_recovery_before_claiming(monkeypatch)
 
     job = {"id": "unit-test-job", "name": "unit test job", "deliver": "local"}
     # session_id is intentionally empty/None too, matching the direct-
-    # caller ("hermes cron run", tests) early return documented just
+    # caller ("ettok cron run", tests) early return documented just
     # below the recovery call -- this test only needs to confirm recovery
     # ran before that point, not exercise the full dispatch.
     cronjob_tools._try_dispatch_background_run(job, session_id=None)

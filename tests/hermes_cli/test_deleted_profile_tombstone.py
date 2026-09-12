@@ -1,8 +1,8 @@
 """Deleted named profiles must stay gone until explicitly recreated.
 
 A live serve/logging process can mkdir ``profiles/<name>/logs`` after
-``hermes profile delete`` removes the tree. That empty shell then
-reappears in ``hermes profile list`` and Desktop Bot Mode. These tests
+``ettok profile delete`` removes the tree. That empty shell then
+reappears in ``ettok profile list`` and Desktop Bot Mode. These tests
 lock the tombstone + no-mkdir contract without depending on Desktop.
 """
 
@@ -160,7 +160,7 @@ class TestDeletedProfileTombstone:
 
 class TestNamedProfileHome:
     def test_logs_under_named_profile_resolve_to_profile_home(self, tmp_path):
-        # tmp_path acts as a real Hermes home (Docker/custom layout): it
+        # tmp_path acts as a real Ettok home (Docker/custom layout): it
         # carries a home marker file, so profiles/ under it is canonical.
         (tmp_path / "config.yaml").write_text("{}\n", encoding="utf-8")
         worker = tmp_path / "profiles" / "worker"
@@ -180,7 +180,7 @@ class TestNamedProfileHome:
     def test_unrelated_profiles_dir_is_not_named(self, tmp_path):
         # Review point 1 regression: a custom home like
         # /srv/profiles/buildcache must NOT be treated as a named profile —
-        # its parent is not a Hermes home, so logging must keep mkdir-ing.
+        # its parent is not a Ettok home, so logging must keep mkdir-ing.
         custom_home = tmp_path / "srv" / "profiles" / "buildcache"
         assert named_profile_home(custom_home) is None
         assert named_profile_home(custom_home / "logs") is None
@@ -204,7 +204,7 @@ class TestNamedProfileHome:
 
     def test_tombstone_dir_marks_profiles_root(self, tmp_path):
         # A profiles/.deleted directory is only ever created by
-        # `hermes profile delete` — its presence alone anchors recognition,
+        # `ettok profile delete` — its presence alone anchors recognition,
         # so tombstones are honored even when root markers are missing.
         profiles_dir = tmp_path / "opt" / "profiles"
         (profiles_dir / ".deleted").mkdir(parents=True)

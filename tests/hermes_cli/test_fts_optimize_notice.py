@@ -48,5 +48,5 @@ def test_update_notice_offers_v1_trigram_tool_calls_rebuild(tmp_path, monkeypatc
 
     update_cmd._print_fts_optimize_available_notice()
 
-    assert "hermes sessions optimize-storage" in capsys.readouterr().out
+    assert "ettok sessions optimize-storage" in capsys.readouterr().out
     conn.close()

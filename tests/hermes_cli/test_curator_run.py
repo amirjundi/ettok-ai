@@ -1,4 +1,4 @@
-"""Tests for `hermes curator run` CLI behavior."""
+"""Tests for `ettok curator run` CLI behavior."""
 
 from __future__ import annotations
 
@@ -49,4 +49,4 @@ def test_dry_run_default_reports_synchronous_wording(monkeypatch, capsys):
 
     out = capsys.readouterr().out
     assert "When the report lands" not in out
-    assert "Read the report with `hermes curator status`" in out
+    assert "Read the report with `ettok curator status`" in out

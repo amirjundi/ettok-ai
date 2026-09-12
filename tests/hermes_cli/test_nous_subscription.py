@@ -192,7 +192,7 @@ def test_logged_in_entitled_account_yields_a_state_for_every_feature(monkeypatch
     """The logged-in + entitled branch must produce a state for EVERY feature, including
     those with no config selection field (modal). Regression: the managed-availability
     table indexed the selection map by every feature key and raised KeyError('modal'),
-    crashing `hermes status`, `hermes tools`, and the dashboard toolsets API."""
+    crashing `ettok status`, `ettok tools`, and the dashboard toolsets API."""
     monkeypatch.setattr(ns, "get_nous_portal_account_info", lambda **kw: _pool_account())
     monkeypatch.setattr(ns, "is_managed_tool_gateway_ready", lambda gateway: True)
     monkeypatch.setattr(ns, "get_env_value", lambda name: "")
@@ -230,7 +230,7 @@ def test_get_gateway_eligible_tools_treats_explicit_backend_as_configured(monkey
     """A keyless local backend (e.g. searxng) has no credentials to detect,
     but an explicit non-nous selection must still keep it out of
     'unconfigured' — regression for #92647, where it was pre-checked and a
-    single Enter during `hermes model` overwrote it to `web.backend: nous`.
+    single Enter during `ettok model` overwrote it to `web.backend: nous`.
     """
     monkeypatch.setattr(ns, "get_nous_portal_account_info", lambda **kw: _account(logged_in=True, paid=True))
     monkeypatch.setattr(
@@ -417,7 +417,7 @@ def test_apply_nous_managed_defaults_writes_video_gen_config(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# ensure_nous_portal_access — inline login gate for `hermes tools`
+# ensure_nous_portal_access — inline login gate for `ettok tools`
 # ---------------------------------------------------------------------------
 
 
@@ -543,7 +543,7 @@ def test_has_agent_browser_import_failure_falls_back_to_hermes_managed_node_path
     monkeypatch, tmp_path
 ):
     """If tools.browser_tool_install cannot be imported, the managed-Node rung must
-    still find a runnable agent-browser under the Hermes Node dir even when
+    still find a runnable agent-browser under the Ettok Node dir even when
     it's absent from the probe process's PATH — the Windows installer shape
     where install succeeded but the GUI still said needs setup."""
     monkeypatch.setitem(sys.modules, "tools.browser_tool_install", None)

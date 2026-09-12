@@ -29,7 +29,7 @@ def test_data_dir_lives_outside_the_install_tree(hermes_home):
     assert root == hermes_home / "plugin-data" / "my-plugin"
     assert root.is_dir()
     # The invariant that motivated the module: data must not live under the
-    # install tree that `hermes plugins remove` deletes.
+    # install tree that `ettok plugins remove` deletes.
     assert (hermes_home / "plugins") not in root.parents
 
 

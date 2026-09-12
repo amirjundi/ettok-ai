@@ -556,13 +556,13 @@ class TestUnreadablePairingFile:
 
 class TestProfileScopedStorage:
     """PairingStore(profile="<name>") should isolate per-profile whitelists
-    under each profile's own Hermes home so a multiplexing gateway can keep
+    under each profile's own Ettok home so a multiplexing gateway can keep
     every profile's allowlist separate.
     """
 
     def test_default_store_uses_global_dir(self, tmp_path, monkeypatch):
         """PairingStore() (no profile) keeps the legacy global path so the
-        ``hermes pairing`` CLI continues to work without a profile context."""
+        ``ettok pairing`` CLI continues to work without a profile context."""
         from hermes_constants import get_hermes_home
         monkeypatch.setattr("hermes_constants.get_hermes_home", lambda: tmp_path)
         # Re-import PAIRING_DIR (it's a module-level constant resolved at
@@ -600,7 +600,7 @@ class TestProfileScopedStorage:
         assert second_store._dir == second_home / "platforms" / "pairing"
 
     def test_profile_store_uses_profiles_subdir(self, tmp_path, monkeypatch):
-        """Explicit profile stores use that profile's normal Hermes layout."""
+        """Explicit profile stores use that profile's normal Ettok layout."""
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         store = PairingStore(profile="yangyang")
         assert store.profile == "yangyang"

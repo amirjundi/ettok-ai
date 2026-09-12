@@ -1,4 +1,4 @@
-"""Tests for the `hermes proxy` subcommand and its upstream adapters."""
+"""Tests for the `ettok proxy` subcommand and its upstream adapters."""
 
 from __future__ import annotations
 

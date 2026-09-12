@@ -4,7 +4,7 @@ Covers the PTB-free logic module ``plugins/platforms/telegram/inline_picker``
 (catalog collection, ranking, pagination) and the adapter's
 ``_handle_inline_query`` (auth gate, personal caching, empty-answer on
 deny). The picker exists because the BotCommand menu is capped (60-slot
-Hermes default / 100 API max, ~4KB payload) while inline mode is uncapped —
+Ettok default / 100 API max, ~4KB payload) while inline mode is uncapped —
 every command and skill must be reachable through it.
 """
 

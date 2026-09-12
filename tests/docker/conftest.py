@@ -86,7 +86,7 @@ def container_name(request) -> Iterator[str]:
 # docker_exec — default to the unprivileged hermes user
 # ---------------------------------------------------------------------------
 #
-# Background: every Hermes runtime path inside the container drops to UID
+# Background: every Ettok runtime path inside the container drops to UID
 # 10000 (the ``hermes`` user) via ``s6-setuidgid hermes``. ``docker exec``
 # without ``-u`` runs as root, which is **not** representative of how
 # production code executes. PR #30136 review caught a real regression

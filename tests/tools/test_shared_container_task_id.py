@@ -168,7 +168,7 @@ def test_contextvar_session_key_wins_over_environ(monkeypatch):
 # --- Persistent Docker is PROFILE-scoped, not session-scoped ------------------
 #
 # Product contract: TERMINAL_ENV=docker + container_persistent:true means ONE
-# long-lived container per Hermes profile, shared by every session of that
+# long-lived container per Ettok profile, shared by every session of that
 # profile (CLI, gateway chats, WebUI). The a270c4ade session-key fallback must
 # NOT fragment persistent Docker into per-session containers; it exists for
 # backends where cross-session reuse is dangerous (SSH).

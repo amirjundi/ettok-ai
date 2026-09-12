@@ -4,7 +4,7 @@ The GUI-updater handoff race (ryanc's 2026-08-09 failures): the Desktop app
 fires SIGTERM + app.quit() and spawns hermes-setup, but its Python backend
 (``python.exe -m hermes_cli.main serve``) survives the teardown race. The
 Desktop is gone — nothing will respawn that backend — yet the venv-holder
-guard refused on it and the update dead-ended with "Hermes is still running"
+guard refused on it and the update dead-ended with "Ettok is still running"
 while the user had zero windows open.
 
 ``_orphaned_desktop_backend_pids`` classifies holders: a ``serve``/
@@ -89,7 +89,7 @@ def test_orphan_backend_dead_parent_qualifies():
 
 
 def test_backend_with_live_parent_keeps_refusal():
-    parent = _proc(50, ["Hermes.exe"], create_time=10.0)
+    parent = _proc(50, ["Ettok.exe"], create_time=10.0)
     backend = _proc(200, _SERVE_ARGV, ppid=50, create_time=100.0)
     fake = _fake_psutil({50: parent, 200: backend})
     with patch.dict(sys.modules, {"psutil": fake}):

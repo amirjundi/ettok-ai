@@ -14,7 +14,7 @@ def _write_auth_store(tmp_path, payload: dict) -> None:
 def test_key_rotation_clears_exhausted_status(tmp_path, monkeypatch):
     """Replacing an exhausted API key via _upsert_entry resets last_status.
 
-    Regression: `hermes setup` saves a new OPENROUTER_API_KEY to .env, which
+    Regression: `ettok setup` saves a new OPENROUTER_API_KEY to .env, which
     triggers _seed_from_env → _upsert_entry.  If the existing pool entry was
     marked exhausted (e.g. from a rate-limit on the old key), the stale status
     was preserved on the new key — making the pool appear unusable even though

@@ -8,9 +8,9 @@ CR-LF-stripping gates that ``save_env_value`` enforces for every other
 between the write and a later ``chmod`` (a TOCTOU permission window).
 
 A memory provider plugin schema declaring ``env_var: "LD_PRELOAD"`` (or any
-other subprocess-influencing or Hermes-runtime-location name) could
+other subprocess-influencing or Ettok-runtime-location name) could
 otherwise plant a value into ``.env`` via the interactive memory-setup
-wizard. The next Hermes process would load it through the
+wizard. The next Ettok process would load it through the
 ``env_loader.py`` ``.env -> os.environ`` chain and execute attacker code
 before ``main()``.
 
@@ -144,7 +144,7 @@ def test_legitimate_value_writes_round_trip():
 
 def test_explicit_hermes_home_writes_to_that_env_file(tmp_path):
     """Plugin ``post_setup`` hooks (e.g. Supermemory) pass an explicit
-    Hermes home; keep that target while still routing through
+    Ettok home; keep that target while still routing through
     ``save_env_value`` validation instead of writing directly."""
     home = tmp_path / "plugin-home"
 

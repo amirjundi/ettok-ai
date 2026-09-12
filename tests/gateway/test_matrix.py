@@ -1700,7 +1700,7 @@ class TestMatrixEncryptedEventHandler:
         # Verify inbound event handlers were registered as sync-awaited
         # callbacks. mautrix only returns waited handler tasks from
         # handle_sync(), so background-only handlers leave _dispatch_sync()
-        # without a completion point for Hermes' Matrix intake.
+        # without a completion point for Ettok' Matrix intake.
         handler_calls = mock_client.add_event_handler.call_args_list
         waited_types = {
             str(call.args[0])

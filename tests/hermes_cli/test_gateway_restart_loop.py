@@ -24,9 +24,9 @@ class TestGatewayLifecyclePattern:
     """Verify the regex catches gateway lifecycle commands."""
 
     @pytest.mark.parametrize("text", [
-        "hermes gateway restart",
-        "hermes gateway stop",
-        "hermes gateway uninstall",
+        "ettok gateway restart",
+        "ettok gateway stop",
+        "ettok gateway uninstall",
         "hermes  gateway  restart",         # double spaces
         "Hermez Gateway Restart".lower().replace("z", "s"),  # case handled
         "HERMES GATEWAY RESTART",           # uppercase
@@ -110,7 +110,7 @@ class TestGatewayLifecyclePattern:
         'launchctl bootout gui/501/ai.hermes."gateway"',
         # Same class on the systemctl and hermes-CLI branches.
         'systemctl re"start" hermes-gateway',
-        'hermes gateway re"start"',
+        'ettok gateway re"start"',
     ])
     def test_shell_token_spliced_lifecycle_verbs(self, text):
         assert _contains_gateway_lifecycle_command(text), f"Should match: {text!r}"
@@ -145,18 +145,18 @@ class TestGatewayLifecyclePattern:
 
     @pytest.mark.parametrize("text", [
         "restart the server application",
-        "hermes cron list",
-        "hermes update",
-        "hermes config set model claude",
+        "ettok cron list",
+        "ettok update",
+        "ettok config set model claude",
         "echo 'just a normal cron job'",
         "run the backup script",
         "gateway is running fine",
-        # `hermes gateway start` is benign — starting a gateway from inside a
+        # `ettok gateway start` is benign — starting a gateway from inside a
         # gateway is a no-op / "already running", and a legit cron job may
         # start a sibling profile's gateway. Only restart/stop/kill are the
         # foot-gun (#30719 lists only those).
-        "hermes gateway start",
-        "hermes gateway start --all",
+        "ettok gateway start",
+        "ettok gateway start --all",
         # Tightened launchctl/systemctl branches: ops on NON-gateway hermes
         # services must not be falsely blocked (the old `.*hermes` matched any
         # hermes token).
@@ -181,31 +181,31 @@ class TestGatewayLifecyclePattern:
         # #92372 Branch A: no trailing boundary meant ordinary prose matched —
         # "restarted" carries the "restart" prefix and the old pattern ended
         # exactly there. \b after the verb group fixes it.
-        "echo after the hermes gateway restarted cleanly",
-        "the hermes gateway stopped responding, please investigate",
+        "echo after the ettok gateway restarted cleanly",
+        "the ettok gateway stopped responding, please investigate",
         # #92372 Branch D: `p?kill` without a leading \b matched the "kill"
         # tail of "skill".
-        "hermes skill view gateway-notes && echo hermes gateway docs",
+        "hermes skill view gateway-notes && echo ettok gateway docs",
         # #77173/#77536: a file path with embedded spaces containing the
         # lifecycle words must not match — `hermes` is a path component
         # there, not a command.
-        "cat '/docs/hermes gateway restart-notes.md'",
-        "less /home/user/notes/hermes gateway restart runbook.txt",
+        "cat '/docs/ettok gateway restart-notes.md'",
+        "less /home/user/notes/ettok gateway restart runbook.txt",
     ])
     def test_safe_commands(self, text):
         assert not _contains_gateway_lifecycle_command(text), f"Should NOT match: {text!r}"
 
     @pytest.mark.parametrize("text", [
         # Trailing-boundary fix must not weaken real commands.
-        "hermes gateway restart",
-        "hermes gateway restart; echo done",
-        "hermes gateway stop && echo stopped",
+        "ettok gateway restart",
+        "ettok gateway restart; echo done",
+        "ettok gateway stop && echo stopped",
         # #77173 command-position anchor must not weaken separator/subshell
         # forms either.
-        "true;hermes gateway restart",
-        "true && hermes gateway stop",
-        "echo $(hermes gateway restart)",
-        "echo `hermes gateway restart`",
+        "true;ettok gateway restart",
+        "true && ettok gateway stop",
+        "echo $(ettok gateway restart)",
+        "echo `ettok gateway restart`",
     ])
     def test_boundary_fix_still_blocks_real_commands(self, text):
         assert _contains_gateway_lifecycle_command(text), f"Should match: {text!r}"
@@ -253,7 +253,7 @@ class TestGatewayLifecyclePattern:
         # data — runbook prose inside it must not block.
         text = (
             "cat > /tmp/runbook.md <<'EOF'\n"
-            "If the box is wedged, a human can run: hermes gateway restart\n"
+            "If the box is wedged, a human can run: ettok gateway restart\n"
             "EOF"
         )
         assert not _contains_gateway_lifecycle_command(text), f"Should NOT match: {text!r}"
@@ -321,8 +321,8 @@ class TestProfileFlagGatewayLifecycle:
     def test_adjacent_form_still_blocked(self):
         # Branch A remains unconditional — the profile-flag check is an
         # additional layer, not a replacement.
-        assert _contains_gateway_lifecycle_command("hermes gateway restart")
-        assert _contains_gateway_lifecycle_command("hermes gateway stop")
+        assert _contains_gateway_lifecycle_command("ettok gateway restart")
+        assert _contains_gateway_lifecycle_command("ettok gateway stop")
 
     def test_hermes_home_derived_profile(self, monkeypatch):
         # Without HERMES_PROFILE the guard falls back to the HERMES_HOME-
@@ -344,7 +344,7 @@ class TestProfileFlagGatewayLifecycle:
 
         monkeypatch.setattr(lifecycle_guard, "_current_profile_name", lambda: None)
         assert not _contains_gateway_lifecycle_command("hermes -p zeus gateway restart")
-        assert _contains_gateway_lifecycle_command("hermes gateway restart")
+        assert _contains_gateway_lifecycle_command("ettok gateway restart")
 
 
 class TestCronCreateLifecycleBlock:
@@ -360,7 +360,7 @@ class TestCronCreateLifecycleBlock:
         args = Namespace(
             cron_command="create",
             schedule="30m",
-            prompt="Upgrade hermes then run hermes gateway restart",
+            prompt="Upgrade hermes then run ettok gateway restart",
             name=None,
             deliver=None,
             repeat=None,
@@ -524,8 +524,8 @@ class TestTerminalToolGatewayLifecycleGuard:
         "systemctl restart hermes-gateway",
         "systemctl --user restart hermes-gateway",
         "systemctl stop hermes-gateway.service",
-        "hermes gateway restart",
-        "hermes gateway uninstall",
+        "ettok gateway restart",
+        "ettok gateway uninstall",
         "launchctl kickstart gui/501/ai.hermes.gateway",
         "launchctl bootout gui/501/ai.hermes.gateway",
         # #62891 exact reported shape and its bootstrap sibling.
@@ -685,10 +685,10 @@ class TestTerminalToolGatewayLifecycleGuard:
             tt, "_check_all_guards", lambda cmd, env, **kwargs: {"approved": True}
         )
 
-        result = json.loads(tt.terminal_tool(command="hermes gateway restart"))
+        result = json.loads(tt.terminal_tool(command="ettok gateway restart"))
 
         assert result["exit_code"] == 0
-        assert calls == ["hermes gateway restart"]
+        assert calls == ["ettok gateway restart"]
 
     def test_blocks_launchctl_submit_hidden_in_referenced_script(
         self, monkeypatch, tmp_path
@@ -1028,7 +1028,7 @@ class TestLifecycleGuardModule:
     def test_prompt_with_command_raises(self):
         from cron.lifecycle_guard import GatewayLifecycleBlocked, check_gateway_lifecycle
         with pytest.raises(GatewayLifecycleBlocked) as exc:
-            check_gateway_lifecycle("please run hermes gateway restart", None)
+            check_gateway_lifecycle("please run ettok gateway restart", None)
         assert "#30719" in str(exc.value)
 
     def test_clean_prompt_does_not_raise(self):
@@ -1072,7 +1072,7 @@ class TestLifecycleGuardModule:
         script to slip through."""
         from cron.lifecycle_guard import GatewayLifecycleBlocked, check_gateway_lifecycle
         script = tmp_path / "ops.sh"
-        script.write_text("hermes gateway stop\n", encoding="utf-8")
+        script.write_text("ettok gateway stop\n", encoding="utf-8")
         with pytest.raises(GatewayLifecycleBlocked):
             check_gateway_lifecycle("daily ops job", str(script))
 
@@ -1129,7 +1129,7 @@ class TestLifecycleGuardModule:
         by the direct regex scan."""
         from cron.lifecycle_guard import GatewayLifecycleBlocked, check_gateway_lifecycle
         script = tmp_path / "evil.py"
-        script.write_text('import os\nos.system("hermes gateway restart")\n', encoding="utf-8")
+        script.write_text('import os\nos.system("ettok gateway restart")\n', encoding="utf-8")
         with pytest.raises(GatewayLifecycleBlocked):
             check_gateway_lifecycle("clean prompt", str(script))
 
@@ -1389,7 +1389,7 @@ class TestLifecycleGuardModule:
         )
 
         def _remote_read(_path: str):
-            return "MZ\x00\x00\x90\x00 hermes gateway restart \x00\x00junk"
+            return "MZ\x00\x00\x90\x00 ettok gateway restart \x00\x00junk"
 
         result = contains_gateway_lifecycle_command_or_referenced_script(
             "bash /nonexistent/dir/helper.sh",
@@ -1453,7 +1453,7 @@ class TestLifecycleGuardModule:
         monkeypatch.setattr(lg, "_contains_unsafe_gateway_action", _boom)
         # Direct scan still blocks a literal lifecycle command...
         assert lg.contains_gateway_lifecycle_command_or_referenced_script(
-            "hermes gateway restart"
+            "ettok gateway restart"
         ) is True
         # ...and a benign command fails open instead of crashing.
         assert lg.contains_gateway_lifecycle_command_or_referenced_script(
@@ -1687,8 +1687,8 @@ class TestRelativePathDoesNotDisableDataExemption:
 
     @pytest.mark.parametrize("command", [
         "grep -r 'systemctl restart hermes-gateway' .",
-        "grep -rn 'hermes gateway restart' ./logs",
-        "rg 'hermes gateway restart' ../archive",
+        "grep -rn 'ettok gateway restart' ./logs",
+        "rg 'ettok gateway restart' ../archive",
         "grep -c 'systemctl stop hermes-gateway' ./var/log/syslog",
         "sqlite3 ./stats.db \"SELECT restart_reason FROM hermes_gateway_restarts\"",
     ])
@@ -1698,15 +1698,15 @@ class TestRelativePathDoesNotDisableDataExemption:
     @pytest.mark.parametrize("command", [
         # Narrowing the dot test must not open an execution route: every
         # escape hatch still fires with a relative-path operand present.
-        'sqlite3 ./db ".shell hermes gateway restart"',
+        'sqlite3 ./db ".shell ettok gateway restart"',
         'sqlite3 ./db ".system systemctl restart hermes-gateway"',
         'psql ./x -c "\\! systemctl restart hermes-gateway"',
-        "grep -r 'hermes gateway restart' . | sh",
-        "grep -r 'hermes gateway restart' ./logs | bash",
-        "grep -r 'hermes gateway restart' . | sudo sh",
-        "grep -r 'x' . ; hermes gateway restart",
+        "grep -r 'ettok gateway restart' . | sh",
+        "grep -r 'ettok gateway restart' ./logs | bash",
+        "grep -r 'ettok gateway restart' . | sudo sh",
+        "grep -r 'x' . ; ettok gateway restart",
         "grep -r 'x' . && systemctl restart hermes-gateway",
-        'grep -r "$(hermes gateway restart)" .',
+        'grep -r "$(ettok gateway restart)" .',
         "rg 'x' ./logs | xargs systemctl restart hermes-gateway",
     ])
     def test_relative_path_does_not_open_an_execution_route(self, command):
@@ -1714,7 +1714,7 @@ class TestRelativePathDoesNotDisableDataExemption:
 
     @pytest.mark.parametrize("command", [
         # Real dot-commands must still defeat the exemption.
-        'sqlite3 db ".shell hermes gateway restart"',
+        'sqlite3 db ".shell ettok gateway restart"',
         'sqlite3 db ".system systemctl restart hermes-gateway"',
         'psql -c "\\! systemctl restart hermes-gateway"',
     ])
@@ -1737,7 +1737,7 @@ class TestCreateJobBlocksLifecycleCommands:
         from cron.jobs import create_job
         from cron.lifecycle_guard import GatewayLifecycleBlocked
         with pytest.raises(GatewayLifecycleBlocked):
-            create_job(prompt="then run hermes gateway restart", schedule="30m")
+            create_job(prompt="then run ettok gateway restart", schedule="30m")
 
     def test_create_job_allows_benign_prompt(self):
         from cron.jobs import create_job
@@ -1753,7 +1753,7 @@ class TestCreateJobBlocksLifecycleCommands:
         from tools.cronjob_tools import cronjob
         result = json.loads(cronjob(
             action="create", schedule="0 9 * * *",
-            prompt="please run hermes gateway restart nightly",
+            prompt="please run ettok gateway restart nightly",
         ))
         assert result.get("success") is False
         assert "#30719" in result.get("error", "")
@@ -1938,7 +1938,7 @@ class TestLifecycleGuardDataArgumentExemption:
         "'systemctl stop hermes-gateway'\"",
         # grep/rg pattern arguments hunting for the lifecycle string.
         "grep -c 'systemctl restart hermes-gateway' /var/log/syslog",
-        "rg 'hermes gateway restart' /home/user/.hermes/logs/",
+        "rg 'ettok gateway restart' /home/user/.hermes/logs/",
         "journalctl -u hermes-gateway --grep 'systemctl restart hermes-gateway'",
         # SQL with stop/restart column/value words but no command shape.
         'sqlite3 stats.db "SELECT stop_time, restart_reason FROM '
@@ -1951,15 +1951,15 @@ class TestLifecycleGuardDataArgumentExemption:
 
     @pytest.mark.parametrize("command", [
         # Execution smuggled through or around a data sink must still block.
-        'sqlite3 db ".shell hermes gateway restart"',
+        'sqlite3 db ".shell ettok gateway restart"',
         'psql -c "\\! systemctl restart hermes-gateway"',
         "grep 'systemctl restart hermes-gateway' cmds.txt | sh",
         "grep gateway f | xargs systemctl restart hermes-gateway",
         'grep "$(systemctl restart hermes-gateway)" f',
         "grep 'restart' log; systemctl restart hermes-gateway",
-        'sqlite3 db "SELECT 1"; hermes gateway stop',
+        'sqlite3 db "SELECT 1"; ettok gateway stop',
         # Plain lifecycle commands are unaffected by the exemption.
-        "hermes gateway restart",
+        "ettok gateway restart",
         "sudo systemctl stop hermes-gateway",
     ])
     def test_command_position_lifecycle_still_blocked(self, command):

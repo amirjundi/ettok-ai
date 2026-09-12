@@ -1,7 +1,7 @@
 """macOS Full Disk Access onboarding guidance (issue #52010 follow-up).
 
 One FDA grant silences every per-folder TCC prompt permanently. Doctor
-reports the state and prints the one-switch setup; `hermes setup` surfaces
+reports the state and prints the one-switch setup; `ettok setup` surfaces
 the same tip at onboarding. The probe must never itself trigger a prompt —
 it reads the FDA-gated TCC db directory, which returns EPERM (no dialog)
 without the grant.
@@ -96,4 +96,4 @@ class TestSetupFdaTip:
         out = _capture(_print_macos_fda_tip)
         assert "Full Disk Access" in out
         assert "Privacy_AllFiles" in out
-        assert "survives every Hermes update" in out
+        assert "survives every Ettok update" in out

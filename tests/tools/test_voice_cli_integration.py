@@ -425,7 +425,7 @@ class TestVoiceBargeCaptureSubmit:
 
     def test_playback_phase_echo_of_own_tts_is_dropped(self, tmp_path, monkeypatch):
         """#75780: a playback-phase capture that closely matches the TTS
-        text Hermes just spoke is speaker bleed, not real user speech --
+        text Ettok just spoke is speaker bleed, not real user speech --
         it must be dropped instead of queued as the next turn, and the mic
         handed back so continuous mode keeps listening."""
         cli = _make_voice_cli(_voice_mode=True, _voice_continuous=True)

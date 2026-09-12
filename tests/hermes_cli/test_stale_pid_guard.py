@@ -109,7 +109,7 @@ class TestPidIsHermes:
 
     @pytest.mark.skipif(sys.platform != "win32", reason="real probe is windows-only")
     def test_missing_pid_real_probe_fails_closed(self):
-        # A PID that cannot exist must never be judged Hermes-owned.
+        # A PID that cannot exist must never be judged Ettok-owned.
         assert _subprocess_compat.pid_is_hermes(2**24) is False
 
 

@@ -452,7 +452,7 @@ class TestQueryLocalContextLengthAnthropicProxy:
 
         assert result == 1_000_000, (
             f"Expected max_input_tokens (1M), got {result}. "
-            "If Hermes uses Anthropic max_tokens (128k), compression fires ~8x early."
+            "If Ettok uses Anthropic max_tokens (128k), compression fires ~8x early."
         )
 
     def test_model_detail_prefers_max_input_tokens(self):
@@ -751,7 +751,7 @@ class TestGetModelContextLengthLocalFallback:
         """Stale disk cache must yield to a live local max_model_len probe."""
         from agent.model_metadata import get_model_context_length
 
-        model = "NousResearch/Hermes-3-Llama-3.1-70B"
+        model = "NousResearch/Ettok-3-Llama-3.1-70B"
         base = "http://192.168.1.50:8000/v1"
 
         with patch("agent.model_metadata.get_cached_context_length", return_value=131072), \

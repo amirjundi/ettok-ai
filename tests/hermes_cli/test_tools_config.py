@@ -377,7 +377,7 @@ class TestAgentBrowserPostSetup:
 
     agent-browser is no longer a root package.json dependency (there's no
     local `npm install` step anymore); it resolves at runtime via
-    tools.browser_tool_install._find_agent_browser (PATH -> Homebrew/Hermes-managed
+    tools.browser_tool_install._find_agent_browser (PATH -> Homebrew/Ettok-managed
     node -> local .bin -> npx). This class exercises the Chromium-install
     branch of _run_post_setup, which now delegates to that same resolution
     cascade instead of hand-rolling its own node_modules/.bin/agent-browser
@@ -502,7 +502,7 @@ class TestAgentBrowserPostSetup:
         ]
 
     def test_installs_chromium_via_npx_resolved_only_through_extended_path(self):
-        """Hermes-managed-Node-only setups: npx resolves via
+        """Ettok-managed-Node-only setups: npx resolves via
         _find_agent_browser's extended-PATH fallback, not a bare PATH lookup.
         The install command must use that same resolved npx, not silently
         hand subprocess.run a None argument from a bare shutil.which('npx')
@@ -813,7 +813,7 @@ class TestImagegenModelPicker:
 def test_get_effective_configurable_toolsets_dedupes_bundled_plugins():
     """Bundled plugins (plugins/spotify) share their toolset key with the
     built-in CONFIGURABLE_TOOLSETS entry. The effective list must not list
-    them twice — otherwise `hermes tools` → "reconfigure existing" shows
+    them twice — otherwise `ettok tools` → "reconfigure existing" shows
     the same toolset two rows in a row.
     """
     from hermes_cli.tools_config import _get_effective_configurable_toolsets
@@ -849,13 +849,13 @@ def test_get_effective_configurable_toolsets_dedupes_bundled_plugins():
 
 
 # ── Checklist diff scope: non-configurable toolsets (kanban) must not be
-#    reported as added/removed by `hermes tools` ──────────────────────────
+#    reported as added/removed by `ettok tools` ──────────────────────────
 
 
 
 
 def test_kanban_not_reported_as_removed_in_diff():
-    """Reproduces the false-signal bug: `hermes tools` printed ``- kanban``
+    """Reproduces the false-signal bug: `ettok tools` printed ``- kanban``
     when saving a platform that resolves kanban as enabled, even though the
     checklist never offered kanban as a toggle.
 
@@ -1000,7 +1000,7 @@ def test_visible_providers_reuses_pool_video_feature_snapshot(monkeypatch):
 # ── Windows console-flash guard for post-setup subprocess spawns ──────────────
 #
 # The desktop GUI runs post-setup hooks through a detached, console-less
-# `hermes tools post-setup <key>` child. On Windows each console child (npm,
+# `ettok tools post-setup <key>` child. On Windows each console child (npm,
 # npx, pip, powershell) spawned without CREATE_NO_WINDOW materializes a brand
 # new console window — the "terminal flash" reported on the Capabilities
 # browser-setup journey. `_post_setup_no_window_flags` is the single wrapper
@@ -1019,7 +1019,7 @@ def test_visible_providers_reuses_pool_video_feature_snapshot(monkeypatch):
 # ("browserbase") only the CLI, and camofox its npm package.
 
 
-# ── Toolsets that shipped after a platform's last `hermes tools` save ────────
+# ── Toolsets that shipped after a platform's last `ettok tools` save ────────
 #
 # Saving the picker (or one toggle in the desktop Toolsets UI) replaces a
 # platform's composite (``[hermes-cli]``) with a frozen explicit list, and
@@ -1102,7 +1102,7 @@ def test_agent_disabled_toolsets_still_wins():
 @_requires_recently_shipped
 def test_agent_disabled_toolsets_json_array_string_form_still_wins():
     """#86661: the suppression list may arrive as a JSON-array string (e.g.
-    `hermes config set agent.disabled_toolsets '["memory"]'`). It must be
+    `ettok config set agent.disabled_toolsets '["memory"]'`). It must be
     parsed, not treated as one dead toolset name that filters nothing."""
     config = _saved_list_from_before()
     import json as _json
@@ -1131,7 +1131,7 @@ def test_agent_disabled_toolsets_python_literal_string_form_still_wins():
 
 def test_disabled_composite_debugging_prunes_constituent_platform_toolsets():
     """#97015: ``agent.disabled_toolsets: [debugging]`` must hide member
-    toolsets on ``hermes tools --summary``, not only strip them at runtime."""
+    toolsets on ``ettok tools --summary``, not only strip them at runtime."""
     config = {
         "platform_toolsets": {"cli": ["hermes-cli"]},
         "agent": {"disabled_toolsets": ["debugging"]},

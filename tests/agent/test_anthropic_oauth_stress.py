@@ -74,7 +74,7 @@ def _process_claude_code_refresh_worker(
     def fake_refresh(refresh_token, *, use_json=False):
         # The state file models a single-use token endpoint. The lock here
         # protects only the fake server's accounting; the production lock is
-        # what must ensure that the second Hermes process never calls this
+        # what must ensure that the second Ettok process never calls this
         # function after the first one has rotated the shared credential.
         with auth_mod._auth_store_lock(timeout_seconds=10, target_path=server_path):
             state = json.loads(server_path.read_text(encoding="utf-8"))
@@ -180,7 +180,7 @@ def hermes_home(tmp_path, monkeypatch):
 def test_high_concurrency_anthropic_refresh_no_lost_updates_no_deadlock(
     hermes_home, monkeypatch
 ):
-    """CONCURRENCY 'Hermes processes' race the same stale refresh token
+    """CONCURRENCY 'Ettok processes' race the same stale refresh token
     against the real cross-process lock + real on-disk pool persistence.
 
     Bottleneck check: total wall-clock time must stay close to what a

@@ -674,7 +674,7 @@ def test_sanitize_still_drops_replayed_result_for_retired_call():
 
 
 def test_sanitize_preserves_deterministic_local_ids_across_turns():
-    """Hermes' own deterministic call ids (fn-name+args hashes / local
+    """Ettok' own deterministic call ids (fn-name+args hashes / local
     counters) legitimately repeat across turns — both must survive.
 
     Scenario surfaced in #76632: two image_generate rounds emit the same

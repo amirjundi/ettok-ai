@@ -1,4 +1,4 @@
-"""Regression for #41403 — ``hermes update`` must restart ALL macOS launchd gateways.
+"""Regression for #41403 — ``ettok update`` must restart ALL macOS launchd gateways.
 
 The macOS branch of the update's fleet-restart step only restarted the
 invoking profile's LaunchAgent (``get_launchd_label()`` is profile-scoped).

@@ -54,7 +54,7 @@ def _set_legacy_attribution(profile, enabled):
 
 @pytest.fixture
 def wire(profile, monkeypatch):
-    """Replace only HTTP transports; use Hermes routing and the real SDK."""
+    """Replace only HTTP transports; use Ettok routing and the real SDK."""
     from agent import auxiliary_client
     from run_agent import AIAgent
 

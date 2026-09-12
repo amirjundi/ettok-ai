@@ -14,7 +14,7 @@ DeepSeek's compatibility matrix lists ``thinking`` as supported but
 ``redacted_thinking`` and ``cache_control`` on thinking blocks as not
 supported.  Handling is the same as Kimi's ``/coding`` endpoint: strip
 Anthropic-signed blocks (DeepSeek can't validate them) but preserve unsigned
-blocks that Hermes synthesises from ``reasoning_content``.
+blocks that Ettok synthesises from ``reasoning_content``.
 
 See hermes-agent#16748.
 """

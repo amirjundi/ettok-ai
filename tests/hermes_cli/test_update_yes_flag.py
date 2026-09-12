@@ -1,4 +1,4 @@
-"""Tests for `hermes update --yes / -y` — assume yes for interactive prompts.
+"""Tests for `ettok update --yes / -y` — assume yes for interactive prompts.
 
 Covers:
   1. argparse parses the flag
@@ -161,7 +161,7 @@ class TestUnicodeDecodeErrorInUpdatePrompts:
     interactive update prompts call input() directly -- the config-
     migration prompt, the stash-restore prompt, and the upstream-remote
     prompt -- and each must fail safe (skip, don't crash) rather than let
-    the exception escape and crash `hermes update` mid-flight.
+    the exception escape and crash `ettok update` mid-flight.
     """
 
     @patch("hermes_cli.update_cmd._reload_config_modules")
@@ -199,7 +199,7 @@ class TestUnicodeDecodeErrorInUpdatePrompts:
             cmd_update(args)  # must not raise
 
         out = capsys.readouterr().out
-        assert "hermes config migrate" in out
+        assert "ettok config migrate" in out
         mock_migrate.assert_not_called()
 
     def test_stash_restore_unicode_decode_error_falls_through_to_skip(self, tmp_path, capsys):

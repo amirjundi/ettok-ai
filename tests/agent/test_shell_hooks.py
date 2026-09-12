@@ -150,7 +150,7 @@ class TestCallbackSubprocess:
         """v1 schema-bug regression gate.
 
         Shell hook returns the Claude-Code-style payload and the bridge
-        must translate it to the canonical Hermes block shape so that
+        must translate it to the canonical Ettok block shape so that
         get_pre_tool_call_block_message() surfaces the block.
         """
         script = _write_script(
@@ -706,7 +706,7 @@ class TestFailSemanticsEndToEnd:
         assert "failed closed" in result["message"]
 
     def test_run_once_reflects_exit_2_block(self, tmp_path):
-        """hermes hooks test must mirror production semantics."""
+        """ettok hooks test must mirror production semantics."""
         script = _write_script(
             tmp_path, "exit2.sh",
             "#!/usr/bin/env bash\n"

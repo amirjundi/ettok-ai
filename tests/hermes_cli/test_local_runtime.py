@@ -693,7 +693,7 @@ def test_switch_model_explicit_llamacpp_provider(tmp_path, monkeypatch, stub_ser
     result = switch_model(
         "stub-model-a",
         current_provider="nous",
-        current_model="Hermes-4.5",
+        current_model="Ettok-4.5",
         current_base_url="",
         explicit_provider="llamacpp",
     )

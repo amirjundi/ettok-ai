@@ -1,4 +1,4 @@
-"""Behavior-contract compatibility tests for native Hermes plugins."""
+"""Behavior-contract compatibility tests for native Ettok plugins."""
 
 from pathlib import Path
 import shutil

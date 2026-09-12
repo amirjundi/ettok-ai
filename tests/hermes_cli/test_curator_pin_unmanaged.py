@@ -1,12 +1,12 @@
 """Pin/unpin messaging on unmanaged skills (#92993).
 
-`hermes curator pin <name>` on an unmanaged skill (curation-eligible but no
+`ettok curator pin <name>` on an unmanaged skill (curation-eligible but no
 `created_by` marker — the pre-marker population `list-unmanaged` shows) used
 to print "will bypass auto-transitions" and exit 0. But `curated_report()`
 only walks marker-carrying skills, so auto-transitions never consider an
 unmanaged skill at all: the pin is recorded yet inert, and the message
 claimed an effect that does not exist. The fix keeps the write (the flag
-becomes meaningful after `hermes curator adopt`) and makes the message say
+becomes meaningful after `ettok curator adopt`) and makes the message say
 what actually happened.
 """
 
@@ -53,7 +53,7 @@ def test_pin_unmanaged_records_flag_and_prints_adopt_hint(monkeypatch, capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert "unmanaged" in out
-    assert "hermes curator adopt legacy-skill" in out
+    assert "ettok curator adopt legacy-skill" in out
     # The old lie must be gone: the pin does NOT bypass anything here.
     assert "will bypass auto-transitions" not in out
 

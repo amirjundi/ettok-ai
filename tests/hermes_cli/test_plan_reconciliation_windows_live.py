@@ -1,6 +1,6 @@
 """LIVE Windows E2E for plan-reconciliation (#92902) on windows-latest.
 
-Real processes with real Hermes-shaped argv, real inventory collection
+Real processes with real Ettok-shaped argv, real inventory collection
 (PID-file discovery + supervisor detection on REAL Windows), real
 reconciliation. No mocks on the components under test.
 

@@ -1,6 +1,6 @@
 """Phase-1 bullet 3 (#91277): the dashboard/Desktop READ the update receipt.
 
-The update receipt (written by every `hermes update` run since #91283,
+The update receipt (written by every `ettok update` run since #91283,
 `latest.json` pointer) is the durable outcome record. These tests pin:
 
 - GET /api/hermes/update/receipt returns the full receipt + summary; 404

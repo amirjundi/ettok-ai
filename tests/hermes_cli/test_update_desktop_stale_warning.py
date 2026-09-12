@@ -1,6 +1,6 @@
 """A failed Desktop pack must not look like a successful update.
 
-#88251: ``hermes update`` treated a failed desktop pack as non-fatal, printed
+#88251: ``ettok update`` treated a failed desktop pack as non-fatal, printed
 an early warning, then still ended with ``✓ Update complete!``. The Python
 side moved on; the Electron app stayed on the previous build.
 
@@ -131,7 +131,7 @@ def test_summary_omits_success_banner_when_desktop_rebuild_failed(capsys):
     assert "Update complete" not in out
     assert "partially complete" in out
     assert "desktop app was not rebuilt" in out
-    assert "hermes desktop" in out
+    assert "ettok desktop" in out
 
 
 def test_summary_keeps_success_banner_when_desktop_ok(capsys, monkeypatch):

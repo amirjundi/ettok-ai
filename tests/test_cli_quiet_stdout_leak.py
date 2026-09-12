@@ -1,4 +1,4 @@
-"""`hermes chat -Q` must not leak presentation output into stdout (#93220).
+"""`ettok chat -Q` must not leak presentation output into stdout (#93220).
 
 The quiet single-query branch lives inline in ``cli.py``'s main flow (no
 standalone function to call), so these pin the branch's required statements

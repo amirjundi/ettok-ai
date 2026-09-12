@@ -1,7 +1,7 @@
 """Tests for agent.reasoning_effort — the canonical effort ladder + clamp.
 
 This module is the single source of truth every transport and provider
-profile uses to translate Hermes' internal effort ladder onto a wire's
+profile uses to translate Ettok' internal effort ladder onto a wire's
 supported vocabulary. The policy under test:
 
 - supported levels pass through verbatim

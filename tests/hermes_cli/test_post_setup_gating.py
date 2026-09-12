@@ -5,7 +5,7 @@ Regression coverage for the cua-driver silent-no-op bug (issue #22737).
 When a no-key provider's only install side-effect is a `post_setup` hook
 (cua-driver, etc.), the gate function used to fall through to the
 `_toolset_has_keys` catch-all, which returned True for any provider with
-empty `env_vars` — causing `hermes tools` to write the toolset to config
+empty `env_vars` — causing `ettok tools` to write the toolset to config
 and exit `✓ Saved` without ever invoking the post_setup install. These
 tests pin the new predicate-aware behaviour so the regression doesn't
 sneak back in.

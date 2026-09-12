@@ -1,13 +1,13 @@
 """Interrupted-update fleet-restart obligation (#95294 parts 1+2).
 
-A ``hermes update`` killed after git pull advanced HEAD but before the
+A ``ettok update`` killed after git pull advanced HEAD but before the
 fleet restart left running gateways on stale code. The next update said
 "Already up to date" and skipped restart. These tests cover:
 
 - ``fleet_restart_pending`` marker written after HEAD advances, cleared
   after a successful (or no-op) fleet restart
 - interrupt between pull and restart leaves the marker
-- next ``hermes update`` with git already up to date still runs the
+- next ``ettok update`` with git already up to date still runs the
   pending restart when the marker OR a skewed unfinished latest.json is
   present
 
@@ -601,7 +601,7 @@ def test_startup_warn_prints_when_marker_present(capsys):
     update_cmd._warn_pending_fleet_restart_on_startup()
     err = capsys.readouterr().err
     assert "did not restart running gateways" in err
-    assert "hermes gateway restart" in err
+    assert "ettok gateway restart" in err
 
 
 def test_startup_warn_silent_when_nothing_pending(capsys):

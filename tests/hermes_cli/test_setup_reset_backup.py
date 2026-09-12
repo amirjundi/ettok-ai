@@ -1,7 +1,7 @@
 """Ordering guarantees for the setup wizard's config.yaml backup (#3522).
 
 The wizard copies ``config.yaml`` into ``backups/config/`` so a user
-can recover values setup overwrote. ``hermes setup --reset`` replaces that same
+can recover values setup overwrote. ``ettok setup --reset`` replaces that same
 file with ``DEFAULT_CONFIG``, so the copy is only useful if it is taken *before*
 the reset runs — and the user has to be told where it landed even when --reset
 exits the wizard early.

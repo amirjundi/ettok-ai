@@ -1,12 +1,12 @@
 """Tests for CIMD (Client ID Metadata Document) support in MCP OAuth.
 
-Under CIMD the ``client_id`` is the HTTPS URL of a document Hermes publishes,
+Under CIMD the ``client_id`` is the HTTPS URL of a document Ettok publishes,
 which the authorization server fetches to learn our redirect URIs. The spec
 requires an exact string match between the redirect URI in the authorization
 request and one listed in that document
 (draft-ietf-oauth-client-id-metadata-document section 4.2), so most of what
 follows guards the two halves staying consistent: the published document, and
-the conditions under which Hermes is allowed to present it.
+the conditions under which Ettok is allowed to present it.
 
 Port mechanics run against a private range rather than the real one. The
 production range is bound for real by ``_pick_cimd_port``, and test files run
@@ -425,7 +425,7 @@ def test_cached_metadata_decides_whether_to_pin(
     supports_cimd, expect_pinned, tmp_path, monkeypatch, private_ports
 ):
     """The SDK only learns whether a server does CIMD during its 401 branch,
-    long after Hermes fixes the redirect URI. Metadata cached by an earlier
+    long after Ettok fixes the redirect URI. Metadata cached by an earlier
     connection closes that gap, so a known DCR-only server keeps the reserved
     ephemeral port it has always used instead of a guessable fixed one."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
@@ -518,7 +518,7 @@ def test_dcr_flow_passes_no_cimd_keyword_at_all():
 def test_sdk_chooses_cimd_only_when_the_server_advertises_it(
     advertised, expect_cimd, tmp_path, monkeypatch, private_ports
 ):
-    """Closes the loop on the handoff: feed what Hermes configured into the
+    """Closes the loop on the handoff: feed what Ettok configured into the
     SDK's own branch condition rather than asserting on our side of it."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     _set_interactive_stdin(monkeypatch)
@@ -618,7 +618,7 @@ def test_rejected_document_stays_rejected_after_a_restart(
 
 
 def test_reauthorizing_clears_the_rejection(tmp_path, monkeypatch, private_ports):
-    """`hermes mcp login` wipes stored state, so a fixed document is retried."""
+    """`ettok mcp login` wipes stored state, so a fixed document is retried."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     storage = HermesTokenStorage("srv")
     storage.mark_cimd_rejected()
@@ -669,7 +669,7 @@ def _timed_out_waiter_message(monkeypatch, cimd_url):
 def test_timeout_on_a_cimd_flow_names_the_document_and_the_escape_hatch(monkeypatch):
     """A server that can't validate the document aborts at the authorization
     endpoint (draft section 5.1), so no redirect ever arrives and the only
-    symptom Hermes sees is the callback timing out."""
+    symptom Ettok sees is the callback timing out."""
     message = _timed_out_waiter_message(monkeypatch, _CIMD_CLIENT_METADATA_URL)
 
     assert _CIMD_CLIENT_METADATA_URL in message

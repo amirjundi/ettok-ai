@@ -1,7 +1,7 @@
-"""Affinity contract on Hermes Studio's group-chat bridge shape (#96811).
+"""Affinity contract on Ettok Studio's group-chat bridge shape (#96811).
 
 Studio's group chat is the reproduction reported on #96811, and it reaches
-Hermes as a LIBRARY rather than through the gateway: its Python bridge
+Ettok as a LIBRARY rather than through the gateway: its Python bridge
 constructs ``AIAgent(...)`` directly with a fresh physical ``session_id`` for
 every reply, and only then persists the session row.
 
@@ -135,7 +135,7 @@ class TestStudioBridgeAffinity:
     def test_the_undeclared_bridge_shape_rekeys_every_reply(self, db):
         """The reproduction, stated as a permanent negative control.
 
-        Hermes must not infer the conversation from the id's syntax — that is
+        Ettok must not infer the conversation from the id's syntax — that is
         #79017's collision class — so a bridge that declares nothing keeps a
         per-reply scope by design.  This stays green before and after the host
         adopts the key, and it is why the adoption has to happen host-side.
@@ -178,7 +178,7 @@ class TestStudioBridgeAffinity:
 
         A new conversation in the room mints a new seed, and the seed is part
         of the declared key, so the next conversation starts on a cold bucket
-        without Hermes having to observe a reset of its own.
+        without Ettok having to observe a reset of its own.
         """
         first = _reply_scope(db, declared_key=_bridge_session_key(seed="0"))
         second = _reply_scope(db, declared_key=_bridge_session_key(seed="1"))

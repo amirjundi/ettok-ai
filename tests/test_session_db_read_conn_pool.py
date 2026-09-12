@@ -490,7 +490,7 @@ def test_idle_permits_are_reclaimed_from_a_peer_instance(db):
 # _READ_POOL_MAX bounds ONE file. A multiplexed gateway serves N profiles from
 # one process and each has its own state.db, so a per-file ceiling still lets
 # the cost grow with the profile count -- the per-instance bug one level out.
-# And Hermes's SQLite descriptors are only ever a share of the fd table: the
+# And Ettok's SQLite descriptors are only ever a share of the fd table: the
 # #98573 report is a process where ~20 state.db handles were the share that
 # pushed httpx sockets and terminal subprocess pipes past 256, and the EMFILE
 # surfaced in tools/terminal_tool.py, not here.

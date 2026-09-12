@@ -1,4 +1,4 @@
-"""Tests for the ``hermes verify`` CLI command implementation."""
+"""Tests for the ``ettok verify`` CLI command implementation."""
 
 import argparse
 import json

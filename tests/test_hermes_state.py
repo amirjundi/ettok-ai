@@ -1711,7 +1711,7 @@ class TestSessionTitleLineage:
     def test_projected_tip_inherits_root_title_when_untitled(self, db):
         """A rotation that ended the root before the title carry ran leaves the name on the
         root only; the projected lineage row must still surface it (exact-title lookups such as
-        `hermes peer dm` -> canonical "Bot Chat", #106165). A titled tip keeps its own title."""
+        `ettok peer dm` -> canonical "Bot Chat", #106165). A titled tip keeps its own title."""
         import time as _time
         self._make_compression_chain(db, _time.time() - 3600)
         db.set_session_title("root", "Bot Chat")
@@ -1995,7 +1995,7 @@ class TestFtsRebuildLoopWithoutTrigram:
     single ``SessionDB`` open, holding the write lock, and never converged.
 
     The v23 repair also clears the deferred-rebuild resume markers, so an
-    interrupted ``hermes sessions optimize-storage`` silently lost its place
+    interrupted ``ettok sessions optimize-storage`` silently lost its place
     every time the store was reopened.
     """
 

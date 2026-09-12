@@ -8,7 +8,7 @@ returns immediately with a handle and the run's outcome re-enters the
 conversation as a type='async_delegation' completion event.
 
 Sync fallbacks preserved:
-  - no routable session (direct Python callers, `hermes cron run`)
+  - no routable session (direct Python callers, `ettok cron run`)
   - async delivery unsupported (one-shot runners, cron child sessions)
   - dispatch pool at capacity (claim already taken — must not strand it)
 """

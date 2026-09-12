@@ -241,7 +241,7 @@ class TestParseSchedule:
 
 
     def test_naive_iso_anchors_to_configured_tz_not_server_local(self, monkeypatch):
-        """A naive ISO timestamp must be interpreted in the CONFIGURED Hermes
+        """A naive ISO timestamp must be interpreted in the CONFIGURED Ettok
         timezone, NOT the server's local timezone (#51021).
 
         Regression: when the configured zone differs from the server's local
@@ -271,7 +271,7 @@ class TestParseSchedule:
 
 class TestNaiveScheduleTimezoneDivergence:
     """End-to-end: a one-shot created with a naive recent-past timestamp must
-    become due even when the configured Hermes timezone differs from the
+    become due even when the configured Ettok timezone differs from the
     server's local timezone. Before #51021 the naive value was anchored to
     server-local, so the job never fired."""
 
@@ -1592,11 +1592,11 @@ class TestJobsJsonIdKeyedMap:
     """load_jobs() must flatten an ID-keyed ``jobs`` map to the list contract.
 
     A store written as ``{"jobs": {"<job_id>": {...}, ...}}`` (external tool
-    or hand edit — Hermes' own save_jobs() only ever writes a list) made
+    or hand edit — Ettok' own save_jobs() only ever writes a list) made
     load_jobs() return a dict. Every consumer iterates it as a list, so
     ``list_jobs()`` → ``_normalize_job_record`` → ``dict(<id-string>)`` raised
     ``ValueError: dictionary update sequence element #0 has length 1; 2 is
-    required`` and took down ``hermes cron list``, the ``cronjob(action=
+    required`` and took down ``ettok cron list``, the ``cronjob(action=
     "list")`` tool, and the Dashboard cron view. The values already carry
     their own ``id`` matching the map key, so flattening is lossless.
     """
@@ -1635,7 +1635,7 @@ class TestJobsJsonIdKeyedMap:
         assert all(isinstance(j, dict) for j in loaded)
 
     def test_list_jobs_survives_id_keyed_map(self, tmp_cron_dir):
-        """The reported traceback path (hermes cron list / cronjob list tool)."""
+        """The reported traceback path (ettok cron list / cronjob list tool)."""
         import json
         from cron.jobs import JOBS_FILE, list_jobs
 

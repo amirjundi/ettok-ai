@@ -4,7 +4,7 @@ The builtin cron ticker only runs inside the gateway process. Before the
 fix, ``cronjob(action="create")`` returned a clean success even with no
 gateway running, so the agent confidently told the user a recurring task
 was scheduled while the job could never fire. The CLI already warned
-(``hermes cron list`` / ``hermes cron status``); the agent path did not.
+(``ettok cron list`` / ``ettok cron status``); the agent path did not.
 
 Contract pinned here:
 
@@ -324,7 +324,7 @@ class TestRuntimeLockFirstLiveness:
 
 
 class TestCronStatusLockFirst:
-    """`hermes cron status` shares the lock-first false-alarm fix (#95947).
+    """`ettok cron status` shares the lock-first false-alarm fix (#95947).
 
     Sibling site of `_builtin_gateway_liveness`: it previously declared
     "Gateway is not running — cron jobs will NOT fire" from a bare

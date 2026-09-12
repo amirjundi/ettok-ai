@@ -3,7 +3,7 @@
 cli.py's load_cli_config() builds config separately from
 hermes_cli.config._load_config_impl, so the managed-scope merge has to be
 applied in BOTH places or the interactive CLI/TUI surface (skin, display prefs)
-silently ignores administrator-pinned values while `hermes config`/`doctor`
+silently ignores administrator-pinned values while `ettok config`/`doctor`
 honor them. This locks the cli.py path.
 """
 import importlib

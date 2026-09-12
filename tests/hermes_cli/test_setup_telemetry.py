@@ -26,7 +26,7 @@ def test_setup_telemetry_enables_shared_metrics(monkeypatch):
 
 
 def test_disabling_collection_closes_the_send_consent_window(monkeypatch, tmp_path):
-    """`hermes tools` -> disable shared metrics must withdraw send consent.
+    """`ettok tools` -> disable shared metrics must withdraw send consent.
 
     The not-enabled branch returned early without recording anything, so the
     consent window stayed open and re-enabling later would release every

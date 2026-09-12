@@ -1,6 +1,6 @@
 """Regression: the Windows Desktop update hand-off must run through python.exe.
 
-`scripts/desktop-update/windows.ps1` drives `hermes update` for the in-app
+`scripts/desktop-update/windows.ps1` drives `ettok update` for the in-app
 Desktop updater. It used to invoke the update through the venv's
 `venv\\Scripts\\hermes.exe` console-script launcher. On Windows that launcher is
 a real process that keeps `hermes.exe` mapped as its running image and spawns
@@ -12,7 +12,7 @@ mapped -- and Windows refuses to replace a file mapped as a running image
 does not have, so `uv pip install -e .` exits non-zero, the ZIP fallback repeats
 the same sequence, the desktop build stage is never reached, and the pre-build
 clean has already removed `apps/desktop/release` -- leaving an install whose
-Start Menu shortcut points at a `Hermes.exe` that no longer exists.
+Start Menu shortcut points at a `Ettok.exe` that no longer exists.
 
 Driving the update as `python.exe -m hermes_cli.main update` puts the inherited
 image handle on `python.exe`, which uv never has to replace, so the shim is an

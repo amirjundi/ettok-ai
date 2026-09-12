@@ -4,7 +4,7 @@ Behavioral contracts for the /docs/plugins catalog extractor:
 
 1. Reads ``plugin-catalog/*.yaml`` entries (skipping ``removed.yaml``) and
    emits ``plugins.json`` rows carrying name/repo/sha/tier/capabilities plus
-   a synthesized ``hermes plugins install <name>`` command.
+   a synthesized ``ettok plugins install <name>`` command.
 2. Entries missing any of name/repo/sha are skipped (logged, not fatal).
 3. A missing ``plugin-catalog/`` directory degrades gracefully: empty
    catalog list, zero counts in the meta sidecar, exit 0 — the docs build
@@ -91,7 +91,7 @@ def test_valid_entry_is_extracted_with_install_command(mod, tmp_path):
     assert e["capabilities"]["providesTools"] == ["do_thing"]
     assert e["capabilities"]["providesHooks"] == ["on_start"]
     assert e["capabilities"]["requiresEnv"] == ["EXAMPLE_TOKEN"]
-    assert e["installCommand"] == "hermes plugins install example-plugin"
+    assert e["installCommand"] == "ettok plugins install example-plugin"
 
 
 def test_entries_missing_required_fields_are_skipped(mod, tmp_path, capsys):

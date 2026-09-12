@@ -377,7 +377,7 @@ def test_acquire_turn_lease_retries_sqlite_lock(tmp_path, monkeypatch):
         attempts["n"] += 1
         if attempts["n"] == 1:
             raise sqlite3.OperationalError(
-                "database is locked (another Hermes process held the "
+                "database is locked (another Ettok process held the "
                 "state.db write lock for over 20s)"
             )
         return original(*args, **kwargs)

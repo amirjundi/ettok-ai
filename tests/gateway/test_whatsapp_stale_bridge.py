@@ -4,7 +4,7 @@ Regression tests for the stale-bridge trap: ``connect()`` reused any
 already-running bridge with ``status: connected`` unconditionally, and
 ``disconnect()`` only kills bridges the adapter spawned itself.  A
 long-lived bridge process therefore survived gateway restarts AND
-``hermes update``, serving pre-update bridge.js behavior forever (e.g.
+``ettok update``, serving pre-update bridge.js behavior forever (e.g.
 no inbound media download → images/voice notes arrive as placeholders).
 
 The fix: bridge.js reports a hash of its own source in ``/health``

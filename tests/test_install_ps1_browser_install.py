@@ -4,7 +4,7 @@ agent-browser resolves lazily via npx everywhere else in the system
 (tools/browser_tool.py::_find_agent_browser); Install-AgentBrowser was the
 last place that still eagerly npm-installed a second, separately
 version-pinned copy of it. Removed: agent-browser acquisition now happens
-only via `hermes update`'s npx cache warm or an actual browser-tool call's
+only via `ettok update`'s npx cache warm or an actual browser-tool call's
 lazy npx resolution.
 
 Linux CI cannot execute the PowerShell installer, so verification here is

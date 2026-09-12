@@ -2,7 +2,7 @@
 
 Field report (enterprise, v0.20.0/2026.8.3): cron jobs whose output carries
 PDF/image MEDIA attachments deliver text+attachment on scheduled ticks but
-text-only on manual ``hermes cron run <job-id>``. Same box, same token, same
+text-only on manual ``ettok cron run <job-id>``. Same box, same token, same
 scopes — the divergence is process context and error visibility, not
 credentials.
 

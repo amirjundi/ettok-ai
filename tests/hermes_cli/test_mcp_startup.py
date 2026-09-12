@@ -105,7 +105,7 @@ def test_prepare_agent_startup_backgrounds_blocking_mcp_for_chat(monkeypatch):
 def test_prepare_agent_startup_skips_discovery_when_chat_resolves_to_tui(
     monkeypatch,
 ):
-    """Bare ``hermes`` / ``hermes chat`` on a TTY with ``display.interface:
+    """Bare ``hermes`` / ``ettok chat`` on a TTY with ``display.interface:
     tui`` resolves to the TUI via ``_resolve_use_tui``, but does NOT pass
     ``--tui`` or ``HERMES_TUI``. Discovery must be skipped in the wrapper:
     the TUI gateway owns it, and the wrapper would otherwise hold a dead

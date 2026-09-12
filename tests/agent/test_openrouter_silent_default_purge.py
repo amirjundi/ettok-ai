@@ -69,7 +69,7 @@ class TestEnvIngestionWarning:
         ]
         assert warnings, "expected a WARNING for env->pool openrouter ingestion"
         assert "OpenRouter spend" in warnings[0]
-        assert "hermes auth remove openrouter" in warnings[0]
+        assert "ettok auth remove openrouter" in warnings[0]
 
     def test_warning_once_per_process(self, tmp_path, monkeypatch, caplog):
         self._fresh_home(tmp_path, monkeypatch)

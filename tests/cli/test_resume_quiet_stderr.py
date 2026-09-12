@@ -1,7 +1,7 @@
 """Tests for /resume status lines going to stderr in quiet mode (#11793).
 
 The fix in cli._init_agent routes three messages to stderr when
-``tool_progress_mode == "off"`` (set by ``hermes chat --quiet``):
+``tool_progress_mode == "off"`` (set by ``ettok chat --quiet``):
 
   * "Session not found: ..."
   * "↻ Resumed session ... (N user messages, M total messages)"
@@ -56,7 +56,7 @@ class TestResumeQuietStderr:
         assert "Session not found" not in captured.out
         # the resume status goes to stderr
         assert "Session not found" in captured.err
-        assert "hermes sessions list" in captured.err
+        assert "ettok sessions list" in captured.err
 
     def test_session_not_found_goes_to_stdout_in_full_mode(self, capsys):
         db = MagicMock()

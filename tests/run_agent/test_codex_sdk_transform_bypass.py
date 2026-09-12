@@ -27,7 +27,7 @@ from agent.codex_runtime import (
 def _wire_kwargs():
     return {
         "model": "gpt-5.6-sol",
-        "instructions": "You are Hermes.",
+        "instructions": "You are Ettok.",
         "input": [
             {"role": "user", "content": [{"type": "input_text", "text": "Ping"}]},
             {"type": "function_call_output", "call_id": "c1", "output": "ok"},

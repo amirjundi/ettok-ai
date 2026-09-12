@@ -1,8 +1,8 @@
 """Serve-kind runtime inventory + stop/relaunch rung (#63206, campaign #91277).
 
-A network-bound `hermes serve --host <ip>` powering a remote Desktop used to
+A network-bound `ettok serve --host <ip>` powering a remote Desktop used to
 be invisible to the update pipeline: not in the inventory, a dead-end at the
-venv-holder guard, and never relaunched after `hermes update` killed it. The
+venv-holder guard, and never relaunched after `ettok update` killed it. The
 fix threads the spawn ledger's structured launch identity (host/port/profile,
 registered at serve startup) through inventory → guard rung → relaunch.
 """
@@ -29,7 +29,7 @@ def _ledger_entry(**over):
         "spawner_pid": None,
         "spawner_create": None,
         "registered_at": 222.0,
-        "argv": "hermes serve --host 100.94.65.93 --port 9119",
+        "argv": "ettok serve --host 100.94.65.93 --port 9119",
         "host": "100.94.65.93",
         "port": 9119,
         "profile": "",

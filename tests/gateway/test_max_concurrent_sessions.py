@@ -113,7 +113,7 @@ def test_new_session_gets_clean_error_at_active_session_limit(monkeypatch):
         result = asyncio.run(runner._handle_message(event))
 
     assert result == (
-        "Hermes is at the active session limit (1/1). "
+        "Ettok is at the active session limit (1/1). "
         "Try again when another session finishes."
     )
     assert new_key not in runner._running_agents

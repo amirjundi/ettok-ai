@@ -594,7 +594,7 @@ class TestReapUnsupervisedGatewayOrphansMacOS:
 
     Regression guard: without the ``is_macos()`` exclusion of
     ``_get_service_pids()``, the reaper would SIGTERM the launchd-supervised
-    gateway every time Hermes Desktop opens (``hermes serve`` calls
+    gateway every time Hermes Desktop opens (``ettok serve`` calls
     ``_reap_unsupervised_gateway_orphans`` during startup).
     """
 
@@ -672,7 +672,7 @@ class TestReapUnsupervisedGatewayOrphansWindows:
     Regression guard: without the Windows exemption of the recorded healthy
     gateway PID (and its parent chain), the reaper would SIGTERM/SIGKILL a
     Scheduled-Task-supervised gateway every time Hermes Desktop opens
-    (``hermes serve`` calls ``_reap_unsupervised_gateway_orphans`` during
+    (``ettok serve`` calls ``_reap_unsupervised_gateway_orphans`` during
     startup). The Scheduled-Task bootstrap's argv matches the gateway scan,
     so it is reaped as an "orphan" — and when the bootstrap dies, the
     detached gateway it spawned exits with it (#86098).
@@ -856,7 +856,7 @@ class TestReaperCandidateIsSupervisorOwned:
         """A Windows gateway launched by the Scheduled Task is spared even when
         gateway.pid is missing — the supervisor-owned backstop catches it."""
         gateway_pid = 52615
-        bootstrap_pid = 52616   # Task-launched `hermes gateway run` bootstrap
+        bootstrap_pid = 52616   # Task-launched `ettok gateway run` bootstrap
         orphan_pid = 99998      # a genuine orphan that SHOULD be reaped
 
         monkeypatch.setattr(gateway, "is_windows", lambda: True)

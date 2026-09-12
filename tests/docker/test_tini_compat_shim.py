@@ -17,7 +17,7 @@ def test_tini_compat_shim_exists(built_image: str) -> None:
     """/usr/bin/tini must be an executable shim script.
 
     Regression for #34192 / #66679: orchestration templates (e.g.
-    Hostinger's 'Hermes WebUI' catalog, NAS compose projects that keep
+    Hostinger's 'Ettok WebUI' catalog, NAS compose projects that keep
     an old entrypoint across image updates) still pin /usr/bin/tini as
     the entrypoint, often with ``-g --``. The shim must exist *and*
     strip those flags before exec'ing /init.

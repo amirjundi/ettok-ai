@@ -134,7 +134,7 @@ class TestTrustLevelFor:
             assert repo in tap_repos, (
                 f"Trusted repo {repo!r} is in TRUSTED_REPOS but missing "
                 "from GitHubSource.DEFAULT_TAPS — its skills will not be "
-                "browsable via `hermes skills browse`."
+                "browsable via `ettok skills browse`."
             )
 
 
@@ -923,7 +923,7 @@ class TestOptionalSkillSourceBinaryAssets:
 
 class TestOptionalSkillSourceLiveRepoFallback:
     """Skills merged to main after the local install was cut must still be
-    searchable and installable without `hermes update` (live-repo fallback)."""
+    searchable and installable without `ettok update` (live-repo fallback)."""
 
     def _make_source(self, tmp_path, remote_dirs):
         optional_root = tmp_path / "optional-skills"
@@ -1401,7 +1401,7 @@ class TestInstallPathSafety:
         """Installing a skill whose name matches an existing category directory
         that contains other skills must NOT silently wipe that entire directory.
 
-        Regression test for GitHub issue #75983: ``hermes skills install … --name
+        Regression test for GitHub issue #75983: ``ettok skills install … --name
         research`` deleted the whole ``skills/research/`` category bucket,
         destroying 16 unrelated skills.
         """

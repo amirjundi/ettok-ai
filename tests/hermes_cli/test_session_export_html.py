@@ -71,7 +71,7 @@ def test_single_session_untitled_coalesces_none_title_and_model():
     html = generate_html_export(session)
 
     # Browser-tab title falls back to the same default as the <h1> header.
-    assert "<title>Hermes Session</title>" in html
+    assert "<title>Ettok Session</title>" in html
     assert "<title>None</title>" not in html
     # Model meta falls back instead of rendering the literal "None".
     assert "<strong>Model:</strong> Unknown" in html

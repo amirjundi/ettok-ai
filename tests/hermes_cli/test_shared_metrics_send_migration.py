@@ -2,7 +2,7 @@
 
 The store schema version must NOT move when these columns are added: the
 existing loader raises on any version it does not recognise, so bumping it
-would hard-fail an older Hermes (a second profile on an older build, or a
+would hard-fail an older Ettok (a second profile on an older build, or a
 rollback) against the same database file.
 """
 

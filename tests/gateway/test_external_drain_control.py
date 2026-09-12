@@ -7,7 +7,7 @@ Task 2.2/2.3. Two layers:
     reversible state machine driven by the marker.
 
 Mocked tests are necessary-not-sufficient here (the HARD live-validation gate,
-Q-B, exercises a real `hermes gateway run`); these lock the unit contract.
+Q-B, exercises a real `ettok gateway run`); these lock the unit contract.
 """
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
 """Keyed ``providers.<key>`` entries must use the durable pool slug.
 
-``hermes auth add b-ai`` stores keys under ``credential_pool.b-ai``. Runtime
+``ettok auth add b-ai`` stores keys under ``credential_pool.b-ai``. Runtime
 used to look up ``custom:<display-name>`` (e.g. ``custom:b.ai`` from
 ``name: B.AI``), miss the pool, and send the ``no-key-required`` placeholder
 to an auth-required endpoint (HTTP 401 Invalid api_key format).

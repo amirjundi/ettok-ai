@@ -73,5 +73,5 @@ def test_install_endpoint_refuses_removed_plugins_with_no_bypass(client, monkeyp
                  {"identifier": "", "catalog_name": "bad-plugin"}, {"identifier": "evil/bad-plugin"}):
         resp = client.post("/api/dashboard/agent-plugins/install", json=body)
         assert resp.status_code == 400, body
-        assert "removed" in resp.json()["detail"] or "not in the Hermes plugin catalog" in resp.json()["detail"]
+        assert "removed" in resp.json()["detail"] or "not in the Ettok plugin catalog" in resp.json()["detail"]
     assert client.post("/api/dashboard/agent-plugins/install", json={"identifier": ""}).status_code == 400

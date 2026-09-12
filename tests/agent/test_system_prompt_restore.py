@@ -551,7 +551,7 @@ class TestReconstructStaticPrefixMemoization:
 class TestPerResponseSessionWritePath:
     """The write path under an embedding host's per-response session (#96570).
 
-    Hermes Studio group chat pre-creates the SQLite row and pre-persists the
+    Ettok Studio group chat pre-creates the SQLite row and pre-persists the
     user message BEFORE ``run_conversation()``, then runs one turn under a
     session id it destroys afterwards. The row therefore starts with a null
     system prompt and a non-empty history on its own genuine FIRST turn, which

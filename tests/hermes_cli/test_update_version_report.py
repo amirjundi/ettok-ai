@@ -1,4 +1,4 @@
-"""Version transition reporting after ``hermes update``.
+"""Version transition reporting after ``ettok update``.
 
 Ported from PrimeIntellect-ai/prime-agent#630: a successful self-update
 reports both versions (``v0.19.4 → v0.20.0``) when the pyproject version

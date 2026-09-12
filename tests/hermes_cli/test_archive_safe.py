@@ -1,6 +1,6 @@
 """Tests for the shared tar.gz writer (``hermes_cli.archive_safe.make_targz``).
 
-``make_targz`` backs both ``hermes profile export`` and ``hermes kanban
+``make_targz`` backs both ``ettok profile export`` and ``ettok kanban
 export``. The contract pinned down here: a failure partway through writing
 the archive (disk full, permission loss, interruption) must never destroy a
 pre-existing file at the destination path — the same failure-atomicity

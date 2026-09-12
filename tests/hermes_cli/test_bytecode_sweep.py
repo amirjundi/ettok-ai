@@ -1,6 +1,6 @@
 """Tests for the launch-time stale-bytecode sweep (checkout fingerprint guard).
 
-Bug class: the checkout's ``.py`` files change (``hermes update``, manual
+Bug class: the checkout's ``.py`` files change (``ettok update``, manual
 ``git pull``, ZIP update) while ``__pycache__`` retains bytecode compiled
 from the previous revision; the next process to import trusts the stale
 ``.pyc`` and dies with ``cannot import name ...`` (#6207, #60242).

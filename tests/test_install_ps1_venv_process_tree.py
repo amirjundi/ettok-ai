@@ -1,7 +1,7 @@
-"""Windows installer regression for Hermes children outside the venv.
+"""Windows installer regression for Ettok children outside the venv.
 
 The venv sweep deliberately selects process roots by executable path so it
-does not kill unrelated Python processes. A selected Hermes process can spawn
+does not kill unrelated Python processes. A selected Ettok process can spawn
 a managed-runtime child whose executable lives outside the venv, though. The
 installer must stop that whole tree before replacing the venv.
 """
@@ -109,7 +109,7 @@ def test_venv_sweep_stops_managed_runtime_children_but_not_unrelated_processes(
     unrelated_script = tmp_path / "unrelated.cmd"
     _write_cmd(unrelated_script, "@ping -t 127.0.0.1 >nul\n")
 
-    # Keep the test away from real gateway tasks and real Hermes launchers
+    # Keep the test away from real gateway tasks and real Ettok launchers
     # while still exercising the installer's actual process enumeration and
     # per-PID taskkill behavior.
     _write_cmd(fake_bin / "schtasks.cmd", "@exit /b 0\n")

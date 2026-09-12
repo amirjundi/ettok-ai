@@ -3,7 +3,7 @@
 Ollama Cloud's ``/v1/chat/completions`` endpoint supports top-level
 ``reasoning_effort`` with values ``none``, ``low``, ``medium``, ``high``,
 and (undocumented but empirically confirmed) ``max``.  The profile maps
-Hermes's ``xhigh`` → ``max`` to unlock DeepSeek V4's "Max thinking" tier
+Ettok's ``xhigh`` → ``max`` to unlock DeepSeek V4's "Max thinking" tier
 and passes the standard levels through unchanged.
 
 These tests pin the profile's wire-shape contract so Ollama Cloud
@@ -119,7 +119,7 @@ class TestOllamaCloudReasoningEffort:
         assert top_level == {}
 
     def test_minimal_effort_clamps_to_low(self, ollama_cloud_profile):
-        """``minimal`` is a real Hermes effort level but is rejected by
+        """``minimal`` is a real Ettok effort level but is rejected by
         Ollama Cloud's /v1/chat/completions. The shared clamp degrades it to
         ``low`` — the nearest supported level — instead of silently dropping
         the user's ask (old behavior left the server default, i.e. MORE

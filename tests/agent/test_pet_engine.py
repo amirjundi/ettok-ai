@@ -68,7 +68,7 @@ def test_state_row_index_maps_to_supported_atlas_taxonomies():
     assert constants.state_row_index(PetState.RUN, 9) == 7
     assert constants.state_row_index(PetState.REVIEW, 9) == 8
 
-    # Legacy Hermes/petdex sheets were 8 rows with Hermes state names packed in
+    # Legacy Ettok/petdex sheets were 8 rows with Ettok state names packed in
     # order. Keep those readable instead of forcing old installs through the
     # newer Codex taxonomy.
     assert constants.state_row_index(PetState.WAVE, 8) == 1

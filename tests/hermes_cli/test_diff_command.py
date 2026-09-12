@@ -2,7 +2,7 @@
 
 ``/diff`` shows git changes in the working directory (unstaged + untracked by
 default; ``staged``/``all`` modes) and ``/diff session`` shows the cumulative
-checkpoint-baseline diff of everything Hermes changed. These drive the mixin
+checkpoint-baseline diff of everything Ettok changed. These drive the mixin
 handler against real git repos (default modes) and a stubbed checkpoint
 manager (session mode), asserting rendering, ``--stat``, and graceful
 degradation.

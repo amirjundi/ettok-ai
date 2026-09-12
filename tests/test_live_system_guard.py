@@ -40,7 +40,7 @@ def test_env_wrapped_killer_command_is_still_blocked():
 
 
 def test_gateway_start_inside_a_container_exec_is_not_blocked():
-    """``docker exec <ctr> hermes gateway start`` launches the gateway INSIDE the container,
+    """``docker exec <ctr> ettok gateway start`` launches the gateway INSIDE the container,
     where it cannot reach the host's systemd unit or webhook port; tests/docker/ depends on it.
     The binary is a stub so the argv stays exact without needing a Docker daemon."""
     import os

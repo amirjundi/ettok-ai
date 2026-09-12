@@ -1,7 +1,7 @@
 """Regression for #68523 — one systemctl timeout must not abort fleet restarts.
 
 On hosts with many profile-backed ``hermes-gateway*.service`` units,
-``hermes update`` used to wrap the entire per-scope unit loop in a single
+``ettok update`` used to wrap the entire per-scope unit loop in a single
 ``except subprocess.TimeoutExpired``. A timeout on unit N skipped units
 N+1…, leaving later gateways on pre-update in-memory modules while the
 checkout on disk was already new (mixed-generation crashes).
@@ -88,7 +88,7 @@ class TestFleetRestartTimeoutIsolation:
         assert seen == ["hermes-gateway-coder"]
 
     def test_hermes_serve_units_are_included(self):
-        # #83438 — hermes update restarted hermes-gateway* units but left
+        # #83438 — ettok update restarted hermes-gateway* units but left
         # hermes-serve* (the Desktop app's backend) on stale pre-update code.
         seen: list[str] = []
 

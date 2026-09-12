@@ -257,4 +257,4 @@ class TestReadmeSentinel:
         assert next(iter(raw)) == "_README"
         # The note points users at the real store and command.
         assert "state.db" in raw["_README"]
-        assert "hermes sessions list" in raw["_README"]
+        assert "ettok sessions list" in raw["_README"]

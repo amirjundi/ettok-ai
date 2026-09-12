@@ -1,6 +1,6 @@
 """Tests for doctor's per-database journal-mode report.
 
-`hermes doctor` lists each Hermes-managed database with its journal mode and
+`ettok doctor` lists each Ettok-managed database with its journal mode and
 flags databases that are in WAL while the linked SQLite carries the WAL-reset
 bug (https://sqlite.org/wal.html#walresetbug). The probe reads the file header
 only — it never opens the database through the SQLite engine, because even a

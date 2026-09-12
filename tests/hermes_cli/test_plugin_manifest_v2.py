@@ -146,7 +146,7 @@ class TestV2Parsing:
             mgr = PluginManager()
             mgr.discover_and_load()
         assert mgr._plugins["fromfuture"].enabled
-        assert "newer than this Hermes" in caplog.text
+        assert "newer than this Ettok" in caplog.text
 
     def test_malformed_v2_fields_warn_and_degrade(self, hermes_home, caplog):
         _write_plugin(

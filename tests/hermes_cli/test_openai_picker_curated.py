@@ -3,7 +3,7 @@
 Bug 1 — OpenAI picker dumped the raw ``/v1/models`` catalog
     ``provider_model_ids("openai")`` hit ``api.openai.com/v1/models`` and
     returned the full 120+ entry catalog (embeddings, whisper, tts, dall-e,
-    moderation, gpt-3.5, …). The ``hermes model`` CLI shows only the curated
+    moderation, gpt-3.5, …). The ``ettok model`` CLI shows only the curated
     agentic list. The picker now intersects the live default-endpoint catalog
     with the curated list (preserving curated order) so both surfaces match.
     Custom OpenAI-compatible endpoints (proxies, gateways) keep the live list

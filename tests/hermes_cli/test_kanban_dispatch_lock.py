@@ -1,6 +1,6 @@
 """Tests for the kanban dispatcher single-writer lock (issue #35240).
 
-A ``hermes gateway run --replace`` / ``gateway restart`` from a shell on a
+A ``ettok gateway run --replace`` / ``gateway restart`` from a shell on a
 systemd/launchd host can leave an orphan dispatcher that escapes the
 service cgroup, survives ``systemctl restart``, and becomes a second
 long-lived writer on the same ``kanban.db`` — the documented root cause of

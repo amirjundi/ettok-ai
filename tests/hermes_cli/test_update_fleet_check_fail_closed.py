@@ -3,7 +3,7 @@
 ``collect_fleet_versions()`` swallows every probe failure via
 ``logger.debug()`` and ``print_fleet_version_matrix([])`` early-returns
 ``False``, so an empty fleet snapshot used to read as "healthy fleet" and
-``hermes update`` exited 0 with zero rows — even when a gateway was
+``ettok update`` exited 0 with zero rows — even when a gateway was
 verifiably live before the update.
 
 The first guard (PR #93410) keyed on ``(restarted_services or killed_pids)``,

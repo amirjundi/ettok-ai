@@ -1,6 +1,6 @@
 """``--in`` accepts Git Bash / MSYS-style paths on Windows.
 
-Under Git Bash, ``hermes chat --in ~`` reaches the native CLI as
+Under Git Bash, ``ettok chat --in ~`` reaches the native CLI as
 ``/c/Users/<user>`` — the shell expands ``~`` to an MSYS POSIX path and
 MSYS2's automatic argument conversion is disabled for native executables.
 The resolver must translate the MSYS/Cygwin/WSL drive-root spellings to

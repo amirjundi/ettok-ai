@@ -394,7 +394,7 @@ def test_native_responses_compaction_is_suppressed_when_checkpoint_required():
 
     Server-side native compaction is a lossy boundary the provider owns; no
     pre-compress checkpoint can run before it, so the gate suppresses the
-    payload while ordinary checkpoint-aware Hermes compression stays
+    payload while ordinary checkpoint-aware Ettok compression stays
     available.
     """
     from types import SimpleNamespace
@@ -455,7 +455,7 @@ def test_codex_app_server_turn_fails_closed_before_codex_can_compact():
 def test_agent_init_refuses_checkpoint_required_on_codex_app_server():
     """The incompatible configuration must fail closed at init time.
 
-    In the default "native" auto-compaction mode Hermes never initiates the
+    In the default "native" auto-compaction mode Ettok never initiates the
     compaction, so the compress_context() guard alone cannot cover native
     turns — init_agent has to refuse before a turn exists.
     """

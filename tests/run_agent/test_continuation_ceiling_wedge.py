@@ -149,7 +149,7 @@ class TestContinuationCeilingWedge:
         )
 
     def test_continuation_requests_carry_no_marks(self, loop_agent):
-        """The scaffolding marks are Hermes bookkeeping. The centrally
+        """The scaffolding marks are Ettok bookkeeping. The centrally
         sanitized api_messages must never carry them — only the
         chat-completions transport strips underscore keys, so anthropic
         and bedrock requests would otherwise send them to the provider."""

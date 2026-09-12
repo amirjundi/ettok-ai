@@ -385,7 +385,7 @@ def test_install_with_junctioned_skills_dir(served_repo, monkeypatch, tmp_path):
     install_dir is resolved by _resolve_lock_install_path (following the
     redirect), so relative_to() must receive the resolved skills root or it
     raises ValueError after the files have already been moved, leaving a lock
-    entry without a content_hash (which then poisons 'hermes skills check').
+    entry without a content_hash (which then poisons 'ettok skills check').
     """
     from hermes_cli.skills_hub import do_install
 

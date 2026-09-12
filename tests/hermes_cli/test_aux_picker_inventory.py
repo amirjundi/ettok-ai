@@ -1,7 +1,7 @@
 """Auxiliary-task pickers share one provider-inventory substrate.
 
-Every aux picker (``hermes model`` → Configure auxiliary models, the
-``hermes tools`` vision picker, and any future one) must route through
+Every aux picker (``ettok model`` → Configure auxiliary models, the
+``ettok tools`` vision picker, and any future one) must route through
 ``hermes_cli.inventory.build_aux_picker_rows()`` so it shows the same
 provider universe as ``/model``.
 

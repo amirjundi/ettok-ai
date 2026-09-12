@@ -1,4 +1,4 @@
-"""Driver-side spawn interception for hermes desktop E2E legs.
+"""Driver-side spawn interception for ettok desktop E2E legs.
 
 The installed ``hermes`` is a venv console script, so its interpreter
 imports ``sitecustomize`` at startup when this directory is on
@@ -67,7 +67,7 @@ if _SPEC_PATH:
             return ""
         # Packaged shape: argv[0] is the packaged app executable under
         # apps/desktop/release/ (win-unpacked/Hermes.exe, linux-unpacked/...,
-        # mac*/Hermes.app/Contents/MacOS/...).
+        # mac*/Ettok.app/Contents/MacOS/...).
         first = tokens[0].replace("\\", "/")
         if "apps/desktop/release/" in first:
             return "packaged"

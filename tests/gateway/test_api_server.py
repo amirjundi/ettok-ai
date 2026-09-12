@@ -2615,7 +2615,7 @@ class TestModelRoutesAgentCreation:
 class TestStoredSessionModelFilter:
     """A session row that persisted the advertised virtual model must read as
     "no stored model" — replaying "hermes-agent" upstream 400s. Found live
-    (Aug 2026): the first cross-gateway `hermes peer dm` against a fresh
+    (Aug 2026): the first cross-gateway `ettok peer dm` against a fresh
     api_server failed every turn with "hermes-agent is not a valid model ID".
     """
 
@@ -2932,7 +2932,7 @@ class TestCreateAgentModelRecovery:
     def test_create_agent_defaults_to_provider_catalog_model_when_empty(self, monkeypatch):
         """api_server.py had no equivalent of run.py's provider-catalog
         default when model resolves empty but a provider did resolve (e.g.
-        `hermes auth add openai-codex` without `hermes model`) —
+        `ettok auth add openai-codex` without `ettok model`) —
         AIAgent(model="") 400s every call."""
         captured = {}
 

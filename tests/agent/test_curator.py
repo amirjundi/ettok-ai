@@ -591,7 +591,7 @@ def test_cli_pin_refuses_bundled_skill(curator_env, capsys):
 # curator review-model resolution (canonical auxiliary.curator slot)
 #
 # Curator was unified with the rest of the aux task system in Apr 2026 so
-# `hermes model` → auxiliary picker, the dashboard Models tab, and the full
+# `ettok model` → auxiliary picker, the dashboard Models tab, and the full
 # per-task config (timeout, base_url, api_key, extra_body) all work for it.
 # Voscko report: curator.auxiliary.{provider,model} was advertised but never
 # read. Fix wires curator through auxiliary.curator with a legacy fallback.
@@ -849,7 +849,7 @@ def test_review_fork_restricts_toolsets_to_skills_only(curator_env, monkeypatch)
     ``terminal`` was removed from this fork for issue #96962: a terminal
     mv/cp/rm under the skills tree bypasses the skill ledger entirely, so the
     archive that followed snapshotted an already-stripped package and
-    ``hermes curator rollback`` restored a hollow skill. Removing the toolset
+    ``ettok curator rollback`` restored a hollow skill. Removing the toolset
     (rather than guarding terminal commands) closes every shell bypass by
     construction. Without ``enabled_toolsets=["skills"]`` on the AIAgent(...)
     call in ``_run_llm_review``, ``enabled_toolsets`` defaults to None and
@@ -900,7 +900,7 @@ def test_review_fork_toolset_surface_excludes_execution_tools():
     ``terminal`` and ``process`` must stay out of the curator fork's resolved
     surface (issue #96962): a shell mv/cp/rm under the skills tree bypasses
     the skill ledger entirely, the archive that follows snapshots an
-    already-stripped package, and ``hermes curator rollback`` restores a
+    already-stripped package, and ``ettok curator rollback`` restores a
     hollow skill. The call-site kwarg is pinned to ``["skills"]`` by the test
     above; this test pins the RESOLUTION, so an ``includes: ["terminal"]``
     added to the skills toolset definition — or a new execution tool merged

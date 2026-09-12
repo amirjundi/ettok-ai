@@ -1,4 +1,4 @@
-"""Desktop/TUI ``plugins.manage`` honours a ``ref`` pin exactly like ``hermes plugins install --ref``."""
+"""Desktop/TUI ``plugins.manage`` honours a ``ref`` pin exactly like ``ettok plugins install --ref``."""
 from unittest.mock import patch
 
 from tui_gateway import methods_tools, server

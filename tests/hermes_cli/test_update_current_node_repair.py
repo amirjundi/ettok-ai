@@ -1,7 +1,7 @@
 """The commit_count == 0 path must repair Node deps, not just Python (#77211).
 
-A previous ``hermes update`` whose npm install failed printed "Fix npm and
-re-run `hermes update`" — but re-running hit the "Already up to date!" early
+A previous ``ettok update`` whose npm install failed printed "Fix npm and
+re-run `ettok update`" — but re-running hit the "Already up to date!" early
 return before the Node refresh, so the advice could never work. The repair
 now runs through ``_repair_node_deps_on_current_checkout``, which delegates
 to ``_update_node_dependencies`` (self-gating on the lockfile hash, recorded
@@ -28,7 +28,7 @@ def test_current_checkout_repairs_failed_node_deps(capsys):
     assert "could not be repaired" in completion.call_args[0][0]
     out = capsys.readouterr().out
     assert "Node.js refresh failed for: ui-tui, web workspaces" in out
-    assert "Fix npm and re-run `hermes update`." in out
+    assert "Fix npm and re-run `ettok update`." in out
 
 
 def test_current_checkout_healthy_node_deps_reports_up_to_date():

@@ -173,7 +173,7 @@ def test_global_write_through_preserves_concurrent_root_update(
 def test_codex_pool_refresh_holds_auth_store_lock_across_post(monkeypatch, tmp_path):
     """The Codex OAuth pool refresh must POST under the cross-process auth lock.
 
-    Codex refresh tokens are single-use. If two Hermes processes both read the
+    Codex refresh tokens are single-use. If two Ettok processes both read the
     same on-disk token and both POST it, the loser gets ``refresh_token_reused``.
     Serializing the sync -> refresh POST -> write-back sequence through the
     shared ``_auth_store_lock`` closes that window: a second process blocks on

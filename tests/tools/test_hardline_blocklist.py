@@ -244,13 +244,13 @@ def test_quoted_and_brace_paths_are_hardline_blocked(command):
 # inside quotes is part of the argument the shell passes to the program.
 # These previously tripped the hardline floor because the flat command-start
 # class treated every raw newline — even inside quotes — as a command
-# boundary, blocking `hermes send` message bodies, multi-line
+# boundary, blocking `ettok send` message bodies, multi-line
 # `git commit -m` messages, and heredoc text that merely MENTION
 # shutdown/reboot commands.
 _QUOTED_NEWLINE_DATA_ALLOW = [
-    # hermes send with a multi-line message body (the reported symptom)
-    'hermes send -t telegram -s "spark1" "console output:\nsudo reboot\ndone"',
-    'hermes send -t telegram "line1\nshutdown -h now\nline3"',
+    # ettok send with a multi-line message body (the reported symptom)
+    'ettok send -t telegram -s "spark1" "console output:\nsudo reboot\ndone"',
+    'ettok send -t telegram "line1\nshutdown -h now\nline3"',
     # git commit -m with a multi-line message
     "git commit -m 'ops notes:\nreboot the box after the deploy'",
     'git commit -m "fix startup\nsystemctl reboot was flaky here"',
@@ -270,10 +270,10 @@ _QUOTED_NEWLINE_THREATS_BLOCK = [
     'echo "a"\nsudo reboot',
     'git commit -m "safe message"\nshutdown -h now',
     # command substitution inside double quotes really executes
-    'hermes send -t telegram "$(sudo reboot)"',
+    'ettok send -t telegram "$(sudo reboot)"',
     'echo "`shutdown -h now`"',
     # multi-line quoted data followed by a REAL chained command
-    'hermes send "line1\nline2" && sudo reboot',
+    'ettok send "line1\nline2" && sudo reboot',
     # a heredoc whose body is data, but the delivery command itself is hardline
     "sudo reboot <<'EOF'\nignored\nEOF",
 ]
@@ -301,7 +301,7 @@ def test_quoted_newline_data_not_blocked_by_full_guard_chain(clean_session):
     """End-to-end: the guard chain must not hardline-block a multi-line
     quoted message (yolo on, so only the unconditional floor can block)."""
     enable_session_yolo("hardline_test")
-    command = 'hermes send -t telegram "status:\nsudo reboot happened at 3am"'
+    command = 'ettok send -t telegram "status:\nsudo reboot happened at 3am"'
     result = check_all_command_guards(command, "local")
     assert result["approved"], (
         f"guard chain blocked multi-line quoted data: {result.get('message')}"
@@ -679,7 +679,7 @@ def test_session_yolo_cannot_bypass_hardline(clean_session):
 
 def test_approvals_mode_off_cannot_bypass_hardline(clean_session, monkeypatch, tmp_path):
     """config approvals.mode=off (yolo-equivalent) must not bypass hardline."""
-    # _get_approval_mode() reads from hermes config; simplest path: monkeypatch the helper.
+    # _get_approval_mode() reads from ettok config; simplest path: monkeypatch the helper.
     import tools.approval as approval_mod
     from tools import approval_context
     from tools import approval_context

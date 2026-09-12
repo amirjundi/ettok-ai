@@ -1,6 +1,6 @@
 """Session <-> workspace grouping key (hermes_state_sessions.workspace_key).
 
-The key is what `hermes sessions list --workspace` groups/filters on. It is a
+The key is what `ettok sessions list --workspace` groups/filters on. It is a
 coarse workspace identity derived from fields already recorded on sessions
 (git_repo_root, cwd) — no git shelling, no new columns. Branch is deliberately
 NOT part of the key.

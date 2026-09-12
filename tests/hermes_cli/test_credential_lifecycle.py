@@ -148,7 +148,7 @@ def test_update_rotates_config_yaml_model_mirror(hermes_home):
 # ---------------------------------------------------------------------------
 # Desktop PUT /api/env — #96058: credential_pool must be materialized so the
 # live runtime picks up the new key without waiting for its next background
-# load_pool() or a separate `hermes auth add`.
+# load_pool() or a separate `ettok auth add`.
 # ---------------------------------------------------------------------------
 
 
@@ -163,12 +163,12 @@ def test_put_api_env_materializes_credential_pool_entry(hermes_home):
 
     Pre-fix: save_provider_env_credential only mutated .env. The live pool
     kept authenticating with a stale higher-precedence config.yaml mirror or
-    the old cached credential until a separate ``hermes auth add opencode-go``
+    the old cached credential until a separate ``ettok auth add opencode-go``
     ran. auth.json mtime was unchanged before/after Save (#96058).
 
     Post-fix: the same PUT /api/env call must also materialize an entry under
     ``credential_pool.<provider>`` in auth.json so the next request
-    authenticates immediately, matching ``hermes auth add <provider> --type
+    authenticates immediately, matching ``ettok auth add <provider> --type
     api-key`` behavior.
     """
     # Start clean: empty auth.json so the only way a pool entry shows up is

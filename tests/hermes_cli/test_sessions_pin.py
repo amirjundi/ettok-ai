@@ -135,4 +135,4 @@ def test_pinned_empty_hint(monkeypatch, capsys):
     db = _FakeDB(rows=[])
     _code, out = _run(monkeypatch, capsys, ["pinned"], db)
     assert "No pinned sessions" in out
-    assert "hermes sessions pin" in out
+    assert "ettok sessions pin" in out

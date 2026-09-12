@@ -1,8 +1,8 @@
 """Regression tests for #94895: startup orphan sweep must respect cross-backend liveness.
 
-Issue: multiple ``hermes serve`` / TUI-gateway processes sharing a single
+Issue: multiple ``ettok serve`` / TUI-gateway processes sharing a single
 ``state.db`` (e.g. one desktop, two ``--isolated`` siblings, one fixed-port
-launchd ``hermes serve``) each run ``sweep_orphaned_sessions()`` at startup.
+launchd ``ettok serve``) each run ``sweep_orphaned_sessions()`` at startup.
 Before the fix the sweep's staleness predicate considered ANY inactive
 session row (old ``started_at`` + old latest ``messages.timestamp``) orphaned,
 so the *first* restarted process reaped session rows that actually belonged

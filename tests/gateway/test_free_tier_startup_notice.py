@@ -75,7 +75,7 @@ async def test_guest_inference_adds_exactly_one_free_tier_line(nous_runner):
     message = await _startup_message(runner, adapter)
 
     lines = message.splitlines()
-    assert lines[0] == "♻️ Gateway online — Hermes is back and ready."
+    assert lines[0] == "♻️ Gateway online — Ettok is back and ready."
     assert lines[1:] == [FREE_TIER_LINE]
     assert "guest" not in message.lower() and "anonymous" not in message.lower()
 
@@ -88,7 +88,7 @@ async def test_signed_in_account_keeps_the_plain_online_notice(nous_runner):
 
     message = await _startup_message(runner, adapter)
 
-    assert message == "♻️ Gateway online — Hermes is back and ready."
+    assert message == "♻️ Gateway online — Ettok is back and ready."
 
 
 @pytest.mark.asyncio
@@ -99,4 +99,4 @@ async def test_non_nous_provider_never_mentions_the_free_tier(nous_runner, monke
 
     message = await _startup_message(runner, adapter)
 
-    assert message == "♻️ Gateway online — Hermes is back and ready."
+    assert message == "♻️ Gateway online — Ettok is back and ready."

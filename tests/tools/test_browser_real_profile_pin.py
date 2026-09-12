@@ -2,7 +2,7 @@
 
 Native behavior: snapshot copies whichever Chromium profile was last used
 (Local State -> profile.last_used). The pin lets a machine with a work
-profile and a personal profile lock each Hermes install to one identity so
+profile and a personal profile lock each Ettok install to one identity so
 last-used roulette can never give the agent the wrong principal.
 
 Invariants under test:

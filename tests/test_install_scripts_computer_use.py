@@ -37,7 +37,7 @@ class TestInstallSh:
     def test_install_is_best_effort(self) -> None:
         text = INSTALL_SH.read_text()
         assert "Computer Use driver install failed" in text
-        assert "hermes computer-use install" in text
+        assert "ettok computer-use install" in text
 
     def test_skips_unwritable_applications_dir(self) -> None:
         """Non-admin macOS accounts can't receive CuaDriver.app (#47865
@@ -64,7 +64,7 @@ class TestInstallPs1:
     def test_install_is_best_effort(self) -> None:
         text = INSTALL_PS1.read_text()
         assert "Computer Use driver install timed out" in text
-        assert "hermes computer-use install" in text
+        assert "ettok computer-use install" in text
 
     def test_install_rechecks_runtime_contract_before_success(self) -> None:
         text = INSTALL_PS1.read_text()

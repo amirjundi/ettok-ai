@@ -1,6 +1,6 @@
 """``anon_auth.run_sign_in``: the one sign-in composition every surface renders.
 
-Driven directly against the same fake account service ``hermes auth upgrade`` is tested with, so the
+Driven directly against the same fake account service ``ettok auth upgrade`` is tested with, so the
 states, the persistence rules and the cancellation rules are exercised on the real wire rather than
 mocked away. Each test asserts a single ruled property of the flow.
 """

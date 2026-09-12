@@ -155,7 +155,7 @@ class TestOneTimeUserNotice:
         assert notice is not None
         assert "repeated repair" in notice
         assert "/debug share" in notice
-        assert "hermes doctor" in notice
+        assert "ettok doctor" in notice
 
         # drained: never delivered twice
         assert consume_pending_sanitizer_heal_notice() is None
@@ -367,7 +367,7 @@ class TestProjectionStopsReheal:
             _arh._empty_heal_user_notified.add(_live_key)
             _arh._empty_heal_pending_notice[_live_key] = (
                 "⚠️ Your session transcript required repeated repair — "
-                "run /debug share or `hermes doctor`."
+                "run /debug share or `ettok doctor`."
             )
 
         warned = []

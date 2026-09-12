@@ -1,6 +1,6 @@
 """Regression: the state.db repair-loop guards must survive an mtime change.
 
-Incident (2026-08-17): a malformed-SCHEMA state.db sent Hermes into an
+Incident (2026-08-17): a malformed-SCHEMA state.db sent Ettok into an
 unbounded repair loop that wrote a fresh 98MB forensic copy every ~10s —
 2.3GB in 20 minutes, disk heading to zero, whole agent fleet at risk.
 
@@ -307,7 +307,7 @@ def test_live_connection_keeps_its_write_lock_across_a_repair_pass(tmp_path):
     makes the test vacuous.
 
     Rollback-journal mode only — WAL coordinates through ``-shm`` rather than
-    POSIX advisory locks, so it is immune. DELETE mode is what Hermes falls
+    POSIX advisory locks, so it is immune. DELETE mode is what Ettok falls
     back to on NFS/SMB/FUSE/ZFS and on SQLite builds vulnerable to the
     WAL-reset bug, so it is a real deployment shape, not a corner case.
     """
@@ -614,7 +614,7 @@ def test_genuine_recovery_still_resets_the_budget(tmp_path):
 def test_forensic_backup_includes_the_rollback_journal(tmp_path):
     """DELETE mode leaves a hot -journal, and that file interprets the damage.
 
-    Rollback-journal mode is Hermes's fallback on NFS/SMB/FUSE/ZFS and on
+    Rollback-journal mode is Ettok's fallback on NFS/SMB/FUSE/ZFS and on
     WAL-reset-vulnerable SQLite builds. A forensic copy without the journal
     cannot be rolled back to a consistent state by hand.
     """

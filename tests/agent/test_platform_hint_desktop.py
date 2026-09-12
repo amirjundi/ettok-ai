@@ -158,7 +158,7 @@ class TestEmbeddedTuiPaneClarifier:
 
 class TestContradictionGone:
     """The original contradiction: a single assembled system prompt
-    contained both ``You are running in the Hermes terminal UI (TUI).`` and
+    contained both ``You are running in the Ettok terminal UI (TUI).`` and
     ``Runtime surface: you're running inside the Hermes desktop GUI app.``.
     After the fix, no single session's prompt can carry both."""
 

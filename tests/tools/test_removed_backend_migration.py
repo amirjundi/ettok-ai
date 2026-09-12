@@ -60,7 +60,7 @@ class TestSelectionErrorRemovedBackend:
         # generic failure text replaced, not appended
         assert "no registered web search provider" not in msg
         # still ends with the uniform remediation contract
-        assert "Run 'hermes tools' to change it." in msg
+        assert "Run 'ettok tools' to change it." in msg
 
     def test_live_backend_keeps_caller_failure_text(self, legacy_removed):
         msg = selection_error("web", "'exa'", "no registered web search provider has that name")
@@ -80,7 +80,7 @@ class TestStartupWarningForRemovedWebBackend:
         issues = self._removed_issues({"web": {"backend": "legacysearch"}})
         assert len(issues) == 1
         assert issues[0].severity == "warning"
-        assert "hermes tools" in issues[0].hint
+        assert "ettok tools" in issues[0].hint
 
     def test_per_capability_keys_are_checked(self, legacy_removed):
         assert len(self._removed_issues({"web": {"search_backend": "legacysearch"}})) == 1

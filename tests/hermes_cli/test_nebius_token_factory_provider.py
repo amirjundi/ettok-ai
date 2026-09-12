@@ -125,7 +125,7 @@ def test_nebius_model_catalog_prefers_live_profile_fetch(monkeypatch):
         "fetch_models",
         lambda *, api_key=None, base_url=None, timeout=8.0: [
             "deepseek-ai/DeepSeek-V4-Pro",
-            "NousResearch/Hermes-4-70B",
+            "NousResearch/Ettok-4-70B",
             "some-brand-new/Live-Only-Model",
         ],
     )

@@ -1,7 +1,7 @@
 """Session transcript stores are read-only to agent file tools.
 
 Inspired by Claude Code 2.1.205's auto-mode rule preventing transcript
-manipulation. Hermes keeps canonical conversation history in state.db and may
+manipulation. Ettok keeps canonical conversation history in state.db and may
 also emit legacy JSON snapshots under sessions/; agent tools must not rewrite
 or delete either store.
 """

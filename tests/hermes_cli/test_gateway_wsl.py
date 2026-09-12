@@ -94,7 +94,7 @@ class TestGatewayCommandWSLMessages:
 
     @pytest.mark.linux_only
     def test_install_wsl_no_systemd(self, monkeypatch, capsys):
-        """hermes gateway install on WSL without systemd shows guidance.
+        """ettok gateway install on WSL without systemd shows guidance.
 
         Linux-gated: WSL *is* a Linux host, and the guidance branch sits after
         the macOS/Windows arms in ``gateway_command``. Reaching it on another
@@ -118,13 +118,13 @@ class TestGatewayCommandWSLMessages:
         out = capsys.readouterr().out
         assert "WSL detected" in out
         assert "systemd is not running" in out
-        assert "hermes gateway run" in out
+        assert "ettok gateway run" in out
         assert "tmux" in out
 
 
     @pytest.mark.linux_only
     def test_status_wsl_running_manual(self, monkeypatch, capsys):
-        """hermes gateway status on WSL with manual process shows WSL note.
+        """ettok gateway status on WSL with manual process shows WSL note.
 
         Linux-gated for the same reason as the install case: the WSL note is
         printed only after the macOS/Windows service branches decline.

@@ -65,7 +65,7 @@ def test_faster_whisper_is_not_a_base_dependency():
 # enforce the floor in both pyproject and the committed lockfile.
 _STARLETTE_CVE_FLOOR = (1, 0, 1)
 _UPDATE_DOWNGRADE_GUARD_FLOORS = {
-    # `hermes update` reinstalls exact pins from pyproject/lazy_deps. These
+    # `ettok update` reinstalls exact pins from pyproject/lazy_deps. These
     # reviewed CVE pins must not slide back to stale versions that downgrade
     # already-patched user environments.
     "cryptography": (50, 0, 0),

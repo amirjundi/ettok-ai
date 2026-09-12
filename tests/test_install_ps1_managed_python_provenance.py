@@ -1,4 +1,4 @@
-"""Behavioral regression for Hermes-managed Python provenance on Windows."""
+"""Behavioral regression for Ettok-managed Python provenance on Windows."""
 
 from __future__ import annotations
 

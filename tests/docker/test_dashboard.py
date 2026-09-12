@@ -23,7 +23,7 @@ def test_dashboard_not_running_by_default(
 ) -> None:
     """Without HERMES_DASHBOARD, no dashboard process should be running."""
     start_container(built_image, container_name, cmd="sleep 60")
-    r = docker_exec(container_name, "pgrep", "-f", "hermes dashboard")
+    r = docker_exec(container_name, "pgrep", "-f", "ettok dashboard")
     # pgrep exits non-zero when no match found
     assert r.returncode != 0, (
         "Dashboard should not be running without HERMES_DASHBOARD"

@@ -3,7 +3,7 @@
 When recreating an existing venv, ``Install-Venv`` renames the directory aside
 first. An older fallback deleted the tree in place when rename was denied; a
 partial ``Remove-Item`` could wipe most of ``site-packages`` and then fail on
-one locked ``.pyd``, leaving Hermes unusable with no rollback.
+one locked ``.pyd``, leaving Ettok unusable with no rollback.
 
 These tests lock the contract at the source level (the script only runs on
 Windows, so Linux CI cannot execute the PowerShell path).

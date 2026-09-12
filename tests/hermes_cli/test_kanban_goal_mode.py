@@ -134,11 +134,11 @@ def test_loop_stops_when_worker_already_completed(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# CLI judge gate tests (hermes kanban complete bypass fix)
+# CLI judge gate tests (ettok kanban complete bypass fix)
 # ---------------------------------------------------------------------------
 
 class TestCLIJudgeGate:
-    """hermes kanban complete must apply the same goal_mode judge gate as the
+    """ettok kanban complete must apply the same goal_mode judge gate as the
     kanban_complete tool (Issue #38367 sibling gap).
 
     Uses mocks for kb.get_task and kb.complete_task to avoid depending on the

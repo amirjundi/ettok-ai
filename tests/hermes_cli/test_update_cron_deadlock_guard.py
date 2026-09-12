@@ -1,12 +1,12 @@
 """Regression tests for #100179: cron-update three-way restart deadlock.
 
-When `hermes update` runs INSIDE the gateway's own process tree (the
+When `ettok update` runs INSIDE the gateway's own process tree (the
 hermes-auto-update cron job), waiting for that gateway to exit is a
 circular wait:
 
   gateway waits on all in-flight work units (#77184)
-    -> cron agent session waits on the `hermes update` process
-      -> `hermes update` waits on the gateway to exit  [back to A]
+    -> cron agent session waits on the `ettok update` process
+      -> `ettok update` waits on the gateway to exit  [back to A]
 
 The wedged-loop probe cannot break it: the cron session posts activity
 every ~180s (process-tool poll return), so it is never marked wedged and

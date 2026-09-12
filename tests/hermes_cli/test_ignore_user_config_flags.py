@@ -1,8 +1,8 @@
-"""Tests for --ignore-user-config and --ignore-rules flags on `hermes chat`.
+"""Tests for --ignore-user-config and --ignore-rules flags on `ettok chat`.
 
 Ported from openai/codex#18646 (`feat: add --ignore-user-config and --ignore-rules`).
 Codex's flags fully isolate a run from user-level config and exec-policy .rules
-files. In Hermes the equivalent isolation is:
+files. In Ettok the equivalent isolation is:
 
 * ``--ignore-user-config`` → skip ``~/.hermes/config.yaml`` in ``load_cli_config()``
   (credentials in ``.env`` are still loaded).

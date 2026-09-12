@@ -418,7 +418,7 @@ def test_unresolved_plugin_target_requires_explicit_parser() -> None:
     )
     platform_registry.register(entry)
     platform = Platform(platform_name)
-    # Simulate a fresh `hermes send` process: the dynamic Platform member
+    # Simulate a fresh `ettok send` process: the dynamic Platform member
     # is known from config, but plugin discovery has not registered its
     # adapter entry yet.
     platform_registry.unregister(platform_name)

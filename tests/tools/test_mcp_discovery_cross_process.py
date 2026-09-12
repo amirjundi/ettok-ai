@@ -1,6 +1,6 @@
 """Cross-process regression coverage for MCP discovery serialization.
 
-Two independent Hermes processes can start MCP discovery at the same time
+Two independent Ettok processes can start MCP discovery at the same time
 (dashboard and gateway startup).  The losing process must wait for the shared
 lock and then perform its own local discovery; another process's registry is
 not usable because ``_servers`` is process-local.

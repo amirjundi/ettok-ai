@@ -82,7 +82,7 @@ def test_sole_addressee_text_stays_clean_and_prompt_is_session_stable(trigger):
             msg_type = MessageType.COMMAND
             msg = _group_message("/new@hermes_bot", entities=[SimpleNamespace(type="bot_command", offset=0, length=15)])
         elif trigger == "text_mention":
-            msg = _group_message("Hermes hello", entities=[SimpleNamespace(type="text_mention", offset=0, length=6, user=SimpleNamespace(id=999))])
+            msg = _group_message("Ettok hello", entities=[SimpleNamespace(type="text_mention", offset=0, length=6, user=SimpleNamespace(id=999))])
         elif trigger == "mention":
             text = "😀 @hermes_bot 2"
             msg = _group_message(text, entities=[SimpleNamespace(type="mention", offset=3, length=11)])

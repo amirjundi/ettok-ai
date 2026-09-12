@@ -1,4 +1,4 @@
-"""Catalog-aware ``hermes plugins`` surface (hermes_cli/plugins_cmd_catalog.py): a bare catalog name installs
+"""Catalog-aware ``ettok plugins`` surface (hermes_cli/plugins_cmd_catalog.py): a bare catalog name installs
 the PINNED sha and records provenance; the kill list blocks every install path (CLI needs an explicit
 bypass, dashboard/TUI have none); ``update`` re-pins instead of pulling. Real git, file:// repos."""
 

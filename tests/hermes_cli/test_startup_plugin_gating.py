@@ -3,7 +3,7 @@
 ``hermes_cli.main`` skips eager plugin discovery at argparse-setup time
 when the invocation is clearly targeting a known built-in subcommand.
 This saves 500-650ms on ``hermes --help``, ``hermes --version``,
-``hermes logs``, etc., by not importing ``google.cloud.pubsub_v1``,
+``ettok logs``, etc., by not importing ``google.cloud.pubsub_v1``,
 ``aiohttp``, ``grpc``, and friends.
 
 Two invariants:

@@ -1,6 +1,6 @@
 """Regression tests for /model support of config.yaml custom_providers.
 
-The terminal `hermes model` flow already exposes `custom_providers`, but the
+The terminal `ettok model` flow already exposes `custom_providers`, but the
 shared slash-command pipeline (`/model` in CLI/gateway/Telegram) historically
 only looked at `providers:`.
 
@@ -575,7 +575,7 @@ def test_custom_provider_no_key_singular_model_still_probes_live_models(monkeypa
     """A singular ``model:`` is the active selection, not an explicit catalog.
 
     No-key local OpenAI-compatible endpoints such as llama.cpp should still be
-    probed so /model matches the terminal ``hermes model`` flow. Ollama-native
+    probed so /model matches the terminal ``ettok model`` flow. Ollama-native
     discovery is covered separately with a fake ``/api/tags`` server.
     """
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
@@ -810,7 +810,7 @@ def test_list_enumerates_dict_format_models_alongside_default(monkeypatch):
     """custom_providers entry with dict-format ``models:`` plus singular
     ``model:`` should surface the default and every dict key.
 
-    Regression: Hermes's own writer stores configured models as a dict
+    Regression: Ettok's own writer stores configured models as a dict
     keyed by model id, but the /model picker previously only honored the
     singular ``model:`` field, so multi-model custom providers appeared
     to have only the active model.
@@ -1536,14 +1536,14 @@ def test_save_discovered_models_preserves_dict_form(monkeypatch):
 
 
 def test_model_flow_named_custom_persists_discovered_models(monkeypatch):
-    """The ``hermes model`` named-custom-provider flow persists the discovered
+    """The ``ettok model`` named-custom-provider flow persists the discovered
     catalog back to the entry's ``models:`` list.
 
     No-probe surfaces (dashboard, desktop, ACP) call
     ``build_models_payload(..., probe_custom_providers=False)`` and only show
     the configured ``models:`` list. The CLI flow probes and shows the full
     catalog but (before this fix) never saved it, so a provider added via
-    ``hermes model`` collapsed to the single ``model:`` default everywhere but
+    ``ettok model`` collapsed to the single ``model:`` default everywhere but
     the CLI. It must persist discovered models the same way the picker path in
     ``_save_discovered_models_to_config`` does.
     """
@@ -1685,7 +1685,7 @@ def test_excluded_providers_hides_builtin_row(monkeypatch):
 def test_custom_provider_context_length_models_dict_still_probes(monkeypatch):
     """Dict-shaped ``models:`` from ``_save_custom_provider`` is metadata.
 
-    ``hermes model`` writes ``models: {default: {context_length: N}}`` for
+    ``ettok model`` writes ``models: {default: {context_length: N}}`` for
     local Ollama. That must not suppress live /v1/models discovery — otherwise
     Desktop/Telegram only show the saved default and Refresh does nothing.
     """
@@ -1959,7 +1959,7 @@ def test_cached_catalog_is_not_written_back_to_config(monkeypatch):
 
 
 def test_keyless_endpoint_with_saved_catalog_still_reads_cache(monkeypatch):
-    """A keyless local server must not be pinned by Hermes' own auto-save.
+    """A keyless local server must not be pinned by Ettok' own auto-save.
 
     ``_save_discovered_models_to_config()`` writes a plain list into
     ``models:``, which ``_models_config_is_allowlist()`` reads back as an
@@ -1993,7 +1993,7 @@ def test_keyless_endpoint_with_saved_catalog_still_reads_cache(monkeypatch):
 def test_keyless_endpoint_with_saved_catalog_is_still_not_probed(monkeypatch):
     """...but the network-cost gate it rides on must survive intact.
 
-    The no-key + declared-catalog combination exists to keep Hermes from
+    The no-key + declared-catalog combination exists to keep Ettok from
     probing an endpoint it cannot authenticate to. Serving that endpoint from
     a warm cache is free; hitting the network is not. With a cold cache and
     live probing fully enabled, this row must still make zero fetches.
@@ -2158,7 +2158,7 @@ def test_auto_saved_catalog_round_trips_without_pinning(tmp_path, monkeypatch):
 def test_legacy_sentinel_catalog_still_resolves_and_migrates(tmp_path, monkeypatch):
     """Old-shape configs (sentinels inside ``models``) keep working.
 
-    Pre-fix Hermes wrote ``__discovered_model_catalog__: true`` (and
+    Pre-fix Ettok wrote ``__discovered_model_catalog__: true`` (and
     ``__explicit_model_allowlist__``) inside the user-facing ``models``
     mapping. Reading such a config must (a) recognize the catalog as
     discovered — not a user pin, (b) never list the sentinels as model IDs,

@@ -1,5 +1,5 @@
 """Tests for issue #26670 — concurrent hermes.exe detection and improved
-quarantine retry / reboot-deferred fallback during `hermes update` on Windows.
+quarantine retry / reboot-deferred fallback during `ettok update` on Windows.
 
 These tests force ``_is_windows`` to return ``True`` via patching so the
 Windows-specific code paths can be exercised on any host.
@@ -929,14 +929,14 @@ def _fake_psutil_classify(argv_by_pid):
 def test_classify_concurrent_instance_recognises_gateway_runtimes(monkeypatch):
     """Gateway runtime command lines classify as ``gateway`` regardless of
     launcher shape (python -m, hermes.exe shim, hermes-gateway.exe,
-    gateway/run.py, bare `hermes gateway` which defaults to run)."""
+    gateway/run.py, bare `ettok gateway` which defaults to run)."""
     cases = [
         [r"C:\venv\Scripts\python.exe", "-m", "hermes_cli.main", "gateway", "run"],
         [r"C:\venv\Scripts\hermes.exe", "gateway", "run"],
         [r"C:\venv\Scripts\hermes-gateway.exe"],
         [r"C:\venv\Scripts\python.exe", "gateway/run.py"],
         ["hermes.exe", "GATEWAY", "RUN"],  # matcher is case-insensitive
-        ["hermes.exe", "gateway"],  # bare `hermes gateway` defaults to run
+        ["hermes.exe", "gateway"],  # bare `ettok gateway` defaults to run
         # profile selector before the subcommand — canonical matcher strips it
         ["hermes.exe", "--profile", "work", "gateway", "run"],
     ]

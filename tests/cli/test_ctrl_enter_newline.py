@@ -84,11 +84,11 @@ def test_ghostty_tmux_session_preserves_ctrl_j_newline():
 
 
 def test_cli_multiline_shortcuts_default_on():
-    """Hermes should default to the common harness behavior: Ctrl+J newline.
+    """Ettok should default to the common harness behavior: Ctrl+J newline.
 
     Claude Code documents Ctrl+J as a no-setup newline shortcut, OpenCode's
     default input_newline includes ctrl+j, and Codex exposes Ctrl+J/keymap
-    newline behavior. Keep Hermes aligned unless the user opts out.
+    newline behavior. Keep Ettok aligned unless the user opts out.
     """
     import cli as cli_mod
 

@@ -10,7 +10,7 @@ Mechanism:
 1. A long-running gateway/agent process imported ``utils`` BEFORE ``env_float``
    existed (added in 06ca1e99, 2026-06-20 14:00). The cached module object in
    ``sys.modules`` therefore has no ``env_float`` attribute.
-2. ``hermes update`` ran ``git pull``, updating ``utils.py`` (now defining
+2. ``ettok update`` ran ``git pull``, updating ``utils.py`` (now defining
    ``env_float``) and ~22 consumer modules (now doing ``from utils import
    env_float``) on disk -- WITHOUT restarting the process.
 3. Switching the live session's model (anthropic/opus -> opencode/glm) forced the
@@ -20,7 +20,7 @@ Mechanism:
    ``utils.__file__`` on disk (which *does* define ``env_float``), which is why
    the error is so confusing: the file on disk is fine, the in-memory module is not.
 
-``hermes_cli/main.py`` (the ``hermes update`` flow, ~line 9326) already
+``hermes_cli/main.py`` (the ``ettok update`` flow, ~line 9326) already
 acknowledges this exact hazard -- "source files on disk are newer than cached
 Python modules in this process" -- and reloads ``hermes_constants`` after the
 pull, but NOT ``utils``. Any ``utils`` consumer added in the same release stays

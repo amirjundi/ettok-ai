@@ -213,7 +213,7 @@ def test_escaped_failure_delivery_carries_the_streak_nudge(monkeypatch):
     assert len(delivered) == 1
     assert "cannot import name X" in delivered[0]
     assert "failed 3 runs in a row" in delivered[0]
-    assert "hermes cron pause scout" in delivered[0]
+    assert "ettok cron pause scout" in delivered[0]
 
 
 def test_escaped_failure_delivery_stays_quiet_below_the_threshold(monkeypatch):

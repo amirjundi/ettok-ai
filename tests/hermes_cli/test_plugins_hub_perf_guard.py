@@ -100,7 +100,7 @@ def test_plugins_hub_cold_cache_schedules_background_probe(monkeypatch):
     # auth requirement.
     refreshed = _web_server_dashboard._merged_plugins_hub(force_refresh=True)
     assert refreshed["plugins"][0]["auth_required"] is True
-    assert refreshed["plugins"][0]["auth_command"] == "hermes auth demo"
+    assert refreshed["plugins"][0]["auth_command"] == "ettok auth demo"
 
 
 
@@ -117,7 +117,7 @@ def test_plugins_hub_uses_cached_failed_check_fn_verdict(monkeypatch):
     payload = _web_server_dashboard._merged_plugins_hub(force_refresh=True)
 
     assert payload["plugins"][0]["auth_required"] is True
-    assert payload["plugins"][0]["auth_command"] == "hermes auth demo"
+    assert payload["plugins"][0]["auth_command"] == "ettok auth demo"
 
 
 

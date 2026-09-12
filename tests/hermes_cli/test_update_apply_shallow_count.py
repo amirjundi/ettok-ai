@@ -1,4 +1,4 @@
-"""Shallow-checkout guard on the `hermes update` apply path (#53479).
+"""Shallow-checkout guard on the `ettok update` apply path (#53479).
 
 `rev-list --count HEAD..origin/<branch>` on a shallow install can enumerate
 the entire remote ancestry ("Found 9980 new commit(s)" on a depth-1 clone).

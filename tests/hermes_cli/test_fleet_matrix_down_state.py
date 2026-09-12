@@ -139,4 +139,4 @@ def test_down_and_stale_both_escalate_with_remediation(capsys):
     out = capsys.readouterr().out
     assert "STALE" in out
     assert "DOWN" in out
-    assert "hermes gateway restart" in out
+    assert "ettok gateway restart" in out

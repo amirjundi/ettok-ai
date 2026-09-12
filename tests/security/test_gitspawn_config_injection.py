@@ -3,13 +3,13 @@
 A repository delivered as files (zip, sync folder, USB) can carry a
 ``.git/config`` that names a command in an execution-sink git setting —
 ``core.fsmonitor``, ``core.hooksPath`` hooks, or an attribute-scoped
-``[diff "x"] command=/textconv=`` driver. Hermes gathers workspace context by
+``[diff "x"] command=/textconv=`` driver. Ettok gathers workspace context by
 running git against the session directory automatically, before any prompt,
 approval, or trust gate, so an unhardened probe would execute that command on
 the host as the user.
 
 These tests build a real malicious repo and assert that every automatic
-context-gathering git path Hermes runs neutralizes every sink. They use a real
+context-gathering git path Ettok runs neutralizes every sink. They use a real
 ``git`` and skip if it is unavailable.
 """
 

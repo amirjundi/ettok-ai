@@ -601,11 +601,11 @@ def test_skill_installs_cleanly_under_skills_guard():
 
 def test_rebrand_text_replaces_openclaw_variants():
     mod = load_module()
-    # Mixed-case / capitalized matches → capital-H ``Hermes``.
-    assert mod.rebrand_text("OpenClaw prefers Python 3.11") == "Hermes prefers Python 3.11"
-    assert mod.rebrand_text("I told Open Claw to use dark mode") == "I told Hermes to use dark mode"
-    assert mod.rebrand_text("Open-Claw config is great") == "Hermes config is great"
-    assert mod.rebrand_text("OPENCLAW uses tools well") == "Hermes uses tools well"
+    # Mixed-case / capitalized matches → capital-H ``Ettok``.
+    assert mod.rebrand_text("OpenClaw prefers Python 3.11") == "Ettok prefers Python 3.11"
+    assert mod.rebrand_text("I told Open Claw to use dark mode") == "I told Ettok to use dark mode"
+    assert mod.rebrand_text("Open-Claw config is great") == "Ettok config is great"
+    assert mod.rebrand_text("OPENCLAW uses tools well") == "Ettok uses tools well"
     # All-lowercase matches → lowercase ``hermes``; this preserves the
     # real filesystem path ``~/.hermes`` (Hermes home) when rebranding
     # memory entries that reference ``~/.openclaw`` or ``openclaw`` prose.

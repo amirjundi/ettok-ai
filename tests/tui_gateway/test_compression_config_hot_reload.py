@@ -1,7 +1,7 @@
 """Desktop/TUI sessions must adopt live compression config on the next turn.
 
 Regression for #95151: ``_sync_agent_model_with_config`` only compared the
-model/provider. After ``hermes config set compression.threshold_tokens 100000``
+model/provider. After ``ettok config set compression.threshold_tokens 100000``
 the already-open session kept the computed threshold from agent creation.
 """
 

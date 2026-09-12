@@ -34,7 +34,7 @@ class TestExplicitRuntimeForAnthropic:
     always return ``api_mode='anthropic_messages'`` regardless of
     base_url shape or stale persisted ``model.api_mode`` values.
 
-    Exercised whenever the user (or a Hermes subcommand) passes an
+    Exercised whenever the user (or a Ettok subcommand) passes an
     explicit ``--api-key`` / ``--base-url`` override to the runtime
     resolver.
     """
@@ -70,7 +70,7 @@ class TestExplicitRuntimeForAnthropic:
 
 class TestPoolEntryForAnthropic:
     """``_resolve_runtime_from_pool_entry`` is what runs when a user
-    has added an OAuth credential via ``hermes auth add anthropic
+    has added an OAuth credential via ``ettok auth add anthropic
     --type oauth`` (the exact flow from #32243).  Pin the contract
     alongside the URL-detector test so all three runtime branches
     stay aligned and a future refactor of one cannot diverge from

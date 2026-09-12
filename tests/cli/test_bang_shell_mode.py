@@ -231,7 +231,7 @@ class TestBangApprovalGate:
 # ── THE load-bearing invariant ─────────────────────────────────────────────
 
 _SEED_HISTORY = [
-    {"role": "system", "content": "You are Hermes."},
+    {"role": "system", "content": "You are Ettok."},
     {"role": "user", "content": "hello"},
     {"role": "assistant", "content": "Hi there."},
     {"role": "user", "content": "list the files"},

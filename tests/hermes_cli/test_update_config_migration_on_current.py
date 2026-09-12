@@ -6,7 +6,7 @@ and then fail before reaching the config-migration block (e.g. PyPI timeout
 during dependency sync); the retry then enters the ``commit_count == 0``
 branch and returns early, skipping config migration entirely. The fresh
 code (which may require a newer ``_config_version``) keeps running against
-the old config and the next Hermes launch refuses to start.
+the old config and the next Ettok launch refuses to start.
 
 Matrix: config behind / current / ahead of the code's version, plus the
 #86656 contract (quiet-migration warnings must be re-surfaced) and the

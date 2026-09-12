@@ -33,7 +33,7 @@ RICH_MD = "# Title\n\n- a\n  - nested\n\n---\n\nbody text"
 RICH_TABLE_MD = (
     "| Item | Status | Note |\n"
     "|---|---:|---|\n"
-    "| Hermes | ok | table |"
+    "| Ettok | ok | table |"
 )
 
 

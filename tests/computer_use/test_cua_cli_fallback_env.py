@@ -4,7 +4,7 @@ subprocess environment like every other cua-driver spawn site.
 ``_CuaDriverSession._call_tool_via_cli()`` (the EAGAIN/silent-empty MCP
 fallback) invoked ``subprocess.run`` with no ``env=`` at all, so the
 third-party ``cua-driver`` binary inherited the full, unsanitized parent
-environment — including provider API keys and other Hermes-managed
+environment — including provider API keys and other Ettok-managed
 secrets that ``_lifecycle_coro``'s primary MCP spawn already strips via
 ``_sanitize_subprocess_env(cua_driver_child_env())``.
 """
@@ -53,7 +53,7 @@ def test_cli_fallback_strips_provider_secret_from_subprocess_env(monkeypatch):
     assert captured["env"] is not None, "subprocess.run must receive an explicit env="
     assert "ANTHROPIC_API_KEY" not in captured["env"]
     # Sanitization filters secrets, not everything — an ordinary var survives.
-    # Original PATH entries are preserved; the hermes console-script dir may
+    # Original PATH entries are preserved; the ettok console-script dir may
     # be prepended (see _sanitize_subprocess_env, issue #92998).
     assert captured["env"].get("PATH", "").endswith("/usr/bin:/bin")
 

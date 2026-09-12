@@ -1,7 +1,7 @@
 """Nous free tier on the read-only display surfaces and the keepalive.
 
-Contract (R-USR-1): wherever a free-tier identity renders (``hermes auth status nous``,
-``hermes auth list``, ``hermes status``, ``hermes portal info``) the user sees the free-tier label
+Contract (R-USR-1): wherever a free-tier identity renders (``ettok auth status nous``,
+``ettok auth list``, ``ettok status``, ``ettok portal info``) the user sees the free-tier label
 plus the upgrade hint, and never the internal identity vocabulary. A real account keeps its normal
 rendering. The keepalive has nothing to keep alive for the free tier and must not start a thread.
 """
@@ -94,7 +94,7 @@ def _render_all(capsys) -> dict[str, str]:
     out["auth list"] = capsys.readouterr().out
     ctx = SimpleNamespace(config={}, nous_logged_in=False, nous_inference_present=False, nous_account_info=None)
     status_auth._render_auth_providers(ctx)
-    out["hermes status"] = capsys.readouterr().out
+    out["ettok status"] = capsys.readouterr().out
     portal_cli._cmd_status(SimpleNamespace())
     out["portal info"] = capsys.readouterr().out
     return out
@@ -176,9 +176,9 @@ def test_every_in_chat_free_tier_string_names_the_slash_command(monkeypatch):
     )
     assert all("/login" in text for text in command_copy)
     for text in (*command_copy, *refusal_copy):
-        # The ruled refusal uses Hermes as the grammatical subject; only that exact product-name
+        # The ruled refusal uses Ettok as the grammatical subject; only that exact product-name
         # phrase is exempt from the broad top-level-command gate.
-        assert "hermes " not in text.replace("this Hermes can", "this product can").lower()
+        assert "hermes " not in text.replace("this Ettok can", "this product can").lower()
 
 
 def test_no_chat_copy_of_any_sign_in_state_leaks_a_terminal_verb_or_a_forbidden_word():

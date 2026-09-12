@@ -12,7 +12,7 @@ skills-guard-v2 scores tiers by confidence:
     position, or mid-line with a directive marker like "you must")
     -> critical -> dangerous (project-skill quarantine acts only on
     "dangerous", so this shape must keep blocking)
-  * prose instructing modification of Hermes/other-agent config files,
+  * prose instructing modification of Ettok/other-agent config files,
     and "X should contain ..." content-contract prose -> high -> caution
   * bare references -> low -> informational only
 

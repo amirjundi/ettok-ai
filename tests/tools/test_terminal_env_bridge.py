@@ -86,7 +86,7 @@ def test_explicit_config_key_overrides_matching_env_value(monkeypatch):
 
 
 def test_ssh_config_preserves_remote_tilde_cwd(monkeypatch):
-    """SSH ``~`` belongs to the remote user, not the Hermes host/container."""
+    """SSH ``~`` belongs to the remote user, not the Ettok host/container."""
     _write_config("terminal:\n  backend: ssh\n  cwd: '~'\n")
     monkeypatch.setenv("HOME", "/opt/data/home")
     monkeypatch.setenv("USERPROFILE", r"C:\opt\data\home")

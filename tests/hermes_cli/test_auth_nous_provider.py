@@ -474,7 +474,7 @@ def test_get_nous_auth_status_empty_returns_not_logged_in(tmp_path, monkeypatch)
 
 
 class TestLoginNousSkipKeepsCurrent:
-    """When a user runs `hermes model` → Nous Portal → Skip (keep current) after
+    """When a user runs `ettok model` → Nous Portal → Skip (keep current) after
     a successful OAuth login, the prior provider and model MUST be preserved.
 
     Regression: previously, _update_config_for_provider was called
@@ -671,7 +671,7 @@ def _full_state_fixture() -> dict:
 def test_persist_nous_credentials_writes_both_pool_and_providers(tmp_path, monkeypatch):
     """Helper must populate BOTH credential_pool.nous AND providers.nous.
 
-    Regression guard: before this helper existed, `hermes auth add nous`
+    Regression guard: before this helper existed, `ettok auth add nous`
     wrote only the pool. After the Nous agent_key's 24h TTL expired, the
     401-recovery path in run_agent.py called resolve_nous_runtime_credentials
     which reads providers.nous, found it empty, raised AuthError, and the
@@ -788,10 +788,10 @@ def test_refresh_token_reuse_detection_surfaces_actionable_message():
     """Regression for #15099.
 
     When the Nous Portal server returns ``invalid_grant`` with
-    ``error_description`` containing "reuse detected", Hermes must surface an
+    ``error_description`` containing "reuse detected", Ettok must surface an
     actionable message explaining that an external process consumed the
     refresh token.  The default opaque "Refresh token reuse detected; please
-    re-authenticate" string led users to report this as a Hermes persistence
+    re-authenticate" string led users to report this as a Ettok persistence
     bug when the true cause is external RT consumption (monitoring scripts,
     custom self-heal hooks).
     """
@@ -822,7 +822,7 @@ def test_refresh_token_reuse_detection_surfaces_actionable_message():
     assert "refresh-token reuse" in message.lower() or "refresh token reuse" in message.lower()
     # The message must mention the external-process cause and give next steps.
     assert "external process" in message.lower() or "monitoring script" in message.lower()
-    assert "hermes auth add nous" in message.lower()
+    assert "ettok auth add nous" in message.lower()
     # Must still be classified as invalid_grant + relogin_required.
     assert exc_info.value.code == "invalid_grant"
     assert exc_info.value.relogin_required is True
@@ -938,7 +938,7 @@ def test_persist_nous_credentials_mirrors_to_shared_store(
     tmp_path, monkeypatch, shared_store_env,
 ):
     """persist_nous_credentials must populate BOTH per-profile auth.json
-    AND the shared store, so a future profile's `hermes auth add nous
+    AND the shared store, so a future profile's `ettok auth add nous
     --type oauth` can one-tap import instead of redoing device-code.
     """
     from hermes_cli.auth import (
@@ -1102,7 +1102,7 @@ class TestNousDeviceAuthTimeoutMessage:
 
         msg = _nous_device_auth_timeout_message("https://portal.nousresearch.com")
         assert "CAPTCHA" in msg
-        assert "hermes portal" in msg
+        assert "ettok portal" in msg
         assert "https://portal.nousresearch.com/login" in msg
         # Must NOT point at the nonexistent /device page (live Portal 404s it).
         assert "/device" not in msg
@@ -1149,7 +1149,7 @@ def test_poll_for_token_timeout_raises_actionable_message():
 
     msg = str(excinfo.value)
     assert "CAPTCHA" in msg
-    assert "hermes portal" in msg
+    assert "ettok portal" in msg
     assert "https://portal.nousresearch.com/login" in msg
 
 
@@ -1197,5 +1197,5 @@ def test_nous_device_code_login_timeout_raises_actionable_message(monkeypatch):
 
     msg = str(excinfo.value)
     assert "CAPTCHA" in msg
-    assert "hermes portal" in msg
+    assert "ettok portal" in msg
     assert "https://portal.nousresearch.com/login" in msg

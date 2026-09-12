@@ -66,7 +66,7 @@ def test_disable_only_after_the_date_and_not_when_allowed(tmp_path, monkeypatch)
     monkeypatch.setattr(pc, "allow_deprecated_imports", lambda config=None: False)
     assert pc.disable_reason(m, today=before) is None
     reason = pc.disable_reason(m, today=after)
-    assert reason and pc.COMPAT_REMOVAL in reason and "hermes plugins compat" in reason
+    assert reason and pc.COMPAT_REMOVAL in reason and "ettok plugins compat" in reason
     monkeypatch.setattr(pc, "allow_deprecated_imports", lambda config=None: True)
     assert pc.disable_reason(m, today=after) is None
     good = tmp_path / "good"; good.mkdir(); (good / "__init__.py").write_text("x=1\n")
@@ -79,7 +79,7 @@ def test_summary_lines_name_plugins_and_the_date():
     before = pc.COMPAT_REMOVAL_DATE - dt.timedelta(days=3)
     head, tail = pc.summary_lines(report, today=before)
     assert "2 plugins" in head and "alpha (1)" in head and "beta (2)" in head and pc.COMPAT_REMOVAL in head and "3 days" in head
-    assert "hermes plugins compat" in tail
+    assert "ettok plugins compat" in tail
     head_after, _ = pc.summary_lines(report, today=pc.COMPAT_REMOVAL_DATE)
     assert "DISABLED" in head_after
     assert pc.summary_lines({}) == []

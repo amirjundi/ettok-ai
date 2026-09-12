@@ -4,8 +4,8 @@ The catch-up machinery already ran late fires after gateway downtime, but
 the run then looked like an ordinary on-time success: nothing recorded the
 scheduled instant vs the actual dispatch time. The due-scan now persists a
 ``last_dispatch`` stamp (scheduled_at / dispatched_at / lateness_seconds /
-kind) on every recurring dispatch so `hermes cron list` and
-`hermes cron status` can surface late catch-ups.
+kind) on every recurring dispatch so `ettok cron list` and
+`ettok cron status` can surface late catch-ups.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -82,7 +82,7 @@ class TestDueScanDispatchStamp:
         assert stamp["dispatched_at"] == FIXED_NOW.isoformat()
         expected_late = (FIXED_NOW - scheduled).total_seconds()
         assert stamp["lateness_seconds"] == pytest.approx(expected_late, abs=1)
-        # Persisted, so a separate `hermes cron list` process can read it.
+        # Persisted, so a separate `ettok cron list` process can read it.
         persisted = load_jobs()[0]
         assert persisted["last_dispatch"] == stamp
 

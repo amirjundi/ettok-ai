@@ -229,7 +229,7 @@ class TestIsSatisfiedVersionAware:
         huggingface-hub arrives in the venv via the core lock (transformers /
         sentence-transformers for local Hindsight, faster-whisper, tokenizers).
         With the LAZY_DEPS pin held in lockstep with uv.lock, the version the
-        core installs satisfies the trace-upload spec, so the `hermes update`
+        core installs satisfies the trace-upload spec, so the `ettok update`
         lazy-refresh pass reports "current" instead of reinstalling — the
         downgrade that used to break the Hindsight daemon can't happen.
         """
@@ -294,7 +294,7 @@ class TestIsSatisfiedVersionAware:
 
 
 # ---------------------------------------------------------------------------
-# active_features + refresh_active_features (Piece A — hermes update wiring)
+# active_features + refresh_active_features (Piece A — ettok update wiring)
 # ---------------------------------------------------------------------------
 
 
@@ -306,7 +306,7 @@ class TestActiveFeatures:
 
     def test_shared_dependency_does_not_activate_feature(self, monkeypatch):
         # asyncpg is a generic dependency that may be installed for unrelated
-        # reasons. It must not make hermes update try to refresh Matrix unless
+        # reasons. It must not make ettok update try to refresh Matrix unless
         # the Matrix anchor package (mautrix) is present.
         monkeypatch.setattr(
             ld, "_is_present",
@@ -322,7 +322,7 @@ class TestRefreshActiveFeatures:
 
     def test_windows_matrix_refresh_is_skipped_before_pip(self, monkeypatch):
         # Matrix E2EE pulls python-olm, which has no native Windows wheel/build
-        # path. `hermes update` must not retry that doomed install every run.
+        # path. `ettok update` must not retry that doomed install every run.
         #
         # The subject here is the *consumer* — refresh_active_features honouring
         # the gate before pip — so we monkeypatch lazy_deps' own platform probe

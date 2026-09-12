@@ -500,7 +500,7 @@ class TestValidateCodexAutoCorrection:
 
 
 class TestValidateCodex900kVariants:
-    """`-900k` is a Hermes picker convention: valid variants come from the
+    """`-900k` is a Ettok picker convention: valid variants come from the
     catalog; ineligible aliases are hard-rejected BEFORE the hidden-slug
     soft-accept (#92797 review)."""
 
@@ -531,7 +531,7 @@ class TestValidateCodex900kVariants:
 # -- probe_api_models — Cloudflare UA mitigation --------------------------------
 
 class TestProbeApiModelsUserAgent:
-    """Probing custom /v1/models must send a Hermes User-Agent.
+    """Probing custom /v1/models must send a Ettok User-Agent.
 
     Some custom Claude proxies (e.g. ``packyapi.com``) sit behind Cloudflare with
     Browser Integrity Check enabled. The default ``Python-urllib/3.x`` signature
@@ -676,7 +676,7 @@ class TestValidateRequestedModelNousPortalRecommendations:
     other messaging-platform /model validation, since they all share
     validate_requested_model()) rejected models that are live Nous Portal
     recommendations (/api/nous/recommended-models) but not yet in the
-    hardcoded curated catalog -- even though `hermes chat` already accepts
+    hardcoded curated catalog -- even though `ettok chat` already accepts
     these via union_with_portal_free/paid_recommendations() at model-list
     build time. The per-message validation path now checks the same Portal
     feed as a fallback tier before rejecting, so Telegram/CLI agree.

@@ -1204,7 +1204,7 @@ class TestUtf16OverflowDetection:
 
         # The fix: stream consumer detects UTF-16 overflow using the adapter's
         # length function.  Without that, len() would return 2200 (under the
-        # limit) and Hermes would attempt a single over-limit Telegram send.
+        # limit) and Ettok would attempt a single over-limit Telegram send.
         sent_texts = [call.kwargs["content"] for call in adapter.send.call_args_list]
         assert len(sent_texts) == 2, (
             "UTF-16 overflow not detected — emoji text bypassed split path"

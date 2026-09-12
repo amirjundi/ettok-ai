@@ -1,6 +1,6 @@
 """Regression coverage for Windows updater self-locking native dependencies.
 
-External secret backends are useful during normal Hermes startup, but the
+External secret backends are useful during normal Ettok startup, but the
 updater must not load them before replacing packages in its own environment.
 On Windows, importing Bitwarden's ``cryptography`` dependency maps
 ``_rust.pyd`` into the updater process and prevents ``uv`` from replacing it.

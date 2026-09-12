@@ -54,7 +54,7 @@ def test_ambient_pool_source_does_not_count_as_explicit(tmp_path, monkeypatch):
 
 def test_vertex_adc_counts_as_explicit_when_config_present(tmp_path, monkeypatch):
     """A keyless Vertex provider is explicitly configured when the user pointed
-    Hermes at it (VERTEX_PROJECT_ID / vertex.project_id / VERTEX_CREDENTIALS_PATH),
+    Ettok at it (VERTEX_PROJECT_ID / vertex.project_id / VERTEX_CREDENTIALS_PATH),
     even when it is NOT the current provider — otherwise it silently vanishes
     from explicit-only pickers (desktop chat model menu) unless already selected."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes"))
@@ -64,21 +64,21 @@ def test_vertex_adc_counts_as_explicit_when_config_present(tmp_path, monkeypatch
 
     from hermes_cli.auth import is_provider_explicitly_configured
 
-    # vertex.project_id in config.yaml is a deliberate, Hermes-scoped signal.
+    # vertex.project_id in config.yaml is a deliberate, Ettok-scoped signal.
     _write_config(tmp_path, {
         "model": {"provider": "anthropic", "default": "claude-opus-4-8"},
         "vertex": {"project_id": "my-gcp-project"},
     })
     assert is_provider_explicitly_configured("vertex") is True
 
-    # No Hermes-scoped Vertex config at all → stays hidden.
+    # No Ettok-scoped Vertex config at all → stays hidden.
     _write_config(tmp_path, {"model": {"provider": "anthropic", "default": "claude-opus-4-8"}})
     assert is_provider_explicitly_configured("vertex") is False
 
 
 def test_vertex_ambient_google_creds_env_does_not_count_as_explicit(tmp_path, monkeypatch):
     """An ambient GOOGLE_APPLICATION_CREDENTIALS path (commonly set globally for
-    unrelated GCP work) must NOT mark Vertex explicit — only Hermes-scoped
+    unrelated GCP work) must NOT mark Vertex explicit — only Ettok-scoped
     signals do. Regression guard for the picker gate (PR review feedback)."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes"))
     monkeypatch.delenv("VERTEX_PROJECT_ID", raising=False)
@@ -260,7 +260,7 @@ def test_bedrock_access_key_without_secret_is_not_explicit(tmp_path, monkeypatch
 
 def test_bedrock_ambient_aws_profile_is_not_explicit(tmp_path, monkeypatch, _clean_aws_env):
     """AWS_PROFILE is ambient machine state (SSO / shared credentials file),
-    not an explicit Hermes provider choice — same principle as gh_cli-seeded
+    not an explicit Ettok provider choice — same principle as gh_cli-seeded
     Copilot pool entries (#56974)."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes"))
     (tmp_path / "hermes").mkdir(parents=True, exist_ok=True)

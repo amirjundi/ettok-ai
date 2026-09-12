@@ -832,7 +832,7 @@ class TestEscapeNativeToolArg:
     """Regression tests for _escape_native_tool_arg (Windows native-binary paths).
 
     Live failure (Windows, Aug 2026): search_files passed rg the MSYS form
-    (/c/Users/...) that _escape_shell_arg produces, but Hermes sets
+    (/c/Users/...) that _escape_shell_arg produces, but Ettok sets
     MSYS_NO_PATHCONV=1 / MSYS2_ARG_CONV_EXCL=* for its bash subprocesses,
     so nothing converted the path back for the native (winget) ripgrep
     binary — every search on a drive-letter path failed with

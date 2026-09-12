@@ -28,7 +28,7 @@ def test_check_node_requires_npm_alongside_node() -> None:
         "if command -v node &> /dev/null && command -v npm &> /dev/null \\" in text
     )
     # The "node found but npm missing" case has its own explicit branch that
-    # falls through to installing the Hermes-managed Node (which bundles npm).
+    # falls through to installing the Ettok-managed Node (which bundles npm).
     assert "node found but npm is not on PATH (stray node symlink?)" in text
 
 

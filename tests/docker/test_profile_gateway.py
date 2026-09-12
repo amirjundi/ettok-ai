@@ -90,7 +90,7 @@ def test_profile_create_then_gateway_start(
 ) -> None:
     start_container(built_image, container_name, cmd="sleep 120")
 
-    r = _sh(container_name, f"hermes profile create {PROFILE}")
+    r = _sh(container_name, f"ettok profile create {PROFILE}")
     assert r.returncode == 0, f"profile create failed: {r.stderr}"
 
     # Profile create's s6-register hook should have produced a service slot.

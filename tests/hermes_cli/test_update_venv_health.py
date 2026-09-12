@@ -1,6 +1,6 @@
 """Tests for the Windows half-updated-venv hardening (July 2026 incident).
 
-Covers three additions to ``hermes update``:
+Covers three additions to ``ettok update``:
 
 1. ``_venv_core_imports_healthy`` — the venv health probe that lets an
    "Already up to date" checkout still repair a broken dependency install.

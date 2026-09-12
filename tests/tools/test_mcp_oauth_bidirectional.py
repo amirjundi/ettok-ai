@@ -216,7 +216,7 @@ async def test_long_lived_resource_request_does_not_block_concurrent_post(
 
     MCP SDK 2.0.0 wraps its entire auth-flow generator in one lock.  Leaving
     the GET response pending then prevents a concurrent POST from even
-    acquiring its Bearer token.  Hermes narrows that lock around resource I/O
+    acquiring its Bearer token.  Ettok narrows that lock around resource I/O
     while retaining it for OAuth state transitions.
     """
     from tools.mcp_tool import sdk_httpx

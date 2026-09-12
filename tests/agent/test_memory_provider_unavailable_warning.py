@@ -21,7 +21,7 @@ def test_warns_once_and_dedupes(caplog):
     assert len(warnings) == 1, "should warn exactly once per provider (gateway dedup)"
     msg = warnings[0].getMessage()
     assert "hindsight" in msg
-    assert "hermes memory status" in msg
+    assert "ettok memory status" in msg
     assert ".env" in msg  # surfaces the systemd/gateway root cause
 
 

@@ -30,7 +30,7 @@ def test_no_args_starts_hermes(built_image: str) -> None:
 
 
 def test_chat_subcommand_passthrough(built_image: str) -> None:
-    """``docker run <image> chat --help`` should exec ``hermes chat --help``.
+    """``docker run <image> chat --help`` should exec ``ettok chat --help``.
 
     Uses ``--help`` so the call doesn't need an upstream model configured.
     """

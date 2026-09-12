@@ -3,7 +3,7 @@
 When a toolset is toggled ON via ``PUT /api/tools/toolsets/{name}`` and its
 provider carries a post_setup hook with a registered, UNSATISFIED
 install-state predicate (``_POST_SETUP_INSTALLED`` — today: cua-driver),
-the endpoint spawns the same background ``hermes tools post-setup <key>``
+the endpoint spawns the same background ``ettok tools post-setup <key>``
 action the interactive CLI flow runs. Without this, a GUI toggle "saves"
 but the tool never appears in the schema because its check_fn can't find
 the binary.

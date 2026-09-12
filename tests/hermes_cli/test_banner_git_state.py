@@ -46,7 +46,7 @@ def test_check_via_local_git_ssh_fastpath_ahead_not_behind(tmp_path):
 
     A carried local commit means tip SHAs differ, but the fresh upstream tip
     is an ancestor of HEAD — that is "ahead", and reporting it as behind
-    nudges the user into `hermes update`, which can wipe the carried work.
+    nudges the user into `ettok update`, which can wipe the carried work.
     """
     from unittest.mock import MagicMock
 

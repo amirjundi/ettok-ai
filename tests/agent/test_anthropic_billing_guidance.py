@@ -90,7 +90,7 @@ def test_unverified_guidance_warns_about_the_cached_exhaustion_replay():
     is replayed without issuing a request — so a real fix looks like it didn't
     work. Point at the reset before the user concludes that."""
     msg = _anthropic_msg(unverified=True)
-    assert "hermes auth reset anthropic" in msg
+    assert "ettok auth reset anthropic" in msg
     assert "without contacting the API" in msg
 
 
@@ -112,7 +112,7 @@ def test_confirmed_guidance_stays_assertive_without_the_caveat():
     assert "may be exhausted" not in first_line
     lowered = msg.lower()
     assert "content filter" not in lowered
-    assert "hermes auth reset" not in lowered
+    assert "ettok auth reset" not in lowered
 
 
 def test_content_filter_caveat_is_anthropic_only():
@@ -126,4 +126,4 @@ def test_content_filter_caveat_is_anthropic_only():
         unverified=True,
     ).lower()
     assert "content filter" not in msg
-    assert "hermes auth reset" not in msg
+    assert "ettok auth reset" not in msg

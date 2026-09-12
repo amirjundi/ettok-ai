@@ -1,9 +1,9 @@
-"""`hermes update` must self-heal the ``hermes-acp`` launcher.
+"""`ettok update` must self-heal the ``hermes-acp`` launcher.
 
 ACP hosts (Zed, JetBrains, Buzz Desktop) resolve the agent by the
 ``hermes-acp`` command name on the login-shell PATH. Fresh installs get the
 launcher from ``scripts/install.sh``; existing installs get it from
-``_ensure_acp_launcher()`` during ``hermes update``.
+``_ensure_acp_launcher()`` during ``ettok update``.
 """
 
 import os

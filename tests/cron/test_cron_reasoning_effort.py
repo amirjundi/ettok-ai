@@ -4,7 +4,7 @@ A cron job may pin its own reasoning effort, independent of global config.
 Contract under test:
 
 - Job store (cron/jobs.py): the field is validated at the storage choke
-  point against the canonical Hermes effort grammar (parse_reasoning_effort
+  point against the canonical Ettok effort grammar (parse_reasoning_effort
   in hermes_constants — the SAME parser every other effort surface uses).
   Garbage never persists; absent field keeps the job record byte-identical
   to pre-feature behavior. Capability clamping (xhigh on a model that caps
@@ -171,7 +171,7 @@ class TestCronjobToolReasoningEffort:
     """The model tool READS the field (list surfacing) but must never WRITE
     it: models don't make model-configuration decisions (standing policy —
     the only exception is user-defined profile selection). The pin is set
-    via `hermes cron create/edit --reasoning-effort` only."""
+    via `ettok cron create/edit --reasoning-effort` only."""
 
     def test_format_job_surfaces_pin_when_set(self, tmp_cron_dir):
         import json

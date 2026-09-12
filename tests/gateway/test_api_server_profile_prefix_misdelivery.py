@@ -4,7 +4,7 @@ The prefix is an address: the caller is naming WHICH agent the request is
 for. The old behavior ignored it whenever ``gateway.multiplex_profiles`` was
 off and answered as the process's own (single) profile — so a request
 explicitly addressed to one agent was silently answered by a different one.
-Observed live (Aug 2026): ``hermes peer dm mini/researcher`` was answered by
+Observed live (Aug 2026): ``ettok peer dm mini/researcher`` was answered by
 the mini's *default* agent, with no error on either side, because the mini
 runs one LaunchDaemon per profile and only the default daemon hosted an
 api_server.

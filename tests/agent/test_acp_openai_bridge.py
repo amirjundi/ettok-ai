@@ -1,4 +1,4 @@
-"""The ACP text bridge is what makes Hermes' own tools reachable on an ACP provider.
+"""The ACP text bridge is what makes Ettok' own tools reachable on an ACP provider.
 
 ACP has no OpenAI ``tools``/``tool_calls`` channel, so ``memory``,
 ``skill_manage``, ``todo`` and friends only work if the schemas travel into the
@@ -46,7 +46,7 @@ def test_specs_are_flattened_and_malformed_entries_skipped():
 
 def test_allowlist_forwards_only_the_named_tools():
     """An agent-as-provider runs its own read/edit tools; re-offering them would
-    make Hermes re-run finished work, so those clients forward an allowlist."""
+    make Ettok re-run finished work, so those clients forward an allowlist."""
     specs = tool_specs_from_openai_tools(_TOOLS, allowlist=["memory"])
     assert [s["name"] for s in specs] == ["memory"]
     # No allowlist at all means "forward everything" — not "forward nothing".
@@ -168,7 +168,7 @@ def test_stream_chunks_carry_the_delta_then_the_usage():
 
 
 def test_response_level_extras_survive_the_stream_conversion():
-    """Hermes reads provider extras off the returned object; a plain list would
+    """Ettok reads provider extras off the returned object; a plain list would
     drop them and silently disable the projection on stream=True."""
     chunks = completion_to_stream_chunks(
         _completion(hermes_projected_messages=[{"role": "tool", "content": "x"}])

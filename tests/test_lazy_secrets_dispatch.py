@@ -1,10 +1,10 @@
 """End-to-end tests for lazy cryptography loading.
 
 These tests invoke the real CLI paths as subprocesses to verify:
-1. `hermes secrets bitwarden setup --help` works (dispatch path)
-2. `hermes update --check` works (update path)
-3. `hermes secrets bitwarden disable` works (handler execution)
-4. `hermes secrets onepassword status` works (lazy backend loads on demand)
+1. `ettok secrets bitwarden setup --help` works (dispatch path)
+2. `ettok update --check` works (update path)
+3. `ettok secrets bitwarden disable` works (handler execution)
+4. `ettok secrets onepassword status` works (lazy backend loads on demand)
 
 Unlike test_lazy_secrets_import.py (which inspects sys.modules), these
 run the actual commands and verify exit codes — the exact paths the
@@ -26,7 +26,7 @@ def _run_hermes(args: list[str], timeout: int = 30) -> subprocess.CompletedProce
     The child runs with all git remote URLs rewritten to an unreachable
     local path (GIT_CONFIG_* env overrides). These tests assert the
     lazy-crypto / no-self-lock invariants of the dispatch path, NOT update
-    connectivity — but ``hermes update --check`` really does ``git fetch``
+    connectivity — but ``ettok update --check`` really does ``git fetch``
     against github.com when run bare. Under remote throttling that fetch
     can exceed the subprocess timeout and TimeoutExpired the test (exactly
     what happened on CI during the 2026-08-17 GitHub incident: both update
@@ -63,7 +63,7 @@ class TestSecretsDispatchE2E:
     """End-to-end secrets dispatch — the path that must not self-lock."""
 
     def test_bitwarden_setup_help(self) -> None:
-        """`hermes secrets bitwarden setup --help` must exit 0 and print usage.
+        """`ettok secrets bitwarden setup --help` must exit 0 and print usage.
 
         This is the exact path that triggered the #86781 self-lock loop on
         Windows: setup/parser nested under lazy-loaded backend.
@@ -77,7 +77,7 @@ class TestSecretsDispatchE2E:
         assert "usage" in result.stdout.lower()
 
     def test_bitwarden_status(self) -> None:
-        """`hermes secrets bitwarden status` must exit 0 (runs lazy backend)."""
+        """`ettok secrets bitwarden status` must exit 0 (runs lazy backend)."""
         result = _run_hermes(["secrets", "bitwarden", "status"])
         # status may return non-zero if not configured, but must NOT crash
         # with import errors, recursion, or missing subcommand
@@ -91,7 +91,7 @@ class TestSecretsDispatchE2E:
         assert "cannot import name" not in result.stderr
 
     def test_bitwarden_disable(self) -> None:
-        """`hermes secrets bitwarden disable` must exit 0."""
+        """`ettok secrets bitwarden disable` must exit 0."""
         result = _run_hermes(["secrets", "bitwarden", "disable"])
         assert result.returncode == 0, (
             f"bitwarden disable failed:\n"
@@ -100,7 +100,7 @@ class TestSecretsDispatchE2E:
         )
 
     def test_onepassword_status(self) -> None:
-        """`hermes secrets onepassword status` must exit 0 (1Password lazy backend)."""
+        """`ettok secrets onepassword status` must exit 0 (1Password lazy backend)."""
         result = _run_hermes(["secrets", "onepassword", "status"])
         assert result.returncode in (0, 1), (
             f"onepassword status crashed:\n"
@@ -110,7 +110,7 @@ class TestSecretsDispatchE2E:
         assert "ImportError" not in result.stderr
 
     def test_onepassword_setup_help(self) -> None:
-        """`hermes secrets onepassword setup --help` must exit 0."""
+        """`ettok secrets onepassword setup --help` must exit 0."""
         result = _run_hermes(["secrets", "onepassword", "setup", "--help"])
         assert result.returncode in (0, 2), (
             f"onepassword setup --help failed:\n"
@@ -123,14 +123,14 @@ class TestSecretsDispatchE2E:
 class TestUpdatePathE2E:
     """Update path — must not load cryptography.
 
-    These tests invoke the real `hermes update --check` path as a subprocess.
+    These tests invoke the real `ettok update --check` path as a subprocess.
     The conftest.py live-system guard blocks this because the command string
     contains "update"; we bypass with the pytest mark.
     """
 
     @pytest.mark.live_system_guard_bypass
     def test_update_check_clean(self) -> None:
-        """`hermes update --check` must not load cryptography._rust."""
+        """`ettok update --check` must not load cryptography._rust."""
         result = _run_hermes(["update", "--check"])
         assert result.returncode in (0, 1, 2), (
             f"update --check crashed:\n"

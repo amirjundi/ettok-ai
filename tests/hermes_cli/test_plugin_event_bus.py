@@ -10,7 +10,7 @@ Covers:
   - Owner unload / generation reset cancel zombie callbacks
   - Recursion cap: mutually-emitting plugins terminate + warn
   - Manifest emits/listens parsed as optional advisory fields
-  - `hermes plugins show` output includes emits/listens
+  - `ettok plugins show` output includes emits/listens
 """
 
 from __future__ import annotations

@@ -29,7 +29,7 @@ def test_parentless_seed_survives_a_restart_and_hides_its_runbook(monkeypatch, t
             "cols": 96, "source": "desktop", "title": "Welcome to Hermes",
             "messages": [
                 {"role": "user", "content": "Private setup runbook", "display_kind": "hidden"},
-                {"role": "assistant", "content": "Welcome to Hermes"},
+                {"role": "assistant", "content": "Welcome to Ettok"},
                 # Only "hidden" is accepted from the wire; other kinds are stamped by the gateway itself.
                 {"role": "user", "content": "Second question", "display_kind": "steer"},
             ]})
@@ -40,9 +40,9 @@ def test_parentless_seed_survives_a_restart_and_hides_its_runbook(monkeypatch, t
         live = server.handle_request({"id": "live", "method": "session.resume", "params": {"session_id": key, "cols": 96}})["result"]
         assert (live["message_count"], len(live["messages"])) == (2, 2)  # the reuse-live path counts the wire too
 
-        assert db.get_session(key)["title"] == "Welcome to Hermes"
+        assert db.get_session(key)["title"] == "Welcome to Ettok"
         rows = db.get_messages_as_conversation(key)
-        assert [r["content"] for r in rows] == ["Private setup runbook", "Welcome to Hermes", "Second question"]
+        assert [r["content"] for r in rows] == ["Private setup runbook", "Welcome to Ettok", "Second question"]
         assert rows[0]["display_kind"] == "hidden"
         assert rows[2].get("display_kind") is None
         listed = server.handle_request({"id": "list", "method": "session.list", "params": {}})["result"]["sessions"]

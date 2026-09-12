@@ -90,7 +90,7 @@ def test_every_state_carries_a_clock(progress):
         ("running", ""),
         ("running", "Installing the new app"),
         ("done", ""),
-        ("manual", "Reopen Hermes to finish."),
+        ("manual", "Reopen Ettok to finish."),
         ("error", "Update failed."),
     ]:
         progress.publish(state, message)
@@ -112,7 +112,7 @@ def test_unreadable_status_still_serves_a_running_state(progress):
 
 # ── posix.sh: the stages it publishes at its own gates ─────────────────────
 
-# Stands in for `hermes update`, and reports the stage that was on screen
+# Stands in for `ettok update`, and reports the stage that was on screen
 # while it ran -- the update child is the only thing that can observe the
 # window's state at the exact moment of the longest wait in the hand-off.
 FAKE_HERMES = """#!/bin/bash
@@ -178,7 +178,7 @@ def _run_handoff(tmp_path, exits: dict[int, int]) -> list[dict]:
 
 @requires_posix_handoff
 def test_update_gate_publishes_its_stage_before_running(tmp_path):
-    """`hermes update` is the longest wait in the hand-off and the one the
+    """`ettok update` is the longest wait in the hand-off and the one the
     Discord report sat through; the window must name it while it happens."""
     stages = _run_handoff(tmp_path, {1: 0})
 

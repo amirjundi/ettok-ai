@@ -147,7 +147,7 @@ class TestProfileCompletion:
 
 
     def test_bash_profile_actions_complete_profile_names(self):
-        """After 'hermes profile use', complete with profile names."""
+        """After 'ettok profile use', complete with profile names."""
         out = generate_bash(_make_parser())
         # The profile case should have _hermes_profiles for name-taking actions
         lines = out.split("\n")

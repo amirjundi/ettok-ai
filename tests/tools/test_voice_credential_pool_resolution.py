@@ -1,7 +1,7 @@
 """Tests for ``resolve_provider_secret`` — the single owner of STT/TTS
 provider key resolution (#68003).
 
-Keys added via ``hermes auth add <provider>`` live in the credential pool /
+Keys added via ``ettok auth add <provider>`` live in the credential pool /
 auth store and used to be invisible to the voice tools, which only read
 ``os.environ`` + ``~/.hermes/.env`` via ``get_env_value``. The shared
 resolver falls back to the pool; env still wins when set; an explicit

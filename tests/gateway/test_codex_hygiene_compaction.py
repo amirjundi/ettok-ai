@@ -12,7 +12,7 @@ history and each turn submits only the new user message), so:
   ``thread/compact/start`` (asserted here at the compact_thread RPC-stub
   boundary) and keeps that agent cached;
 * ``compression.codex_app_server_auto`` semantics hold: only ``hermes``
-  lets Hermes' threshold start a compaction; ``native``/``off`` skip
+  lets Ettok' threshold start a compaction; ``native``/``off`` skip
   cleanly, and no mode ever runs the local transcript compressor.
 """
 
@@ -240,7 +240,7 @@ def test_force_compacts_thread_never_local_fallback(mode):
 
 @pytest.mark.parametrize("mode", ["native", "off"])
 def test_force_without_live_thread_does_not_run_local_compressor(mode):
-    # The #73715 branch let force=True fall through to the local Hermes
+    # The #73715 branch let force=True fall through to the local Ettok
     # compressor in native/off when no thread existed. That is wrong on this
     # runtime in every mode: rewriting the mirror cannot shrink the thread.
     agent = LiveCodexAgent(mode=mode, session=None)

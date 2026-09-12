@@ -1,10 +1,10 @@
 """Host-declared conversation scope on the affinity-key path (issue #96811).
 
 A host that mints one physical ``session_id`` per RESPONSE re-keys every
-conversation-affinity hint Hermes sends — ``prompt_cache_key`` on both
+conversation-affinity hint Ettok sends — ``prompt_cache_key`` on both
 OpenAI-wire transports, the OpenRouter/Nous sticky ``session_id``, and xAI's
 ``x-grok-conv-id`` — so the conversation never lands back on the routing
-bucket it warmed. Hermes cannot infer the logical conversation from the id's
+bucket it warmed. Ettok cannot infer the logical conversation from the id's
 syntax (#79017's failure class), but it does not have to: the host declares
 it through ``gateway_session_key`` (the ``X-Hermes-Session-Key`` /
 ``build_session_key`` per-chat key).
@@ -102,7 +102,7 @@ class TestDeclaredConversationScope:
     def test_scope_never_carries_the_raw_key(self, db):
         """The scope leaves the process verbatim (sticky id, x-grok-conv-id).
 
-        A session id is a Hermes-internal token; a session KEY embeds the
+        A session id is a Ettok-internal token; a session KEY embeds the
         platform, chat and user identifiers, so it is hashed first.
         """
         db.create_session(RUN_1, source="api_server")

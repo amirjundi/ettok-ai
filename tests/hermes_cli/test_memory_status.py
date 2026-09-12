@@ -1,4 +1,4 @@
-"""Tests for `hermes memory status` CLI command.
+"""Tests for `ettok memory status` CLI command.
 
 Covers:
 - Status output shows config-aware indicators instead of hardcoded 'always active'

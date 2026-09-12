@@ -389,15 +389,15 @@ class TestAuxiliaryRuntimeThreading:
 class TestPerResponseRunNonceIsolation:
     """Issue #96570 — hosts that mint one physical session per RESPONSE.
 
-    Hermes Studio group chat builds ``gc_run_<room>_<profile>_<name>_<uuid4hex>``
+    Ettok Studio group chat builds ``gc_run_<room>_<profile>_<name>_<uuid4hex>``
     for every reply and destroys it when the reply completes
-    (``groupRuntimeSessionId``), so every conversation-affinity hint Hermes
+    (``groupRuntimeSessionId``), so every conversation-affinity hint Ettok
     derives from that id is re-keyed on every reply. What is demonstrated here
     is the routing/affinity mechanism moving per response; no provider cache
     telemetry or billing outcome is measured or claimed.
 
     The normalizer cannot repair that from the id alone: a physical session id
-    is an identity, and Hermes' public session API lets a client choose one
+    is an identity, and Ettok' public session API lets a client choose one
     freely (``POST /v1/sessions`` honors ``body["id"]``/``body["session_id"]``).
     These tests pin the isolation invariant that any future scope rule has to
     keep — collapsing a trailing token because it *looks* like per-run noise
@@ -482,7 +482,7 @@ class TestPerResponseRunNonceIsolation:
         The Studio bridge creates the row with ``create_session(id, source,
         model)`` — no ``parent_session_id`` — so ``resolve_prompt_cache_scope``
         returns the physical id. This is the invariant, not a defect record:
-        an owner Hermes was never told about must never be guessed. #96811
+        an owner Ettok was never told about must never be guessed. #96811
         closes the gap by having the host declare the logical conversation (a
         stable session id, or an explicit key); rows that still declare
         nothing keep resolving exactly like this.

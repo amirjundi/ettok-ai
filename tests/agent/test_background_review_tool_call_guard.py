@@ -2,7 +2,7 @@
 
 The review fork's whole job is to emit ``memory`` / ``skill_manage`` tool calls,
 and by default it inherits the parent's live runtime. When the parent provider IS
-an autonomous agent reached through a client shim that cannot carry Hermes tool
+an autonomous agent reached through a client shim that cannot carry Ettok tool
 calls back, that fork is a guaranteed no-op — one that still pays for a full
 agent spawn (a whole CLI process, sometimes a JVM) on every review cadence.
 

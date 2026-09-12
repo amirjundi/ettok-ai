@@ -1,8 +1,8 @@
 """The messaging gateway is a boot owner of the Nous free tier.
 
 Rung 5 made every demand-time site a read (provider resolution, ``/login``, the connector token), so a
-process that never runs the bootstrap can never have an identity. `cmd_chat` and `hermes serve` run it;
-this file pins that `hermes gateway run` does too, and does it BEFORE any adapter connects, so a fast
+process that never runs the bootstrap can never have an identity. `cmd_chat` and `ettok serve` run it;
+this file pins that `ettok gateway run` does too, and does it BEFORE any adapter connects, so a fast
 first DM cannot arrive with nothing to resolve.
 """
 

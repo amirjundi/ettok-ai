@@ -1,8 +1,8 @@
 """Tests for subprocess env sanitization in LocalEnvironment.
 
-Verifies that Hermes-managed provider, tool, and gateway env vars are
+Verifies that Ettok-managed provider, tool, and gateway env vars are
 stripped from subprocess environments so external CLIs are not silently
-misrouted or handed Hermes secrets.
+misrouted or handed Ettok secrets.
 
 See: https://github.com/NousResearch/hermes-agent/issues/1002
 See: https://github.com/NousResearch/hermes-agent/issues/1264
@@ -103,14 +103,14 @@ class TestProviderEnvBlocklist:
             assert var not in result_env, f"{var} leaked into subprocess env"
 
     def test_bedrock_bearer_token_is_stripped(self):
-        """The Bedrock-specific bearer token is a Hermes inference secret
+        """The Bedrock-specific bearer token is a Ettok inference secret
         (analogous to OPENAI_API_KEY) and must not leak into subprocesses.
 
         Regression for #32314: AWS_BEARER_TOKEN_BEDROCK leaked into terminal /
         execute_code children because the ``bedrock`` ProviderConfig declares
         ``api_key_env_vars=()`` (auth_type="aws_sdk") and the blocklist builder
         only consulted that field. The reporter caught it when ``opencode
-        models`` run inside a Hermes terminal enumerated the entire Bedrock
+        models`` run inside a Ettok terminal enumerated the entire Bedrock
         catalog off the leaked bearer token.
         """
         result_env = _run_with_env(extra_os_env={
@@ -156,7 +156,7 @@ class TestProviderEnvBlocklist:
         unconditionally — and (b) be unrecoverable, because env_passthrough.py
         refuses to re-allow anything in _HERMES_PROVIDER_ENV_BLOCKLIST
         (GHSA-rhgp-j443-p4rf). Only the Bedrock inference bearer token is
-        Hermes-managed; the rest belongs to the user.
+        Ettok-managed; the rest belongs to the user.
         """
         general_chain = {
             "AWS_ACCESS_KEY_ID": "AKIAIOSFODNN7EXAMPLE",
@@ -238,7 +238,7 @@ class TestProviderEnvBlocklist:
         assert "PATH" in result_env
 
     def test_bare_hermes_resolves_from_sanitized_subprocess_path(self):
-        """Cron children can resolve Hermes even when the gateway PATH cannot."""
+        """Cron children can resolve Ettok even when the gateway PATH cannot."""
         from tools.environments.local import _sanitize_subprocess_env
 
         with patch(
@@ -556,9 +556,9 @@ class TestActiveVenvMarkerStripping:
     VIRTUAL_ENV (and possibly CONDA_PREFIX). If those leak into commands the
     agent runs against ANOTHER Python project, ``uv``/``poetry`` treat the
     inherited value as the active environment and build that project's deps
-    into the Hermes venv path instead of the project's own ``.venv`` —
-    silently clobbering the Hermes environment (and, when the other project
-    pins a different Python, breaking the gateway outright). The Hermes venv
+    into the Ettok venv path instead of the project's own ``.venv`` —
+    silently clobbering the Ettok environment (and, when the other project
+    pins a different Python, breaking the gateway outright). The Ettok venv
     stays reachable via PATH, so stripping the markers is safe.
     """
 
@@ -632,26 +632,26 @@ def _physical_repo_root(tmp_path: Path) -> Path:
 
 
 class TestPythonpathSelectiveStrip:
-    """PYTHONPATH Hermes-owned entry stripping (#74817).
+    """PYTHONPATH Ettok-owned entry stripping (#74817).
 
     The Desktop Electron app injects the Hermes repo root and the Hermes
     venv's site-packages (Python 3.11) into PYTHONPATH.  When this leaks
     into subprocesses running a different Python (e.g. 3.13), 3.11 C
     extensions appear on sys.path and crash with ImportError.
     ``_strip_hermes_owned_pythonpath`` surgically removes only the
-    entries Hermes itself owns (repo root, own venv site-packages),
+    entries Ettok itself owns (repo root, own venv site-packages),
     preserving user paths — including user paths whose names merely
     contain another Python version.
     """
 
     def test_owned_entries_stripped_matrix(self):
-        """Exact Hermes-owned entries are removed; everything else survives
+        """Exact Ettok-owned entries are removed; everything else survives
         verbatim (ordering, duplicates, empty components).
 
         Covers: the running venv's site-packages, the repo root (computed
         independently via parents[2] so an off-by-one in _hermes_repo_root
-        cannot silently pass), duplicate Hermes entries, all-owned input
-        (PYTHONPATH key removed), and mixed user/Hermes ordering with an
+        cannot silently pass), duplicate Ettok entries, all-owned input
+        (PYTHONPATH key removed), and mixed user/Ettok ordering with an
         empty component preserved.
         """
         from tools.environments.local_pythonpath import _strip_hermes_owned_pythonpath
@@ -685,7 +685,7 @@ class TestPythonpathSelectiveStrip:
         "",
     ])
     def test_non_owned_entries_preserved(self, user_pp):
-        """Anything not proven Hermes-owned is preserved byte-for-byte.
+        """Anything not proven Ettok-owned is preserved byte-for-byte.
 
         One invariant, one matrix: ordinary user paths, Nix store paths,
         other-major/minor-version site-packages, paths merely containing a
@@ -701,7 +701,7 @@ class TestPythonpathSelectiveStrip:
 
     def test_non_owned_runtime_shaped_entries_preserved(self):
         """Runtime-derived user spellings are preserved: site-packages for a
-        different interpreter version, a descendant of the Hermes venv
+        different interpreter version, a descendant of the Ettok venv
         site-packages, and direct/deeper children of the repo root.  The
         repo root is computed independently (parents[2] of this file) so an
         off-by-one in _hermes_repo_root cannot silently pass; no launcher
@@ -730,16 +730,16 @@ class TestPythonpathSelectiveStrip:
             assert env["PYTHONPATH"] == user_pp
 
     def test_windows_backslash_paths(self):
-        """Windows-style backslash paths are handled for Hermes-owned entries.
+        """Windows-style backslash paths are handled for Ettok-owned entries.
 
         On Windows, os.pathsep is ';'.  We mock it so the test runs
         correctly on POSIX CI.  On a POSIX host a backslash path is a
         single path component, so ``Path`` cannot identify it as
-        Hermes-owned — the critical invariant is that user Windows paths
+        Ettok-owned — the critical invariant is that user Windows paths
         (including site-packages paths for another Python version) are
         never destroyed.  On a real Windows host, Path splits on
-        backslashes and Hermes venv site-packages entries are stripped
-        by the same Hermes-owned check (covered by the Windows-only test
+        backslashes and Ettok venv site-packages entries are stripped
+        by the same Ettok-owned check (covered by the Windows-only test
         below).
         """
         from tools.environments.local_pythonpath import _strip_hermes_owned_pythonpath
@@ -757,14 +757,14 @@ class TestPythonpathSelectiveStrip:
         assert "PYTHONPATH" in env
         entries = env["PYTHONPATH"].split(";")
         # Both survive on POSIX: user paths must always be preserved, and
-        # the Hermes-owned check cannot match a backslash path here.
+        # the Ettok-owned check cannot match a backslash path here.
         assert hermes_win in entries
         assert user_win in entries
 
     @pytest.mark.windows_only
     def test_windows_hermes_owned_paths_stripped(self):
-        """On Windows, a Hermes venv site-packages entry written with
-        backslashes is stripped by the same Hermes-owned check, while a
+        """On Windows, a Ettok venv site-packages entry written with
+        backslashes is stripped by the same Ettok-owned check, while a
         user Windows path is preserved.  Windows-only: POSIX ``Path`` does
         not split on backslashes, so this cannot be meaningfully simulated
         on a POSIX host."""
@@ -823,9 +823,9 @@ class TestPythonpathSelectiveStrip:
     def test_base_python_sanitizer_uses_validated_separate_runtime_venv(self, tmp_path, monkeypatch):
         """A base interpreter strips the exact Windows runtime site-packages.
 
-        This deliberately uses a synthetic Hermes venv separate from the test
+        This deliberately uses a synthetic Ettok venv separate from the test
         runner: sys.prefix represents base Python, while validated VIRTUAL_ENV
-        identifies ``<repo>/venv`` as the Hermes runtime producer contract.
+        identifies ``<repo>/venv`` as the Ettok runtime producer contract.
         """
         import tools.environments.local as local
         from tools.environments import local_pythonpath
@@ -895,7 +895,7 @@ class TestPythonpathSelectiveStrip:
     ])
     def test_builders_strip_hermes_venv_pythonpath(self, builder):
         """Every subprocess env builder applies the same sanitation contract:
-        Hermes venv site-packages is stripped, user entries survive.
+        Ettok venv site-packages is stripped, user entries survive.
         """
         from tools.environments import local as local_mod
 
@@ -918,7 +918,7 @@ class TestPythonpathSelectiveStrip:
         assert "/home/user/my-lib" in entries
 
     def test_scrub_child_env_strips_hermes_venv_pythonpath(self):
-        """execute_code's _scrub_child_env path: after scrubbing, Hermes venv
+        """execute_code's _scrub_child_env path: after scrubbing, Ettok venv
         site-packages entries should be stripped when
         _strip_hermes_owned_pythonpath is applied (as the spawn path does),
         while user entries (even for another Python version) are preserved.
@@ -948,12 +948,12 @@ class TestPythonpathSelectiveStrip:
     def test_execute_code_composition_strips_inherited_hermes_entries(self, same_env):
         """Integration: execute_code's real spawn path composes a clean PYTHONPATH.
 
-        Seeds a contaminated inherited PYTHONPATH (Hermes repo root + Hermes
+        Seeds a contaminated inherited PYTHONPATH (Ettok repo root + Ettok
         venv site-packages + user entries) through os.environ and drives
         execute_code all the way to Popen.  Proves the #84500 conditional
         composition and the #82581 selective strip compose correctly:
 
-        * inherited Hermes venv site-packages never survive into the sandbox;
+        * inherited Ettok venv site-packages never survive into the sandbox;
         * the staging tmpdir stays the first entry;
         * the repo root is deliberately re-added exactly once for a same-env
           child (the single occurrence proves the inherited copy was stripped
@@ -1014,7 +1014,7 @@ class TestPythonpathSelectiveStrip:
         assert norm_parts[0] == norm_staging, \
             "staging tmpdir must be the first PYTHONPATH entry"
         assert norm_venv not in norm_parts, \
-            "inherited Hermes venv site-packages must be stripped"
+            "inherited Ettok venv site-packages must be stripped"
         assert norm_user_a in norm_parts and norm_user_b in norm_parts, \
             "user PYTHONPATH entries must survive"
         assert norm_parts.index(norm_user_a) > norm_parts.index(norm_staging), \
@@ -1285,11 +1285,11 @@ class TestPythonpathSelectiveStrip:
 
 
 class TestPythonhomeSanitized:
-    """PYTHONHOME must not leak from the Hermes runtime into subprocesses.
+    """PYTHONHOME must not leak from the Ettok runtime into subprocesses.
 
     The gateway inherits/sets PYTHONHOME in its process environment; a child
     interpreter (system Python, another venv, cron no_agent scripts) that
-    inherits it redirects its stdlib search to the Hermes venv and crashes
+    inherits it redirects its stdlib search to the Ettok venv and crashes
     with version-mismatch errors before importing anything (#75018).
     """
 
@@ -1412,7 +1412,7 @@ class TestBlocklistCoverage:
         must appear in the blocklist — ensures no drift.
 
         CLAUDE_CODE_OAUTH_TOKEN is the one deliberate exemption: it is owned
-        by the user's Claude Code install, not Hermes (#55878).
+        by the user's Claude Code install, not Ettok (#55878).
         """
         from hermes_cli.auth import PROVIDER_REGISTRY
 
@@ -1431,7 +1431,7 @@ class TestBlocklistCoverage:
                 )
 
     def test_bedrock_bearer_token_is_in_blocklist(self):
-        """auth_type='aws_sdk' providers contribute their Hermes-managed
+        """auth_type='aws_sdk' providers contribute their Ettok-managed
         inference token (the Bedrock bearer) to the blocklist, keyed off
         auth_type so any future SDK-cred provider is covered automatically."""
         assert "AWS_BEARER_TOKEN_BEDROCK" in _HERMES_PROVIDER_ENV_BLOCKLIST
@@ -1439,7 +1439,7 @@ class TestBlocklistCoverage:
     def test_general_aws_chain_not_in_blocklist(self):
         """The general AWS credential chain must NOT be in the blocklist —
         no-regression guard for #32314. These belong to the user's trusted
-        operator shell (SECURITY.md §3.2), not to Hermes, and blocklisting
+        operator shell (SECURITY.md §3.2), not to Ettok, and blocklisting
         them would be unrecoverable via env_passthrough (GHSA-rhgp-j443-p4rf).
         """
         general_chain = {
@@ -1468,7 +1468,7 @@ class TestBlocklistCoverage:
 
     def test_claude_code_oauth_token_is_inheritable(self):
         """CLAUDE_CODE_OAUTH_TOKEN is owned by the user's Claude Code install
-        (subscription OAuth), not a Hermes inference credential. Stripping it
+        (subscription OAuth), not a Ettok inference credential. Stripping it
         made agent-spawned ``claude`` fall through to the shared Keychain /
         ~/.claude credential store and clobber the user's interactive login
         on auth failure (#55878). It must stay inheritable."""
@@ -1681,7 +1681,7 @@ class TestHermesBinDirOnPath:
 
 
 class TestHermesInternalDynamicSecrets:
-    """Dynamically-named Hermes secrets injected at gateway/CLI startup must
+    """Dynamically-named Ettok secrets injected at gateway/CLI startup must
     not leak into terminal subprocesses.
 
     The static ``_HERMES_PROVIDER_ENV_BLOCKLIST`` is name-based and derived

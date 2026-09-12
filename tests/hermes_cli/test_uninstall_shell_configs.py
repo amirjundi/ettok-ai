@@ -1,6 +1,6 @@
 """Tests for ``remove_path_from_shell_configs`` — the uninstaller's shell-rc rewrite.
 
-This rewrites files Hermes does not own (``~/.bashrc``, ``~/.zshrc``, ...) and
+This rewrites files Ettok does not own (``~/.bashrc``, ``~/.zshrc``, ...) and
 takes no backup of them, so the rewrite has to be atomic: a bare
 ``write_text()`` truncates the rc file before the new content lands, and the
 caller wraps everything in ``except Exception: log_warn(...)``, so a partial

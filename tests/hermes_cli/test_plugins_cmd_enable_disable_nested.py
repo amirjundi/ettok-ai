@@ -2,7 +2,7 @@
 
 Companion to test_plugins_cmd_category_discovery.py. That file covers the
 *listing* side of nested category plugins (issue #41066). These tests cover
-the *mutation* side: `hermes plugins enable/disable` must resolve a bare name
+the *mutation* side: `ettok plugins enable/disable` must resolve a bare name
 OR a full path-derived key (e.g. `observability/trace_sink`) to the canonical
 registry key and write THAT — the same string PluginManager gates on — so a
 nested bundled plugin can actually be toggled.
@@ -198,7 +198,7 @@ class TestEnableToolOverrideConsent:
 
 
 class TestCompositeMenuWritesCanonicalKey:
-    """#40190 follow-up: the interactive `hermes plugins` menu must persist
+    """#40190 follow-up: the interactive `ettok plugins` menu must persist
     the CANONICAL KEY (``web/firecrawl``), never the bare manifest name
     (``web-firecrawl``), so its disabled-list entries stay aligned with what
     ``cmd_enable`` clears and what PluginManager gates on. Writing the bare

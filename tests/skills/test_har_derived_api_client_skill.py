@@ -174,7 +174,7 @@ def test_cdp_capture_is_valid_and_attaches_not_launches():
 
 
 def test_skill_documents_all_browser_pathways(skill_text: str):
-    # The skill must route every Hermes browser backend to the right capturer.
+    # The skill must route every Ettok browser backend to the right capturer.
     for token in ("Browserbase", "Browser-Use", "Firecrawl", "browser connect",
                   "har_capture_cdp.py", "connect_over_cdp"):
         assert token in skill_text, f"pathway coverage missing: {token}"

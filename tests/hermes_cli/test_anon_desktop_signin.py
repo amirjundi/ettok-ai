@@ -3,7 +3,7 @@
 ``POST /api/providers/oauth/nous/start`` registers the connector transfer with the account service
 and hands the renderer the transfer's code and consent URL; the poller waits for the transfer, then
 takes the token grant, persists the account, and settles the default model. Driven through the real
-FastAPI routes against a fake account service (the same fake ``hermes auth upgrade`` is tested with).
+FastAPI routes against a fake account service (the same fake ``ettok auth upgrade`` is tested with).
 """
 
 from __future__ import annotations

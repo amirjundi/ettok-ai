@@ -362,7 +362,7 @@ class TestRealProfileCdpLaunch:
 
     @pytest.mark.parametrize("live_browser_id", ["/devtools/browser/x", "/devtools/browser/other"])
     def test_reattaches_to_surviving_chrome_instead_of_overlaying_its_profile(self, tmp_path, live_browser_id):
-        """The attach daemon of a crashed owner gets reaped, but its Chrome (Hermes-launched,
+        """The attach daemon of a crashed owner gets reaped, but its Chrome (Ettok-launched,
         own session) survives holding the copy dir: re-attach, never re-run the snapshot.
         A DevToolsActivePort left by a crash whose port was recycled by ANOTHER CDP server
         (browser id mismatch) must not be attached to; the normal launch path runs."""
@@ -632,7 +632,7 @@ class TestChannelIdentity:
 
 
 class TestSnapshotIsCredentialStore:
-    """The copied Cookies/Login Data must live inside Hermes' secret lifecycle."""
+    """The copied Cookies/Login Data must live inside Ettok' secret lifecycle."""
 
     def test_excluded_from_backup(self):
         import hermes_cli.backup as bk
@@ -926,7 +926,7 @@ class TestReviewRound3:
     def test_snapshot_blocks_when_locked_even_with_autoclose(self, tmp_path, monkeypatch):
         """Even with autoclose armed, snapshot_real_profile does NOT kill — it
         blocks and defers the close to the explicit, user-approved step. The
-        message offers the close (mentions Hermes can close it)."""
+        message offers the close (mentions Ettok can close it)."""
         import hermes_cli.browser_connect as bc
         src = self._multi(tmp_path / "real")
         home = tmp_path / "hh"

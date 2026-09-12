@@ -1,4 +1,4 @@
-"""The test suite must never write into the operator's real Hermes logs.
+"""The test suite must never write into the operator's real Ettok logs.
 
 `hermes_cli/main.py` calls `setup_logging()` at module scope, which resolves
 `get_hermes_home()` and attaches rotating file handlers to the ROOT logger.
@@ -83,6 +83,6 @@ class TestLogIsolation:
         offenders = [p for p in _all_file_destinations() if p.startswith(real_logs)]
 
         assert offenders == [], (
-            "the test session is writing into the operator's real Hermes logs:\n  "
+            "the test session is writing into the operator's real Ettok logs:\n  "
             + "\n  ".join(offenders)
         )

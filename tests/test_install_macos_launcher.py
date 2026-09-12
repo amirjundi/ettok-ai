@@ -1,4 +1,4 @@
-"""Regression coverage for the user-facing macOS Hermes launcher."""
+"""Regression coverage for the user-facing macOS Ettok launcher."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def _setup_path_function() -> str:
 
 
 def test_venv_launcher_bypasses_uv_console_script_that_requires_realpath(tmp_path: Path) -> None:
-    """Stock macOS must start Hermes even when its uv console script needs realpath."""
+    """Stock macOS must start Ettok even when its uv console script needs realpath."""
     install_dir = tmp_path / "install"
     venv_bin = install_dir / "venv" / "bin"
     command_dir = tmp_path / "command"

@@ -3,7 +3,7 @@
 Covers the three seams the integration relies on:
 
 * Mode detection — ``browser.backend: browser-use`` in config (set via the
-  ``hermes tools`` picker); off by default.
+  ``ettok tools`` picker); off by default.
 * Tool-surface swap — when the mode is on, ``check_browser_requirements``
   returns False so every legacy ``browser_*`` tool (including
   browser_cdp/browser_dialog, whose check_fns funnel through it) is hidden,
@@ -138,7 +138,7 @@ class TestSubprocessEnvironment:
 
     def test_subprocess_env_strips_parent_python_import_paths(self, monkeypatch):
         """#83427/#84841/#86006/#86104: the browser-use CLI runs under its
-        own Python — inherited PYTHONPATH/PYTHONHOME pointing at Hermes's
+        own Python — inherited PYTHONPATH/PYTHONHOME pointing at Ettok's
         venv make it import wrong-ABI C-extensions (pydantic_core) and
         crash. Both must be stripped; unrelated vars survive."""
         import sys
@@ -642,7 +642,7 @@ class TestOwnTabPreamble:
 
 
 class TestProviderPickerIntegration:
-    """The `hermes tools` Browser Automation picker row (browser_backend
+    """The `ettok tools` Browser Automation picker row (browser_backend
     marker) must enter/leave CLI mode cleanly and highlight correctly."""
 
     def _rows(self):
@@ -959,7 +959,7 @@ class TestBrowserExec:
 
 class TestFindCliManagedBin:
     """MANAGED-FIRST: _find_cli probes $HERMES_HOME/bin before PATH and
-    ~/.local/bin, so the Hermes-installed copy always wins."""
+    ~/.local/bin, so the Ettok-installed copy always wins."""
 
     @pytest.fixture(autouse=True)
     def _hermetic_home(self, tmp_path, monkeypatch):
@@ -1000,7 +1000,7 @@ class TestFindCliManagedBin:
         assert bu_cli._find_cli_unpatched() == [str(cli)]
 
     def test_managed_bin_precedes_user_local_bin(self, tmp_path, monkeypatch):
-        """MANAGED-FIRST: Hermes' managed copy wins over a user-level side
+        """MANAGED-FIRST: Ettok' managed copy wins over a user-level side
         install — every backend selection provisions/updates the managed
         copy, so resolution must land on the binary we control (no version
         drift from stray `uv tool install` runs)."""
@@ -1044,7 +1044,7 @@ class TestInstallCli:
     def test_path_install_does_not_short_circuit(self, tmp_path, monkeypatch):
         """MANAGED-FIRST: a browser-use on PATH is a user-level side install
         and must NOT satisfy install_cli() — only the managed copy does,
-        otherwise resolution stays pinned to a binary Hermes can't update."""
+        otherwise resolution stays pinned to a binary Ettok can't update."""
         cli = _fake_cli(tmp_path, "")
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
         monkeypatch.setattr(bu_cli.shutil, "which", lambda name, path=None: cli if name == "browser-use" and path is None else None)
@@ -1138,7 +1138,7 @@ class TestDefaultDowngradeNotice:
         monkeypatch.setattr(bu_cli, "_find_cli", lambda: None)
         notice = bu_cli.default_downgrade_notice()
         assert notice is not None
-        assert "hermes tools" in notice
+        assert "ettok tools" in notice
 
     def test_rate_limited_within_24h(self, tmp_path, monkeypatch):
         self._isolate(tmp_path, monkeypatch)
@@ -1162,7 +1162,7 @@ class TestDefaultDowngradeNotice:
 
 
 class TestLightpandaBackendResolution:
-    """browser.engine: lightpanda in Browser Use mode — Hermes spawns
+    """browser.engine: lightpanda in Browser Use mode — Ettok spawns
     ``lightpanda serve`` through the same _get_session_info machinery and
     exports its endpoint, but only when nothing with higher precedence
     (BU_CDP_* env, a CDP override, a cloud provider) claimed the session."""
@@ -1358,7 +1358,7 @@ class TestLightpandaStatusLine:
         return buf.getvalue()
 
     def test_status_reports_lightpanda_in_use(self, monkeypatch):
-        out = self._status(monkeypatch, used=True, reason="Browser Use mode: Hermes spawns `lightpanda serve` per session")
+        out = self._status(monkeypatch, used=True, reason="Browser Use mode: Ettok spawns `lightpanda serve` per session")
         assert "Engine: Lightpanda" in out
         assert "spawns `lightpanda serve`" in out
         assert "Binary: /opt/lightpanda" in out

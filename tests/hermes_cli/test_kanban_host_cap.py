@@ -2,7 +2,7 @@
 
 Three gaps found in review of the original memory-guard PR:
 
-1. The standalone daemon path (``hermes kanban daemon --force`` /
+1. The standalone daemon path (``ettok kanban daemon --force`` /
    :func:`hermes_cli.kanban_db_dispatch.run_daemon`) never resolved
    ``kanban.max_in_progress`` at all — the one shipped entry point that
    could still fan out an entire backlog in a single tick.
@@ -61,7 +61,7 @@ def test_run_daemon_resolves_and_passes_max_in_progress(
     Regression guard for the OOF-30 review finding: ``run_daemon`` only
     forwarded ``max_spawn`` — with no explicit ``--max`` (the shipped
     systemd shape) nothing capped the tick even though the gateway and
-    ``hermes kanban dispatch`` paths both resolved the memory-derived
+    ``ettok kanban dispatch`` paths both resolved the memory-derived
     default.
     """
     captured: dict = {}

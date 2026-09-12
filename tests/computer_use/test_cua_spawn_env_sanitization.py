@@ -49,7 +49,7 @@ def _assert_sanitized(captured):
 
 
 def _assert_path_preserved(env):
-    """Original PATH entries survive sanitization; the hermes console-script
+    """Original PATH entries survive sanitization; the ettok console-script
     dir may be prepended (see _sanitize_subprocess_env, issue #92998) so we
     assert the contract, not byte equality."""
     from tools.environments.local import _resolve_hermes_bin_dir

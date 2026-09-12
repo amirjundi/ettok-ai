@@ -67,7 +67,7 @@ def test_passive_check_uses_the_api_and_never_fetches(git_repo, monkeypatch):
 
 
 def test_cache_is_daily_but_invalidated_when_head_moves(git_repo, monkeypatch):
-    """A fresh cache answers without any network; ``hermes update`` moving HEAD busts it at once;
+    """A fresh cache answers without any network; ``ettok update`` moving HEAD busts it at once;
     an inconclusive (None) result is retried after the shorter failure window, not never."""
     from hermes_cli import __version__
 

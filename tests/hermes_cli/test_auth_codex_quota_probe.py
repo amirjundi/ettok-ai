@@ -3,7 +3,7 @@
 Covers issue #43747 (externally-reset variant): Codex 429s persist a
 ``last_error_reset_at`` that can be days in the future, but the upstream
 window can reopen early (banked reset redeemed, plan upgrade, upstream
-reset).  Hermes must detect that and lift the stale local cooldown instead
+reset).  Ettok must detect that and lift the stale local cooldown instead
 of refusing requests until re-auth.
 """
 

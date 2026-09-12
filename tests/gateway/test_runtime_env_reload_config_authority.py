@@ -47,7 +47,7 @@ def test_reload_runtime_env_preserves_config_terminal_backend(
     gateway starts on the bridged local backend, works for hours, then a
     later turn's reload re-loads .env with override=True and every terminal /
     execute_code / read_file call starts trying Docker — while
-    ``hermes config get terminal.backend`` still says local.
+    ``ettok config get terminal.backend`` still says local.
     """
     hermes_home = tmp_path / ".hermes"
     hermes_home.mkdir()

@@ -374,7 +374,7 @@ class TestResolutionOrder:
 
 
 # ---------------------------------------------------------------------------
-# hermes tools picker: tier variant rows
+# ettok tools picker: tier variant rows
 # ---------------------------------------------------------------------------
 
 

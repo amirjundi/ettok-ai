@@ -1,11 +1,11 @@
-"""Strict tool-provider selection: the `hermes tools` choice always wins.
+"""Strict tool-provider selection: the `ettok tools` choice always wins.
 
 Policy (owner decision): the provider string stored in config.yaml is what
 runs at call time. "nous" → managed Nous Tool Gateway only; a vendor name →
 that vendor direct with the user's own credentials; no key ever written →
 today's credential autodetect. Credential presence must NEVER select or
 reroute; a selected-but-broken provider produces an honest error naming the
-selection and pointing at `hermes tools`.
+selection and pointing at `ettok tools`.
 
 Per category these tests pin the three strict behaviors:
   (a) managed selection + direct key present ⇒ managed route (key ignored)
@@ -117,7 +117,7 @@ class TestImageFalStrictSelection:
             with pytest.raises(ValueError) as exc:
                 it._resolve_managed_fal_gateway()
         assert "image_gen is configured to use nous" in str(exc.value)
-        assert "hermes tools" in str(exc.value)
+        assert "ettok tools" in str(exc.value)
 
     def test_fal_selection_missing_key_errors_without_managed_call(self):
         from tools import image_generation_tool as it
@@ -130,7 +130,7 @@ class TestImageFalStrictSelection:
         gw.assert_not_called()
         assert "FAL_KEY" in str(exc.value)
         assert "image_gen is configured to use fal" in str(exc.value)
-        assert "hermes tools" in str(exc.value)
+        assert "ettok tools" in str(exc.value)
 
     def test_fal_selection_with_key_routes_direct(self):
         from tools import image_generation_tool as it
@@ -228,7 +228,7 @@ class TestSttStrictSelection:
                 tt._resolve_openai_audio_client_config()
         gw.assert_not_called()
         assert "stt is configured to use openai" in str(exc.value)
-        assert "hermes tools" in str(exc.value)
+        assert "ettok tools" in str(exc.value)
 
     def test_never_configured_keeps_legacy_ladder(self):
         from tools import transcription_tools as tt

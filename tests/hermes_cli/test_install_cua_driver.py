@@ -4,7 +4,7 @@ The cua-driver upstream installer always pulls the latest release tag, so
 re-running it is the canonical upgrade path. ``install_cua_driver(upgrade=True)``
 must:
 
-* Be supported-platform-only — no-op silently elsewhere so ``hermes update``
+* Be supported-platform-only — no-op silently elsewhere so ``ettok update``
   can call it unconditionally without warning unsupported-platform users.
 * Re-run the installer for explicit upgrades even when the binary is already
   on PATH (this is the fix for the "we only pulled cua-driver once on enable"
@@ -346,7 +346,7 @@ class TestInstallCuaDriverUpgrade:
     def test_install_target_writability_is_probed_for_real_on_macos(self):
         """The ``_cua_install_target_writable`` seam the two tests above patch.
 
-        ``macos_only``: ``/Applications`` is the only install target Hermes
+        ``macos_only``: ``/Applications`` is the only install target Ettok
         checks, and the probe short-circuits to True on every other platform —
         so this is the one host where the real filesystem answer means
         anything.
@@ -388,7 +388,7 @@ class TestInstallCuaDriverUpgrade:
         incompatible = {
             "ready": False,
             "version": "0.19.4",
-            "reason": "Hermes computer use requires cua-driver 0.20.0 or newer",
+            "reason": "Ettok computer use requires cua-driver 0.20.0 or newer",
         }
         repaired = {"ready": True, "version": "0.20.0", "reason": ""}
         with patch.object(
@@ -422,7 +422,7 @@ class TestInstallCuaDriverUpgrade:
         incompatible = {
             "ready": False,
             "version": "0.19.4",
-            "reason": "Hermes computer use requires cua-driver 0.20.0 or newer",
+            "reason": "Ettok computer use requires cua-driver 0.20.0 or newer",
         }
         with patch.object(
                  tools_config,
@@ -468,14 +468,14 @@ class TestInstallCuaDriverUpgrade:
 
 
 class TestRequireConfirmedUpdate:
-    """`hermes update` passes require_confirmed_update=True: the full
+    """`ettok update` passes require_confirmed_update=True: the full
     upstream installer (multi-minute, output captured, plus install.ps1's
     600s lock window on Windows) may only run when the driver's native
     ``check-update`` verb positively confirms a newer release. An
     indeterminate check (old driver, offline, GitHub rate-limited, probe
     timeout) keeps the installed version and returns fast.
 
-    Explicit `hermes computer-use install --upgrade` keeps the old
+    Explicit `ettok computer-use install --upgrade` keeps the old
     fall-through (require_confirmed_update=False): a force-refresh should
     still reinstall when the check can't answer.
     """
@@ -564,7 +564,7 @@ class TestRequireConfirmedUpdate:
         incompatible = {
             "ready": False,
             "version": "0.19.3",
-            "reason": "Hermes computer use requires cua-driver 0.20.0 or newer",
+            "reason": "Ettok computer use requires cua-driver 0.20.0 or newer",
         }
         ok, runner, info = self._install(
             None,
@@ -619,7 +619,7 @@ class TestRequireConfirmedUpdate:
         runner.assert_not_called()
 
     def test_explicit_upgrade_still_falls_through_on_indeterminate(self):
-        # `hermes computer-use install --upgrade` (default flag): the old
+        # `ettok computer-use install --upgrade` (default flag): the old
         # behaviour — indeterminate check re-runs the installer.
         ok, runner, _ = self._install(None, require_confirmed=False)
         assert ok is True
@@ -630,8 +630,8 @@ class TestRequireConfirmedUpdate:
         reason="automatic Windows updates must not launch an interactive repair",
     )
     def test_incompatible_driver_repairs_on_posix_despite_indeterminate_check(self):
-        """Hermes' own version floor is the confirmation. When the installed
-        driver fails the runtime contract, the `hermes update` refresh must
+        """Ettok' own version floor is the confirmation. When the installed
+        driver fails the runtime contract, the `ettok update` refresh must
         repair it even though ``check-update`` can't confirm a newer release
         (its ~20h cache routinely lags a same-day floor bump — the 0.19.3
         wedge)."""
@@ -642,7 +642,7 @@ class TestRequireConfirmedUpdate:
         incompatible = {
             "ready": False,
             "version": "0.19.3",
-            "reason": "Hermes computer use requires cua-driver 0.20.0 or newer",
+            "reason": "Ettok computer use requires cua-driver 0.20.0 or newer",
         }
         with patch.object(tools_config.shutil, "which",
                           side_effect=lambda n: "/x/" + n
@@ -684,7 +684,7 @@ class TestUpdateCheckTimeoutDefaults:
 
     8s is fine on POSIX but too tight for Windows first-spawn (Defender /
     SmartScreen scanning), and a false timeout is what used to trigger the
-    full reinstall fall-through during `hermes update`.
+    full reinstall fall-through during `ettok update`.
     """
 
     def _captured_timeout(self):
@@ -1264,7 +1264,7 @@ class TestInstallerTimeoutDrainIsBounded:
 
         What it pins is that the drain's own ``TimeoutExpired`` must not be
         the one that escapes: the caller has to see the original run timeout
-        so the existing manual re-run hint prints and ``hermes update``
+        so the existing manual re-run hint prints and ``ettok update``
         unwinds. That is the behaviour a future refactor of the drain is most
         likely to break silently.
         """
@@ -1630,7 +1630,7 @@ class TestWindowsAutostartRepair:
 
 
 class TestCuaVersionSummary:
-    """`hermes computer-use status` prints one line, whatever the binary says.
+    """`ettok computer-use status` prints one line, whatever the binary says.
 
     A binary chosen by HERMES_CUA_DRIVER_CMD is under no obligation to answer
     `--version` the way cua-driver does, and its output used to be spliced

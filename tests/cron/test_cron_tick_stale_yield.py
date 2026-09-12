@@ -1,7 +1,7 @@
 """Stale-code cron tick yield gate.
 
 A long-lived process whose checkout was updated underneath it (hot git pull /
-interrupted ``hermes update``) serves mixed ``sys.modules``; when such a
+interrupted ``ettok update``) serves mixed ``sys.modules``; when such a
 process races a fresh gateway for the cron tick lock and wins, every agent
 job it dispatches can die on ImportErrors whose real cause is staleness.
 
@@ -163,7 +163,7 @@ class TestYieldedTickIsAFailedTick:
             t.join(timeout=5)
 
         assert not t.is_alive(), "ticker must keep yielding, not die"
-        assert errors, "yield reason must be persisted for `hermes cron status`"
+        assert errors, "yield reason must be persisted for `ettok cron status`"
         assert "CronTickYielded" in errors[0] or "yielded" in errors[0]
         assert beats[-1] is False, "a yielded tick is not a successful tick"
         clear.assert_not_called()

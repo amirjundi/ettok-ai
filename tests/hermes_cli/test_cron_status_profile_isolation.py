@@ -1,6 +1,6 @@
 """Regression guard for #98790 — profile isolation in cron status.
 
-Issue #98790: `hermes cron status` in profile B reports profile A's gateway
+Issue #98790: `ettok cron status` in profile B reports profile A's gateway
 PID as proof that B's jobs will fire. Root causes:
 
 1. systemd branch of ``_get_service_pids()`` returns every hermes-gateway*
@@ -39,7 +39,7 @@ def tmp_cron_dir(tmp_path, monkeypatch):
 
 
 class TestCronStatusHeartbeatGuard:
-    """Ensure `hermes cron status` correctly warns when the heartbeat file is absent.
+    """Ensure `ettok cron status` correctly warns when the heartbeat file is absent.
 
     Issue #98790 (root cause 2): profiles with no `cron/ticker_heartbeat` fall
     through to the "✓ Gateway is running" branch even though ticks won't fire.

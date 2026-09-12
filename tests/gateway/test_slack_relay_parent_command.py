@@ -24,7 +24,7 @@ def _wire(text: str, *, platform: str = "slack") -> dict:
         ("/hermes sethome", "/sethome"),
         ("/hermes\tsethome", "/sethome"),
         (
-            "/hermes model gpt-5.6 --provider openai",
+            "/ettok model gpt-5.6 --provider openai",
             "/model gpt-5.6 --provider openai",
         ),
         ("/hermes", "/help"),

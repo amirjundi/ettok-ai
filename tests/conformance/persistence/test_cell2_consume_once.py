@@ -3,7 +3,7 @@
 Contract clause (arXiv:2608.03836): a parked handoff is claimed by exactly
 one consumer, no matter how many independent processes race for it. This is
 the cell the paper found failing at saturation 1.0 in 36/40 cells across
-deployed frameworks; Hermes' ``claim_handoff`` ships the paper's own repair
+deployed frameworks; Ettok' ``claim_handoff`` ships the paper's own repair
 shape (single UPDATE with a state predicate, rowcount-checked), which the
 tracking-issue probe confirmed. This cell pins it permanently.
 

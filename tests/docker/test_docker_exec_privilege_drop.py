@@ -2,10 +2,10 @@
 
 The shim (docker/hermes-exec-shim.sh, installed at /opt/hermes/bin/hermes)
 exists to prevent the auth.json ownership-mismatch bug where
-`docker exec <c> hermes login` would write /opt/data/auth.json as
+`docker exec <c> ettok login` would write /opt/data/auth.json as
 root:root mode 0600, leaving the supervised gateway (UID 10000) unable
 to read its own credentials and returning "Provider authentication
-failed: Hermes is not logged into Nous Portal" on every message.
+failed: Ettok is not logged into Nous Portal" on every message.
 
 These tests verify:
 
@@ -115,7 +115,7 @@ def test_shim_drops_root_to_hermes_uid(sleep_container: str) -> None:
     into it without forking subcommands. Simplest approach: have `hermes`
     do anything that writes to disk, then check the file's owner.
 
-    Use `hermes config set` which writes config.yaml under HERMES_HOME.
+    Use `ettok config set` which writes config.yaml under HERMES_HOME.
     The resulting file ownership tells us what UID the shim ended up at.
     """
     # Wipe any prior state.
@@ -179,27 +179,27 @@ def test_e2e_login_then_supervised_gateway_can_read_auth(
 ) -> None:
     """End-to-end regression for the original bug.
 
-    Pre-shim: ``docker exec <c> hermes login`` (root) wrote
+    Pre-shim: ``docker exec <c> ettok login`` (root) wrote
     /opt/data/auth.json as root:root 0600. The supervised gateway (UID
     10000) couldn't read it, _load_auth_store swallowed PermissionError
     as a parse failure, and resolve_nous_runtime_credentials raised
-    "Hermes is not logged into Nous Portal" on every message.
+    "Ettok is not logged into Nous Portal" on every message.
 
     We can't do a real OAuth login in a unit test, but we can stand in
-    for it by writing the same file shape via `hermes config set`-style
+    for it by writing the same file shape via `ettok config set`-style
     writes — what matters is the *file ownership invariant* downstream
     of `_save_auth_store`. If the shim works, every file the
     `docker exec` path produces is hermes-readable.
 
-    Specifically: pretend the operator ran `hermes login` (writes
+    Specifically: pretend the operator ran `ettok login` (writes
     auth.json) and verify (a) the file exists and (b) it's readable by
-    the hermes UID. We use `hermes auth list` since that touches the
+    the hermes UID. We use `ettok auth list` since that touches the
     auth store on the read side and would fail with the same
     'not logged in' shape if the file was unreadable to uid 10000.
     """
     # Have the shim-protected `docker exec` write the auth store.
-    # `hermes auth list` is read-only but still exercises _load_auth_store
-    # under the shim's UID. We invoke `hermes config set` first to
+    # `ettok auth list` is read-only but still exercises _load_auth_store
+    # under the shim's UID. We invoke `ettok config set` first to
     # provoke a write into HERMES_HOME so we have something concrete to
     # owner-check.
     r = subprocess.run(

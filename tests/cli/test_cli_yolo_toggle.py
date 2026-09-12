@@ -7,7 +7,7 @@ hardening: stops prompt-injected skills from flipping the bypass mid-run),
 so the post-startup toggle was a silent no-op. ``/yolo`` advertised "YOLO ON"
 in the status bar while every dangerous command still hit the approval
 prompt. Only ``hermes --yolo`` (process-start env), ``HERMES_YOLO_MODE=1``,
-and ``hermes config set approvals.mode off`` actually bypassed.
+and ``ettok config set approvals.mode off`` actually bypassed.
 
 The fix routes the CLI toggle through ``enable_session_yolo`` /
 ``disable_session_yolo`` (matching the gateway and TUI ``/yolo`` paths) and

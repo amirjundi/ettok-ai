@@ -233,12 +233,12 @@ async def test_named_telegram_private_topic_is_created_before_delivery(tmp_path,
     monkeypatch.setattr("gateway.delivery.get_hermes_home", lambda: tmp_path)
     adapter = RecordingAdapter()
     router = DeliveryRouter(GatewayConfig(), adapters={Platform.TELEGRAM: adapter})
-    target = DeliveryTarget.parse("telegram:722341991:Hermes API Test")
+    target = DeliveryTarget.parse("telegram:722341991:Ettok API Test")
 
     await router._deliver_to_platform(target, "hello", metadata=None)
 
     assert adapter.ensure_dm_topic_calls == [
-        {"chat_id": "722341991", "topic_name": "Hermes API Test", "force_create": False}
+        {"chat_id": "722341991", "topic_name": "Ettok API Test", "force_create": False}
     ]
     assert adapter.calls == [
         {

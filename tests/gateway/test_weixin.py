@@ -701,7 +701,7 @@ class TestWeixinApiTimeout:
 class TestWeixinVoiceAlwaysDownloaded:
     """Regression tests for #27300: when WeChat (Weixin) returns a
     ``voice_item.text`` (Tencent Cloud's STT) we must still download
-    the raw audio and route it through Hermes' own STT pipeline.
+    the raw audio and route it through Ettok' own STT pipeline.
 
     Non-Chinese users currently see garbled transcriptions because the
     existing code short-circuits in two places: the voice download
@@ -729,7 +729,7 @@ class TestWeixinVoiceAlwaysDownloaded:
     @pytest.mark.asyncio
     async def test_download_voice_returns_path_when_tencent_text_set(self, tmp_path, monkeypatch):
         """#27300 PRIMARY: voice ``_download_media`` must not short-circuit on
-        ``voice_item.text``. The audio is needed so Hermes' own STT can
+        ``voice_item.text``. The audio is needed so Ettok' own STT can
         re-transcribe when Tencent's text is in the wrong language.
         """
         adapter = _make_adapter()
@@ -754,7 +754,7 @@ class TestWeixinVoiceAlwaysDownloaded:
         # can pick it up and re-transcribe.
         assert result is not None, (
             "_download_media returned None even though raw audio is "
-            "available — Hermes' STT pipeline needs the audio to handle "
+            "available — Ettok' STT pipeline needs the audio to handle "
             "non-Chinese voice messages (#27300)."
         )
         assert result.endswith(".silk")
@@ -807,7 +807,7 @@ class TestWeixinVoiceAlwaysDownloaded:
 
         assert len(media_paths) == 1, (
             "_collect_media dropped the voice attachment because "
-            "voice_item.text was set — Hermes' STT never gets a "
+            "voice_item.text was set — Ettok' STT never gets a "
             "chance to re-transcribe (#27300)."
         )
         assert media_types == ["audio/silk"]

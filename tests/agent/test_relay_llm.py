@@ -935,7 +935,7 @@ def test_anthropic_codec_preserves_tool_history_and_cached_system_blocks(relay_t
         "system": [
             {
                 "type": "text",
-                "text": "You are Hermes.",
+                "text": "You are Ettok.",
                 "cache_control": {"type": "ephemeral"},
             }
         ],
@@ -1191,7 +1191,7 @@ def test_stream_current_streams_iterators_with_predicate(tmp_path, monkeypatch):
 
 
 def test_stream_current_primes_lazy_completed_response(relay_turn, monkeypatch):
-    """A lazy Relay stream must run once before Hermes decides its shape."""
+    """A lazy Relay stream must run once before Ettok decides its shape."""
     _relay, _turn = relay_turn
     completed = _completed_response()
 

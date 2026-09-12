@@ -1,4 +1,4 @@
-"""``hermes gateway restart`` without an installed service unit must actually restart.
+"""``ettok gateway restart`` without an installed service unit must actually restart.
 
 Linger is a systemd-unit concern. With no unit installed the detached ``run_gateway`` IS the
 restart, yet the linger check ran unconditionally and bailed with exit 0 on any Linux login

@@ -41,19 +41,19 @@ class TestDoctorPlatformHints:
         hint = doctor_platform._sqlite_upgrade_hint()
 
         assert "docker pull nousresearch/hermes-agent:latest" in hint
-        assert "recreate all Hermes containers" in hint
-        assert "hermes update" not in hint
+        assert "recreate all Ettok containers" in hint
+        assert "ettok update" not in hint
 
     def test_sqlite_upgrade_hint_keeps_git_runtime_repair(self):
         hint = doctor_platform._sqlite_upgrade_hint("git")
 
-        assert "run `hermes update`" in hint
+        assert "run `ettok update`" in hint
 
     def test_sqlite_upgrade_hint_uses_pkg_for_apt_managed_install(self):
         hint = doctor_platform._sqlite_upgrade_hint("apt")
 
         assert "run `pkg upgrade hermes-agent`" in hint
-        assert "hermes update" not in hint
+        assert "ettok update" not in hint
 
     def test_sqlite_upgrade_hint_preserves_nix_guidance_as_prose(self):
         from hermes_cli.config import recommended_update_command_for_method
@@ -63,7 +63,7 @@ class TestDoctorPlatformHints:
 
         assert guidance in hint
         assert f"run `{guidance}`" not in hint
-        assert "hermes update" not in hint
+        assert "ettok update" not in hint
 
 
 class TestProviderEnvDetection:
@@ -137,7 +137,7 @@ class TestDoctorToolAvailabilitySummary:
 
 
 class TestDoctorEnvFileEncoding:
-    """Regression for #18637 (bug 3): `hermes doctor` crashed on Windows
+    """Regression for #18637 (bug 3): `ettok doctor` crashed on Windows
     Chinese locale (GBK) because `.env` was read with Path.read_text() which
     defaults to the system locale encoding, not UTF-8."""
 
@@ -851,7 +851,7 @@ def test_run_doctor_reports_agent_browser_resolves_via_npx(monkeypatch, tmp_path
 def test_run_doctor_fix_warms_npx_cache_when_agent_browser_resolves_via_npx(
     monkeypatch, tmp_path
 ):
-    """`hermes doctor --fix` must actually call warm_agent_browser_npx_cache()
+    """`ettok doctor --fix` must actually call warm_agent_browser_npx_cache()
     when agent-browser resolves via npx, and report success."""
     _doctor_env_for_agent_browser(monkeypatch, tmp_path)
 
@@ -1573,7 +1573,7 @@ class TestMacOSTCCGrants:
         monkeypatch.setattr(
             doctor_platform,
             "_desktop_app_bundle",
-            lambda: tmp_path / "Hermes.app",
+            lambda: tmp_path / "Ettok.app",
         )
         doctor_platform.check_macos_tcc_grants()
         assert capsys.readouterr().out == ""
@@ -1591,7 +1591,7 @@ class TestMacOSTCCGrants:
         monkeypatch.setattr(
             doctor_platform,
             "_desktop_app_bundle",
-            lambda: tmp_path / "Hermes.app",
+            lambda: tmp_path / "Ettok.app",
         )
         monkeypatch.setattr(
             doctor_platform,
@@ -1602,7 +1602,7 @@ class TestMacOSTCCGrants:
         out = capsys.readouterr().out
         assert "TCC grants will reset after every update" in out
         assert "cdhash-pinned" in out
-        assert "hermes update" in out
+        assert "ettok update" in out
 
     def test_ok_and_repair_info_on_identifier_dr(self, monkeypatch, capsys, tmp_path):
         """Post-#73681 identifier-only DR → stable + stale-grant repair info."""
@@ -1610,7 +1610,7 @@ class TestMacOSTCCGrants:
         monkeypatch.setattr(
             doctor_platform,
             "_desktop_app_bundle",
-            lambda: tmp_path / "Hermes.app",
+            lambda: tmp_path / "Ettok.app",
         )
         monkeypatch.setattr(
             doctor_platform,
@@ -1629,14 +1629,14 @@ class TestMacOSTCCGrants:
         assert "relaunch" in out
 
     def test_ok_on_certificate_anchored_dr(self, monkeypatch, capsys, tmp_path):
-        """A cert-anchored DR (hermes desktop --setup-tcc-identity, or a
+        """A cert-anchored DR (ettok desktop --setup-tcc-identity, or a
         notarized release) classifies as stable in its own class — no upgrade
         hint, still prints the stale-grant repair info."""
         monkeypatch.setattr(doctor_mod.sys, "platform", "darwin")
         monkeypatch.setattr(
             doctor_platform,
             "_desktop_app_bundle",
-            lambda: tmp_path / "Hermes.app",
+            lambda: tmp_path / "Ettok.app",
         )
         monkeypatch.setattr(
             doctor_platform,
@@ -1656,7 +1656,7 @@ class TestMacOSTCCGrants:
         monkeypatch.setattr(
             doctor_platform,
             "_desktop_app_bundle",
-            lambda: tmp_path / "Hermes.app",
+            lambda: tmp_path / "Ettok.app",
         )
         monkeypatch.setattr(doctor_platform, "_macos_desktop_dr", lambda app: None)
         doctor_platform.check_macos_tcc_grants()
@@ -1669,7 +1669,7 @@ class TestMacOSTCCGrants:
         monkeypatch.setattr(
             doctor_platform,
             "_desktop_app_bundle",
-            lambda: tmp_path / "Hermes.app",
+            lambda: tmp_path / "Ettok.app",
         )
         monkeypatch.setattr(doctor_platform, "_macos_desktop_dr", lambda app: "")
         doctor_platform.check_macos_tcc_grants()
@@ -1683,7 +1683,7 @@ class TestMacOSTCCGrants:
         monkeypatch.setattr(
             doctor_platform,
             "_desktop_app_bundle",
-            lambda: tmp_path / "Hermes.app",
+            lambda: tmp_path / "Ettok.app",
         )
 
         def _timeout(*args, **kwargs):
@@ -1701,7 +1701,7 @@ class TestMacOSTCCGrants:
         monkeypatch.setattr(
             doctor_platform,
             "_desktop_app_bundle",
-            lambda: tmp_path / "Hermes.app",
+            lambda: tmp_path / "Ettok.app",
         )
         monkeypatch.setattr(shutil, "which", lambda _name: None)
         doctor_platform.check_macos_tcc_grants()

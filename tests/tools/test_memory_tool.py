@@ -34,7 +34,7 @@ class TestScanMemoryContent:
         assert _scan_memory_content("Share the project context with the team") is None
         assert _scan_memory_content("Include more context in error messages") is None
         assert _scan_memory_content("Output the test results to a log file") is None
-        # Mentioning agent/hermes config files without modify intent.
+        # Mentioning agent/ettok config files without modify intent.
         assert _scan_memory_content("The AGENTS.md file documents our coding standards") is None
         assert _scan_memory_content("Project uses .cursorrules for linting configuration") is None
         assert _scan_memory_content("Read .hermes/SOUL.md for agent personality") is None

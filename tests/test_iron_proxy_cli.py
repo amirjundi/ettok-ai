@@ -273,11 +273,11 @@ def test_cmd_config_returns_0_when_present(hermes_home, monkeypatch):
 
 def test_register_cli_uses_egress_command_dest():
     """The subparser dest must be 'egress_command' to stay disjoint from
-    the inbound OAuth 'hermes proxy' subparser (dest='proxy_command').
+    the inbound OAuth 'ettok proxy' subparser (dest='proxy_command').
     A future grep-and-refactor on proxy_command should not hit this
     subparser by accident."""
 
-    parser = argparse.ArgumentParser(prog="hermes egress")
+    parser = argparse.ArgumentParser(prog="ettok egress")
     proxy_cli.register_cli(parser)
     # Parse a no-op invocation and confirm the attribute name.
     args = parser.parse_args(["install"])

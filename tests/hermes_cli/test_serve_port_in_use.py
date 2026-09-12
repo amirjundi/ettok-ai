@@ -1,7 +1,7 @@
 """#93608 — port bind conflict must be machine-readable, not a bare exit 1.
 
 The reporter's repro: something already listens on the serve port (another
-``hermes serve``, the gateway, anything) → ``hermes serve`` printed only
+``ettok serve``, the gateway, anything) → ``ettok serve`` printed only
 uvicorn's ``ERROR: [Errno 98/10048] error while attempting to bind on
 address`` and exited 1 — indistinguishable from a broken backend for the
 desktop spawn and for scripts.

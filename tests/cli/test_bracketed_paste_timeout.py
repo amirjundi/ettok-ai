@@ -47,12 +47,12 @@ def _load_production_patch_helper():
 
 
 def _reset_and_apply_production_patch():
-    """Reload prompt_toolkit's parser and apply Hermes' production patch."""
+    """Reload prompt_toolkit's parser and apply Ettok' production patch."""
     import prompt_toolkit.input.vt100_parser as vt100_mod
 
     vt100_mod = importlib.reload(vt100_mod)
     # importlib.reload() preserves module dict entries that the reloaded source
-    # does not redefine, so clear Hermes' sentinel before re-applying.
+    # does not redefine, so clear Ettok' sentinel before re-applying.
     if hasattr(vt100_mod, "_hermes_bp_timeout_patched"):
         delattr(vt100_mod, "_hermes_bp_timeout_patched")
     _load_production_patch_helper()()

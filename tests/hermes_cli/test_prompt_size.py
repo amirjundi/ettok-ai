@@ -1,4 +1,4 @@
-"""Tests for the ``hermes prompt-size`` diagnostic (issue #34667)."""
+"""Tests for the ``ettok prompt-size`` diagnostic (issue #34667)."""
 
 import json
 import sys

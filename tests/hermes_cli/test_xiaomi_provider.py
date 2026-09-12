@@ -298,7 +298,7 @@ class TestXiaomiProvidersModule:
 
 
 class TestXiaomiDoctor:
-    """Verify hermes doctor recognizes Xiaomi env vars."""
+    """Verify ettok doctor recognizes Xiaomi env vars."""
 
     def test_provider_env_hints(self):
         from hermes_cli.doctor import _PROVIDER_ENV_HINTS

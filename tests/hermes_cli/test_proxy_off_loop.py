@@ -1,4 +1,4 @@
-"""`hermes proxy` must resolve upstream credentials off the event loop.
+"""`ettok proxy` must resolve upstream credentials off the event loop.
 
 ``UpstreamAdapter`` is a synchronous contract (``adapters/base.py`` — every
 method is a plain ``def``), and both shipped adapters implement it with

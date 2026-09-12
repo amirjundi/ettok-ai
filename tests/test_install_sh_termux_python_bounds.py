@@ -156,7 +156,7 @@ def test_install_stage_rejects_post_install_unsupported_default(tmp_path: Path) 
 
     assert result.returncode == 1
     assert "Termux Python Python 3.14.6 is not supported" in result.stdout
-    assert "Hermes requires Python >=3.11,<3.14" in result.stdout
+    assert "Ettok requires Python >=3.11,<3.14" in result.stdout
     assert "pkg install tur-repo && pkg install python3.13" in result.stdout
 
 
@@ -217,4 +217,4 @@ def test_setup_script_rejects_unsupported_default(tmp_path: Path) -> None:
 
     assert result.returncode == 1
     assert "Termux Python Python 3.14.6 is not supported" in result.stdout
-    assert "Hermes requires Python >=3.11,<3.14" in result.stdout
+    assert "Ettok requires Python >=3.11,<3.14" in result.stdout

@@ -1,7 +1,7 @@
-"""Tests for hermes_cli.agent_import — ``hermes import-agent``.
+"""Tests for hermes_cli.agent_import — ``ettok import-agent``.
 
 Covers: source detection, Claude Code and Codex parsing, mapping into the
-real Hermes stores (memories/MEMORY.md, config.yaml command_allowlist /
+real Ettok stores (memories/MEMORY.md, config.yaml command_allowlist /
 approvals.deny / mcp_servers, skills/), dry-run write-nothing guarantees,
 malformed-input skip reports, and the never-import-secrets rule.
 
@@ -541,7 +541,7 @@ class TestExistingConfigPreserved:
             assert str(config_path) in reason
             assert "not valid YAML" in reason
             # Points the user at a way out.
-            assert "hermes config edit" in reason
+            assert "ettok config edit" in reason
 
     def test_unreadable_config_is_left_byte_identical(
             self, claude_tree, hermes_home, config_path):

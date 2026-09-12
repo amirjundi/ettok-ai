@@ -87,7 +87,7 @@ def test_resolve_missing_moa_preset_has_actionable_error():
     assert "日常对话-高峰期" in message
     assert "日常对话-高峰" in message
     assert "日常对话-非高峰" in message
-    assert "hermes moa list" in message
+    assert "ettok moa list" in message
 
 
 def test_missing_moa_preset_is_non_retryable():

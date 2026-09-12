@@ -1,6 +1,6 @@
 """Native OpenAI SDK streaming through Relay's managed execution path.
 
-Relay runs its finalizer as soon as the provider stream ends — concurrently with Hermes'
+Relay runs its finalizer as soon as the provider stream ends — concurrently with Ettok'
 consumer thread, which may not have processed the last chunk yet. Each test forces that
 ordering deterministically (finalizer runs BEFORE the consumer sees a chosen chunk) and
 asserts Relay's LLM end event still records the full response.

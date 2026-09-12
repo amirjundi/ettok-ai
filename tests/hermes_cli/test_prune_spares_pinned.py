@@ -1,7 +1,7 @@
 """Regression tests: pinned sessions survive bulk prune/archive (round-3 SES-01).
 
 Pinning is a durable "keep" flag. Before this fix `_prune_filter_where` had no
-pinned exclusion, so `hermes sessions prune`/`archive` with a filter silently
+pinned exclusion, so `ettok sessions prune`/`archive` with a filter silently
 destroyed pinned conversations. These drive the real SessionDB (temp file DB).
 """
 

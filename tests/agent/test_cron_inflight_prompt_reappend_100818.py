@@ -72,7 +72,7 @@ def _cron_transcript() -> List[Dict[str, Any]]:
     return [
         {
             "role": "system",
-            "content": "You are Hermes. Cron preamble: if nothing to report, "
+            "content": "You are Ettok. Cron preamble: if nothing to report, "
             "return [SILENT].",
         },
         {"role": "user", "content": JOB_SENTINEL},
@@ -179,7 +179,7 @@ def test_idle_session_without_inflight_task_is_not_reanimated():
     """#80622 must hold: a session whose only user-role row is an inherited
     handoff has no in-flight task, so compaction must not manufacture one."""
     messages: List[Dict[str, Any]] = [
-        {"role": "system", "content": "You are Hermes."},
+        {"role": "system", "content": "You are Ettok."},
         {
             "role": "user",
             "content": (

@@ -1,7 +1,7 @@
 """Tests for native compaction summary retention during pre-checkpoint pruning (#90975).
 
 ``prune_pre_checkpoint_items`` previously dropped every pre-checkpoint item
-whose ``role`` was not ``"user"`` — which silently deleted Hermes' own local
+whose ``role`` was not ``"user"`` — which silently deleted Ettok' own local
 compression summaries (``role="assistant"``) from the wire on every native
 compaction turn. These tests cover the fix's summary retention path, its
 reliance on the canonical ``agent.context_compressor`` provenance check (not

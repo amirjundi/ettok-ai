@@ -7,7 +7,7 @@ from deep inside ``_init_schema`` — naming no file and no fix.
 
 ``preflight_db_writability`` now runs before the first connection:
 
-- files inside the Hermes home tree are repaired with ``chmod u+rw``
+- files inside the Ettok home tree are repaired with ``chmod u+rw``
   (the safe scope — chmod fails on files the user doesn't own);
 - anything else fails fast with an error naming the exact file and the
   exact ``chmod`` command;

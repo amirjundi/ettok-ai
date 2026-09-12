@@ -1,6 +1,6 @@
 """Kanban worker runs must not surface as user conversations.
 
-Workers spawn as `hermes chat -q "work kanban task <id>"`, which used to land in
+Workers spawn as `ettok chat -q "work kanban task <id>"`, which used to land in
 state.db as an untitled `cli` row — the desktop sidebar then rendered one entry
 per attempt, labeled with the worker's own prompt.
 """

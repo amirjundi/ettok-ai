@@ -9,7 +9,7 @@ snapshot.
 
 Copying that image over the live path replaces only the main database file. A
 ``state.db-wal`` left behind by the *old* database — a crashed writer, or a
-second Hermes holder the updater's drain did not stop — survives the copy and is
+second Ettok holder the updater's drain did not stop — survives the copy and is
 replayed over the fresh image on the next open. The restored file then passes
 ``PRAGMA integrity_check`` while serving the discarded database's contents, so
 the CLI prints "✓ Auto-restored from snapshot" over data the user has lost.

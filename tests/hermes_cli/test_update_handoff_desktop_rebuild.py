@@ -1,6 +1,6 @@
 """The current-checkout repair path must rebuild the Desktop app (#97343).
 
-A Windows git install runs `hermes update` from `hermes.exe`, which reexecs a
+A Windows git install runs `ettok update` from `hermes.exe`, which reexecs a
 venv-Python child to finish the dependency sync. That child completes through
 ``_repair_node_deps_on_current_checkout`` / the hand-off repair branch, never
 through the commits-pulled path that owns the Desktop rebuild — so a

@@ -62,7 +62,7 @@ def test_summary_withholds_success_when_sqlite_remediation_failed(capsys, monkey
     assert "SQLite 3.46.1" in out
     assert "WAL-reset" in out
     assert "uv-managed Python" in out
-    assert "hermes doctor" in out
+    assert "ettok doctor" in out
 
 
 def test_current_checkout_completion_is_verified_before_success(capsys, monkeypatch):

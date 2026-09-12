@@ -148,8 +148,8 @@ def test_full_prompt_scoped_to_bot_on_bare_thread(tmp_path, monkeypatch):
     skills_block = m.group(1) if m else ""
     assert "bot-skill" in skills_block
     assert "leaky-skill" not in skills_block
-    assert "Active Hermes profile: mybot" in prompt
-    assert "Active Hermes profile: default" not in prompt
+    assert "Active Ettok profile: mybot" in prompt
+    assert "Active Ettok profile: default" not in prompt
 
 
 def test_plugin_session_info_profile_from_agent_home(tmp_path, monkeypatch):

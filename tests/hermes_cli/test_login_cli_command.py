@@ -135,7 +135,7 @@ def test_the_handler_never_calls_input_and_uses_the_short_timeout(monkeypatch):
 def test_the_in_chat_and_terminal_completion_use_their_own_copy():
     state = anon_auth.Completed(email="", model="", model_changed=True)
     assert "run /model to pick one" in anon_auth.drain_sign_in_copy(iter([state]), chat=True)
-    assert "run `hermes model` to pick one" in anon_auth.drain_sign_in_copy(iter([state]), chat=False)
+    assert "run `ettok model` to pick one" in anon_auth.drain_sign_in_copy(iter([state]), chat=False)
 
 
 def test_the_command_resolves_through_the_cli_fallback():

@@ -24,7 +24,7 @@ def _make_agent(hermes_home: Path) -> Path:
 
 
 def _make_gui_build(hermes_home: Path) -> None:
-    """Create the source-built GUI artifacts a `hermes desktop` run produces."""
+    """Create the source-built GUI artifacts a `ettok desktop` run produces."""
     desktop = hermes_home / "hermes-agent" / "apps" / "desktop"
     (desktop / "dist").mkdir(parents=True)
     (desktop / "dist" / "index.html").write_text("<html>")
@@ -70,7 +70,7 @@ def test_gui_install_summary_shape(tmp_path, monkeypatch):
 
 
 def test_linux_discovery_includes_launcher_entry(tmp_path, monkeypatch):
-    """The launcher entry that `hermes desktop` installs is removable."""
+    """The launcher entry that `ettok desktop` installs is removable."""
     monkeypatch.setattr(gu.sys, "platform", "linux")
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
 

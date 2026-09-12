@@ -28,7 +28,7 @@ def _ring(monkeypatch, *, flag_on, env, **kwargs):
 
 def test_osc9_body_emitted_and_sanitized_only_when_flag_on(monkeypatch):
     out = _ring(monkeypatch, flag_on=True, env={}, context="approval\x1b\x07\x00\x7f!")
-    assert out == "\x1b]9;Hermes: approval!\x07"
+    assert out == "\x1b]9;Ettok: approval!\x07"
     assert _ring(monkeypatch, flag_on=False, env={}, context="approval") == ""
 
 

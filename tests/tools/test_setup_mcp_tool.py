@@ -25,7 +25,7 @@ def test_schema_forbids_hand_editing_mcp_servers_config():
 def test_requires_desktop_callback():
     result = json.loads(setup_mcp_tool(server="linear", callback=None))
     assert "error" in result
-    assert "hermes mcp install" in result["error"]
+    assert "ettok mcp install" in result["error"]
 
 
 def test_requires_server_name():

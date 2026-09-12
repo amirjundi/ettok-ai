@@ -82,7 +82,7 @@ def test_setup_hint_uses_gateway_service_command(monkeypatch: pytest.MonkeyPatch
 
     assert rc == 0
     out = capsys.readouterr().out
-    assert "Start the gateway:  hermes gateway start" in out
+    assert "Start the gateway:  ettok gateway start" in out
     assert "--platform photon" not in out
     assert "new secret saved" in out
     assert "restart it so the sidecar" in out

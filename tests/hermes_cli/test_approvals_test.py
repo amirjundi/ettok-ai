@@ -1,4 +1,4 @@
-"""Tests for ``hermes approvals test`` — dry-run approval verdict CLI.
+"""Tests for ``ettok approvals test`` — dry-run approval verdict CLI.
 
 The tester must compose the REAL runtime evaluators from ``tools.approval``
 (detect_hardline_command, _match_user_deny_rule, detect_dangerous_command,

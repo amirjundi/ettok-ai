@@ -153,7 +153,7 @@ def test_auth_provider_kept_out_of_manager_teardown_order():
     manager, ctx = _real_ctx()
     ctx.register_dashboard_auth_provider(_Basic())
     assert manager._registration_order == []
-    # Still attributed to the plugin for `hermes plugins list`.
+    # Still attributed to the plugin for `ettok plugins list`.
     assert "basic" in manager._ownership_ledger
 
 
@@ -185,7 +185,7 @@ def test_targeted_unload_disposes_persistent_auth_provider():
     ctx.register_dashboard_auth_provider(_Basic())
     assert get_provider("basic") is not None
 
-    # `hermes plugins disable basic` drives a targeted unload of that plugin.
+    # `ettok plugins disable basic` drives a targeted unload of that plugin.
     assert manager.unload("basic") is True
 
     assert get_provider("basic") is None, (

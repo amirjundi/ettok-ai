@@ -555,7 +555,7 @@ class TestDelivery:
         outbound_webhooks._deliver(delivery)
 
     def test_events_enqueued_at_exit_still_delivered(self, http_server, tmp_path):
-        """A short-lived process (`hermes chat -q`, cron) exits right after
+        """A short-lived process (`ettok chat -q`, cron) exits right after
         firing on_session_end.  The delivery worker is a daemon thread, so
         without the atexit flush the final event is silently dropped."""
         import subprocess

@@ -1,4 +1,4 @@
-"""Manual `hermes cron run` forwarding for relay-fronted delivery targets.
+"""Manual `ettok cron run` forwarding for relay-fronted delivery targets.
 
 A standalone CLI process has no live relay adapter and no standalone sender,
 so a manual run that targets a relay-fronted platform must forward to the

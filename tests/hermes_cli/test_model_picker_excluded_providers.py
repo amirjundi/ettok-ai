@@ -1,5 +1,5 @@
 """Tests that ``model_catalog.excluded_providers`` hides providers from the
-interactive ``hermes model`` CLI picker.
+interactive ``ettok model`` CLI picker.
 
 The CLI picker (``hermes_cli.main.select_provider_and_model``) builds its
 provider menu from ``CANONICAL_PROVIDERS`` via ``group_providers`` — a
@@ -62,7 +62,7 @@ def _capture_provider_labels(config_home):
 
 def test_cli_picker_hides_excluded_provider(config_home):
     """``excluded_providers: [openrouter]`` must remove the OpenRouter row
-    from the ``hermes model`` provider menu."""
+    from the ``ettok model`` provider menu."""
     _write_config(config_home, **{"model_catalog": {"excluded_providers": ["openrouter"]}})
 
     labels = _capture_provider_labels(config_home)

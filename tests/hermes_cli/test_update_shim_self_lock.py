@@ -6,7 +6,7 @@ the whole command. An update started that way must therefore replace a file it
 is holding, which Windows refuses — so the DEPENDENCY SYNC re-runs itself under
 ``venv\\Scripts\\python.exe``.
 
-The hand-off sits at the sync boundary, not at the top of ``hermes update``:
+The hand-off sits at the sync boundary, not at the top of ``ettok update``:
 everything before it (the fetch, the stash question, the branch switch) runs
 in the user's own console, and an up-to-date run that never syncs never hands
 off at all.
@@ -196,7 +196,7 @@ def test_reexec_falls_through_when_spawn_fails(venv, monkeypatch, capsys):
 def test_up_to_date_run_never_hands_off(venv, monkeypatch, capsys):
     """The regression that started this: a no-op update must not detach.
 
-    The hand-off used to run before the fetch, so every ``hermes update`` —
+    The hand-off used to run before the fetch, so every ``ettok update`` —
     including the ``Already up to date!`` case that never touches the venv —
     spawned a child and returned to the shell, leaving the child printing
     into a console it no longer owned. ``--check`` is the cheapest real run

@@ -6,7 +6,7 @@ scan (per-profile yaml.safe_load with the pure-Python loader + psutil
 process-table probes + realpath walks) in the default executor; on multi-profile
 installs the concurrent scans held the GIL for 14-16s and starved the event
 loop, so the desktop WS never received gateway.ready and boot escalated to the
-"Hermes couldn't start" overlay (#60800).
+"Ettok couldn't start" overlay (#60800).
 """
 
 import threading

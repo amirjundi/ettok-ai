@@ -1,4 +1,4 @@
-"""Tests for the post-update *import* guard in ``hermes update``.
+"""Tests for the post-update *import* guard in ``ettok update``.
 
 ``_validate_critical_files_syntax`` only parses files, so it cannot detect a
 partially-updated tree: when one package is refreshed and a sibling is not,
@@ -262,7 +262,7 @@ def test_hint_fires_for_first_party_import_error():
     hint = partial_update_hint(exc)
 
     assert hint, "expected recovery guidance for a first-party ImportError"
-    assert any("hermes update" in line for line in hint)
+    assert any("ettok update" in line for line in hint)
 
 
 @pytest.mark.parametrize(
@@ -282,7 +282,7 @@ def test_hint_stays_silent_for_unrelated_failures(exc):
 
 
 def test_import_guard_prefers_the_project_venv_interpreter(monkeypatch, tmp_path):
-    """``hermes update`` can run under a different Python than the install's.
+    """``ettok update`` can run under a different Python than the install's.
 
     Probing ``sys.executable`` would then validate a tree the user never
     actually runs -- the same reasoning behind ``_venv_core_imports_healthy``.

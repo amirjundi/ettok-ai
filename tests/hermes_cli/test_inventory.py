@@ -237,7 +237,7 @@ def test_explicit_only_filters_ambient_credentials_but_keeps_current_and_custom_
 def test_explicit_only_keeps_anthropic_row_with_oauth_credentials():
     """Anthropic OAuth logins are deliberate sign-ins, not ambient credentials.
 
-    Claude Code (~/.claude/.credentials.json) and Hermes' own device flow
+    Claude Code (~/.claude/.credentials.json) and Ettok' own device flow
     leave no trace in active_provider / model.provider / API-key env vars,
     so is_provider_explicitly_configured() returns False even though
     list_authenticated_providers just accepted those same credentials when

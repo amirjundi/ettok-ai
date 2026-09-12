@@ -1,6 +1,6 @@
 """Regression tests for #71047 (Problem A): per-platform display settings.
 
-`hermes config set platforms.<name>.<display_setting> <value>` must write to
+`ettok config set platforms.<name>.<display_setting> <value>` must write to
 `display.platforms.<name>.<display_setting>` — the path the gateway actually
 reads (gateway/display_config.py::resolve_display_setting). Writing to the
 top-level `platforms.<name>` block is silently ignored by the runtime, so the
