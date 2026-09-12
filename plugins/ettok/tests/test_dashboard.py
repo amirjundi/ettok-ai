@@ -106,3 +106,29 @@ def test_pages_actually_render():
     if result.returncode != 0 and 'Cannot find module' in output:
         pytest.skip('react/jsdom not installed in this checkout')
     assert result.returncode == 0, output
+
+
+def test_context_meter_is_not_fed_cumulative_spend():
+    """The meter shows how full the window is, not what the turn cost.
+
+    These are different numbers and conflating them produced a visible
+    impossibility: 1.2M / 1.0M. `usage` from the gateway is the agent's,
+    summed across every model call in a turn -- a reply that ran three shell
+    commands reports ~28k prompt tokens against a context that never exceeded
+    ~15k, because each tool round-trip resends the conversation. Over a long
+    agentic session that sum sails past the window.
+
+    Occupancy is only knowable from the stored per-message token counts, so the
+    meter reads those and `usage` is shown separately, named as spend.
+    """
+    source = (CHAT / 'dist' / 'index.js').read_text(encoding='utf-8')
+    assert 'setTurnSpend(obj.usage.total_tokens)' in source, \
+        'usage must feed the spend readout'
+    assert 'setUsedTokens(obj.usage' not in source, \
+        'usage must never feed the context meter'
+    # Occupancy is summed from message token counts, in two places: on opening a
+    # session and after a turn completes.
+    assert source.count('token_count') >= 2
+    assert 'refreshOccupancy' in source
+    # And the meter refuses an impossible value rather than printing it.
+    assert 'if (raw > limit) return null;' in source

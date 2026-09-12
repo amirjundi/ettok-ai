@@ -225,13 +225,24 @@
    *  outgrows its window, and a long case discussion losing its early context
    *  looks like the agent forgetting rather than a limit being hit. */
   function ContextMeter(props) {
-    const used = props.used || 0;
     const limit = props.limit || 0;
     if (!limit) return null;
+    // Occupancy cannot exceed the window: the runtime compresses a session
+    // before it would. A number above the limit therefore means the meter is
+    // being fed the wrong quantity -- it happened once, with cumulative spend
+    // wired in here -- so refuse to render rather than print an impossibility
+    // and teach the reader to distrust the panel.
+    const raw = props.used || 0;
+    if (raw > limit) return null;
+    const used = raw;
     const pct = Math.min(100, (used / limit) * 100);
     const tone = pct > 85 ? "rgb(200,70,50)" : pct > 60 ? "rgb(180,120,30)" : "rgb(90,130,190)";
     return h("div", { style: { display: "flex", alignItems: "center", gap: "7px" },
-                      title: used.toLocaleString() + " of " + limit.toLocaleString() + " tokens" },
+                      title: "Conversation: " + used.toLocaleString() + " of "
+                             + limit.toLocaleString() + " tokens.\n"
+                             + "Counts the stored messages only. The system prompt and tool "
+                             + "definitions are resident in every request on top of this "
+                             + "(~14k here) and are not included, so treat it as a floor." },
       h("div", { style: { width: "54px", height: "4px", borderRadius: "2px",
                           background: "rgba(128,128,128,0.25)", overflow: "hidden" } },
         h("div", { style: { width: pct + "%", height: "100%", background: tone } })),
@@ -275,6 +286,7 @@
     const [effort, setEffort] = useState("");
     const [attachments, setAttachments] = useState([]);
     const [usedTokens, setUsedTokens] = useState(0);
+    const [turnSpend, setTurnSpend] = useState(0);
     const logRef = useRef(null);
     const fileRef = useRef(null);
 
@@ -297,6 +309,20 @@
     useEffect(function () {
       if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
     }, [messages]);
+
+    const refreshOccupancy = useCallback(function (id) {
+      // The only honest source of "how full is the window": the per-message
+      // token counts the runtime stored for this session. Summed, that is what
+      // the next request will carry. Cumulative usage counters cannot answer
+      // this -- they count what was billed, not what is resident.
+      SDK.fetchJSON("/api/sessions/" + encodeURIComponent(id) + "/messages?limit=500&order=oldest")
+        .then(function (d) {
+          let used = 0;
+          for (const m of (d && d.messages) || []) used += m.token_count || 0;
+          setUsedTokens(used);
+        })
+        .catch(function () { /* the meter is advisory; a failure just leaves it */ });
+    }, []);
 
     const openSession = useCallback(function (id) {
       setSessionId(id);
@@ -331,6 +357,7 @@
       setSessionId(null);
       setMessages([]);
       setUsedTokens(0);
+      setTurnSpend(0);
       setAttachments([]);
     }, []);
 
@@ -404,8 +431,12 @@
           return reader.read().then(function (r) {
             if (r.done) {
               setBusy(false);
-              // Titles and counts are written as the turn completes.
-              setTimeout(loadSessions, 800);
+              // Titles, counts and per-message token counts are written as the
+              // turn completes, so both refreshes wait for it.
+              setTimeout(function () {
+                loadSessions();
+                if (landed) refreshOccupancy(landed);
+              }, 800);
               return;
             }
             buffer += decoder.decode(r.value, { stream: true });
@@ -439,7 +470,14 @@
                 const choice = (obj.choices || [])[0] || {};
                 const delta = choice.delta || choice.message || {};
                 if (delta.content) acc += delta.content;
-                if (obj.usage && obj.usage.total_tokens) setUsedTokens(obj.usage.total_tokens);
+                // Deliberately NOT fed to the context meter. `usage` is the
+                // agent's, summed across every model call in the turn: a reply
+                // that ran three shell commands reports ~28k prompt tokens
+                // against a context that never exceeded ~15k, because each tool
+                // round-trip resends the conversation. Summing that across a
+                // long session climbs past the window and reads as impossible.
+                // It is real spend, so it is shown as spend.
+                if (obj.usage && obj.usage.total_tokens) setTurnSpend(obj.usage.total_tokens);
               }
               setMessages(history.concat([{ role: "assistant", content: acc, tools: tools }]));
             }
@@ -470,6 +508,11 @@
             : null,
           h("div", { style: { flex: 1 } }),
           h(ContextMeter, { used: usedTokens, limit: model && model.effective_context_length }),
+          turnSpend
+            ? h("span", { style: C.meta, title: "Tokens billed for the last reply, summed "
+                                               + "across every model call the agent made in it" },
+                compact(turnSpend) + " spent")
+            : null,
           reasoning
             ? h("select", {
                 style: C.select, value: effort,
