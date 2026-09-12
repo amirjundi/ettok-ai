@@ -202,6 +202,29 @@ def _doctor(args) -> int:
         except Exception:
             check('browser installed', False, 'could not determine; install it to be sure')
 
+        # A browser that exists but whose tools the agent cannot call is the
+        # worst of both worlds, and it is the runtime's DEFAULT. With
+        # `browser.backend` unset and the Browser Use CLI runnable, the whole
+        # browser_* surface is replaced by a single browser_exec -- so the
+        # collector's navigate/snapshot/vision/console calls all resolve to
+        # nothing, the run completes, and it reports no error at all.
+        try:
+            from tools.browser_use_cli import is_browser_use_cli_mode
+            if is_browser_use_cli_mode():
+                check('collector can reach the browser', False,
+                      'Browser Use CLI mode has replaced the browser_* tools')
+                print('        Set `browser.backend: off` in config.yaml (or re-run '
+                      '`ettok setup`). Collection drives browser_navigate, '
+                      'browser_snapshot, browser_vision and browser_console, and '
+                      'Camoufox lives in that same built-in stack.')
+            else:
+                check('collector can reach the browser', True)
+        except ImportError:
+            # No Browser Use module at all: the built-in stack is the only one.
+            check('collector can reach the browser', True)
+        except Exception as exc:
+            check('collector can reach the browser', False, str(exc))
+
     try:
         import curses  # noqa: F401
         check('interactive menus available', True)

@@ -254,3 +254,63 @@ def test_the_browser_survives_trimming(plugin_loaded):
     names = _tool_names(
         model_tools.get_tool_definitions(enabled_toolsets=MONITORING_TOOLSETS))
     assert any(n.startswith('browser_') for n in names)
+
+
+def test_wizard_pins_the_browser_backend(monkeypatch):
+    """Browser Use CLI mode is the runtime default and breaks collection silently.
+
+    With `browser.backend` unset and the CLI runnable, the whole browser_* surface
+    is replaced by one browser_exec. The collector drives browser_navigate,
+    browser_snapshot, browser_vision and browser_console and would find none of
+    them -- the run completes, reports no error, and collects nothing. Camoufox,
+    which this agent needs for fingerprint resistance, is in the built-in stack too.
+    """
+    from plugins.ettok import setup_wizard
+
+    saved = {}
+    monkeypatch.setattr(setup_wizard, '_interactive', lambda: False, raising=False)
+
+    class FakeConfig:
+        @staticmethod
+        def load_config():
+            return {}
+
+        @staticmethod
+        def save_config(cfg):
+            saved.update(cfg)
+
+    # setattr on the package, not setitem on sys.modules: `_apply_toolsets` does
+    # `from hermes_cli import config`, which reads the package attribute. Once any
+    # earlier test has imported the real module that attribute is already bound,
+    # and a sys.modules swap silently does nothing -- the test then passes alone
+    # and fails in the suite.
+    import hermes_cli
+    monkeypatch.setattr(hermes_cli, 'config', FakeConfig)
+    assert setup_wizard._apply_toolsets() is True
+    assert saved['browser']['backend'] == 'off'
+
+
+def test_wizard_leaves_an_explicit_backend_alone(monkeypatch):
+    """An operator who chose a backend has made a decision; the wizard defers."""
+    from plugins.ettok import setup_wizard
+
+    saved = {}
+
+    class FakeConfig:
+        @staticmethod
+        def load_config():
+            return {'browser': {'backend': 'browser_use'}}
+
+        @staticmethod
+        def save_config(cfg):
+            saved.update(cfg)
+
+    # setattr on the package, not setitem on sys.modules: `_apply_toolsets` does
+    # `from hermes_cli import config`, which reads the package attribute. Once any
+    # earlier test has imported the real module that attribute is already bound,
+    # and a sys.modules swap silently does nothing -- the test then passes alone
+    # and fails in the suite.
+    import hermes_cli
+    monkeypatch.setattr(hermes_cli, 'config', FakeConfig)
+    assert setup_wizard._apply_toolsets() is True
+    assert saved['browser']['backend'] == 'browser_use'

@@ -315,6 +315,16 @@ def _apply_toolsets() -> bool:
     tools deferred, against 8,127 with this applied and all ten visible. Cheaper
     and more capable, which is rare enough to be worth the comment.
 
+    The browser backend is the third change, and it is the one that silently
+    breaks collection. Browser Use CLI mode is the runtime's DEFAULT whenever
+    `browser.backend` is unset and the CLI is runnable, and it REPLACES the whole
+    browser_* surface with a single browser_exec. The Ettok collector drives
+    browser_navigate / browser_snapshot / browser_vision / browser_console, and
+    Camoufox -- the anti-detect Firefox this agent depends on for fingerprint
+    resistance -- lives in the built-in stack too. Under the default, none of
+    those tools exist, and a scheduled run finds nothing while reporting no
+    error. `off` keeps the built-in stack.
+
     Written to the runtime's config rather than forced in code, so an operator who
     wants the full set can put it back with `ettok tools`.
     """
@@ -333,6 +343,13 @@ def _apply_toolsets() -> bool:
             search_cfg = tools_cfg.setdefault('tool_search', {})
             if isinstance(search_cfg, dict):
                 search_cfg['enabled'] = 'off'
+
+        # Only when the operator has expressed no preference: an explicit
+        # backend is a decision, and this wizard does not get to overrule it.
+        browser_cfg = cfg.setdefault('browser', {})
+        if isinstance(browser_cfg, dict) and not browser_cfg.get('backend'):
+            browser_cfg['backend'] = 'off'
+
         hermes_config.save_config(cfg)
         return True
     except Exception:
