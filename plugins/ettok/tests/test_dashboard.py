@@ -86,3 +86,23 @@ def test_bundles_follow_the_dashboard_font():
     source = (CHAT / 'dist' / 'index.js').read_text(encoding='utf-8')
     assert '--theme-font-mono' in source
     assert 'ui-monospace,Menlo,monospace' not in source
+
+
+@pytest.mark.skipif(shutil.which('node') is None, reason='Node not installed')
+def test_pages_actually_render():
+    """Mount both pages in a DOM and let their effects run.
+
+    A parse check says nothing about a page that references a variable which
+    does not exist or crashes once its data arrives -- and that reaches a user
+    as a blank tab. Skipped rather than failed when the web dependencies are
+    absent: this is a repo with a built frontend, not a JS project, and a
+    Python-only checkout should not fail for want of React.
+    """
+    result = subprocess.run(
+        [shutil.which('node'), str(HERE / 'render_check.js')],
+        capture_output=True, text=True, timeout=120, cwd=str(PLUGINS.parent),
+    )
+    output = (result.stderr or '') + (result.stdout or '')
+    if result.returncode != 0 and 'Cannot find module' in output:
+        pytest.skip('react/jsdom not installed in this checkout')
+    assert result.returncode == 0, output
