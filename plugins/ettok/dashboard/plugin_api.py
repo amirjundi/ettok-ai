@@ -205,3 +205,24 @@ def knowledge() -> dict:
 
     _platform_cache, _platform_cache_at = payload, time.time()
     return payload
+
+
+@router.get('/reports')
+def reports() -> dict:
+    """The far end of the loop: what the platform made of what was sent.
+
+    Separate from /status because it crosses the network, and separate from
+    /knowledge because an operator checks it on a different rhythm -- knowledge
+    changes when a curator works, reports change when the agent does.
+    """
+    cfg = _config()
+    if not cfg.is_paired:
+        return {'available': False, 'reason': 'not paired with a platform'}
+    try:
+        from plugins.ettok.platform.client import PlatformClient
+        data = PlatformClient(cfg).reports(limit=20)
+        return {'available': True, **data}
+    except Exception as exc:                          # noqa: BLE001
+        # An older platform has no reports/ endpoint. That is a missing feature,
+        # not a broken agent, and the panel should say so rather than look failed.
+        return {'available': False, 'reason': str(exc)}

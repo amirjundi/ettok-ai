@@ -186,11 +186,89 @@
         : h("div", { style: S.alert("info") }, "Knowledge looks complete."));
   }
 
+  function Cases(props) {
+    const cases = (props.knowledge && props.knowledge.cases_detail) || [];
+    if (!cases.length) {
+      return h("div", { style: S.muted },
+        "No case is open. The agent has nothing to work until a case manager opens one "
+        + "on the platform.");
+    }
+    return h("table", { style: S.table },
+      h("thead", null, h("tr", null,
+        ["Case", "State", "Communities", "Items left", "Budget left", ""].map(function (t, i) {
+          return h("th", { key: i, style: S.th }, t);
+        }))),
+      h("tbody", null, cases.map(function (c) {
+        const lim = c.limits || {};
+        return h("tr", { key: c.id },
+          h("td", { style: S.td }, c.title),
+          h("td", { style: S.td }, h("span", { style: S.pill(c.state === "active") }, c.state)),
+          h("td", { style: S.td }, (c.groups || []).join(", ") || "—"),
+          // Remaining rather than total: a subtraction the reader should not do.
+          h("td", { style: S.td },
+            lim.items_remaining === null || lim.items_remaining === undefined
+              ? "unbounded" : lim.items_remaining),
+          h("td", { style: S.td },
+            lim.cost_remaining_usd === null || lim.cost_remaining_usd === undefined
+              ? "unbounded" : "$" + Number(lim.cost_remaining_usd).toFixed(2)),
+          // The agent may raise this. It may not act on it.
+          h("td", { style: Object.assign({}, S.td, S.muted) },
+            c.suggests_closing ? "proposes closing" : ""));
+      })));
+  }
+
+  function Reports(props) {
+    const r = props.reports;
+    if (!r) return h("div", { style: S.muted }, "Loading…");
+    if (!r.available) {
+      return h("div", { style: S.muted },
+        "Unavailable — " + (r.reason || "unknown")
+        + ". An older platform has no reports endpoint; that is a missing feature, not a fault here.");
+    }
+    const rows = r.reports || [];
+    const counts = r.counts || {};
+    return h("div", { style: S.section },
+      h("div", { style: S.grid },
+        h(Stat, { label: "awaiting review", value: counts["new"] || 0 }),
+        h(Stat, { label: "reviewed", value: counts["reviewed"] || 0 }),
+        h(Stat, { label: "dismissed", value: counts["false_positive"] || 0 }),
+        h(Stat, {
+          label: "agent disagreed", value: r.disagreements || 0,
+          tone: (r.disagreements ? "rgb(180,120,30)" : null),
+        })),
+      (r.without_context
+        ? h("div", { style: S.alert("warning") },
+            r.without_context + " report(s) were judged with no parent post. "
+            + "Context-dependent hate is invisible without it.")
+        : null),
+      rows.length
+        ? h("table", { style: S.table },
+            h("thead", null, h("tr", null,
+              ["When", "Excerpt", "Group", "Severity", "Status", "Context"].map(function (t) {
+                return h("th", { key: t, style: S.th }, t);
+              }))),
+            h("tbody", null, rows.map(function (row) {
+              return h("tr", { key: row.id },
+                h("td", { style: S.td }, ago(row.created_at)),
+                h("td", { style: Object.assign({}, S.td, { maxWidth: "320px" }) }, row.excerpt),
+                h("td", { style: S.td }, row.target_group || "—"),
+                h("td", { style: S.td }, row.severity || "—"),
+                h("td", { style: S.td },
+                  h("span", { style: S.pill(row.status !== "false_positive") }, row.status)),
+                h("td", { style: S.td },
+                  h("span", { style: S.pill(row.had_context) },
+                    row.had_context ? "yes" : "none")));
+            })))
+        : h("div", { style: S.muted },
+            "Nothing has been submitted yet, or nothing has been confirmed."));
+  }
+
   // ---- page -----------------------------------------------------------
 
   function EttokPage() {
     const [status, statusErr] = useEndpoint("/status", POLL_MS);
     const [knowledge] = useEndpoint("/knowledge", POLL_MS * 4);
+    const [reports] = useEndpoint("/reports", POLL_MS * 2);
 
     if (statusErr) {
       return h("div", { style: S.page },
@@ -221,6 +299,14 @@
             tone: (q.failed_permanent ? "rgb(200,70,50)" : null),
           }),
           h(Stat, { label: "evidence held locally", value: status.evidence_pending || 0 }))),
+
+      h("div", { style: S.section },
+        h("h2", { style: S.h2 }, "Open cases"),
+        h(Cases, { knowledge: knowledge })),
+
+      h("div", { style: S.section },
+        h("h2", { style: S.h2 }, "Findings on the platform"),
+        h(Reports, { reports: reports })),
 
       h("div", { style: S.section },
         h("h2", { style: S.h2 }, "What it can detect"),

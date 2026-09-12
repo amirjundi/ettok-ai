@@ -204,6 +204,14 @@ class PlatformClient:
     def accounts(self) -> dict:
         return self.request('GET', 'accounts/').data
 
+    def reports(self, *, limit: int = 20) -> dict:
+        """What became of what was submitted.
+
+        Read-only and advisory in the other direction: the platform's verdicts
+        are shown to an operator, never fed back into the agent's own judgement.
+        """
+        return self.request('GET', 'reports/', params={'limit': limit}).data
+
     def submit_flagged(self, items: list, *, idempotency_key: str) -> Response:
         return self.request(
             'POST', 'flagged-items/', payload={'items': items}, idempotency_key=idempotency_key,
