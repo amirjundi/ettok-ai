@@ -1,4 +1,4 @@
-// Exercises the two parsers in the dashboard bundle under Node: the markdown
+// Exercises the two parsers in the ettok-chat dashboard bundle under Node: the markdown
 // renderer and the SSE frame reader.
 //
 // Run by test_dashboard.py when Node is available. It is a separate file rather
@@ -11,7 +11,7 @@ const path = require("path");
 const vm = require("vm");
 
 const bundle = fs.readFileSync(
-  path.join(__dirname, "..", "dashboard", "dist", "index.js"), "utf8");
+  path.join(__dirname, "..", "..", "ettok-chat", "dashboard", "dist", "index.js"), "utf8");
 
 // The bundle is an IIFE that keeps its functions private. Rather than unwrap it
 // -- which would change what is being tested -- hand out the renderer from

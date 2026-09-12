@@ -1,0 +1,9 @@
+{
+  "name": "ettok-chat",
+  "label": "Chat",
+  "description": "Talk to the agent in readable text rather than a terminal.",
+  "icon": "MessageSquare",
+  "version": "0.1.0",
+  "tab": { "path": "/ettok-chat", "override": "/chat" },
+  "entry": "dist/index.js"
+}

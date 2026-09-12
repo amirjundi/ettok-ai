@@ -263,284 +263,10 @@
             "Nothing has been submitted yet, or nothing has been confirmed."));
   }
 
-  // ---- chat -----------------------------------------------------------
-  //
-  // The dashboard's built-in Chat tab is an xterm terminal streamed over a PTY.
-  // That suits an operator and suits nobody else: it renders ANSI escape codes,
-  // not markdown, and a research team handed a terminal will not use it.
-  //
-  // This talks to the same agent through the OpenAI-compatible endpoint the
-  // gateway already serves, proxied same-origin by this plugin's backend. The
-  // agent loop and its tools stay upstream's; only the presentation is ours.
-  //
-  // The markdown renderer is deliberately small and hand-written: the dashboard
-  // admits no CDN, and a parser dependency would mean a build step for a plugin
-  // that currently has none.
-
-  function escapeHtml(s) {
-    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
-
-  function inlineMd(s) {
-    // Escape first, then add markup, so model output containing < or & cannot
-    // put anything into the page that we did not write.
-    let out = escapeHtml(s);
-    out = out.replace(/`([^`]+)`/g, '<code class="ettok-code">$1</code>');
-    out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-    out = out.replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
-    out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
-      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-    return out;
-  }
-
-  function renderMarkdown(text) {
-    const lines = String(text || "").split("\n");
-    const out = [];
-    let inCode = false;
-    let code = [];
-    let list = null;
-
-    function flushList() {
-      if (list) { out.push('<ul class="ettok-ul">' + list.join("") + "</ul>"); list = null; }
-    }
-    function flushCode() {
-      out.push('<pre class="ettok-pre"><code>' + escapeHtml(code.join("\n")) + "</code></pre>");
-      code = [];
-    }
-
-    for (const line of lines) {
-      if (/^\s*```/.test(line)) {
-        if (inCode) { flushCode(); inCode = false; } else { flushList(); inCode = true; }
-        continue;
-      }
-      if (inCode) { code.push(line); continue; }
-
-      const heading = line.match(/^(#{1,4})\s+(.*)$/);
-      if (heading) {
-        flushList();
-        out.push('<div class="ettok-mdh">' + inlineMd(heading[2]) + "</div>");
-        continue;
-      }
-      const bullet = line.match(/^\s*(?:[-*]|\d+\.)\s+(.*)$/);
-      if (bullet) { (list = list || []).push("<li>" + inlineMd(bullet[1]) + "</li>"); continue; }
-      if (!line.trim()) { flushList(); continue; }
-      flushList();
-      out.push('<p class="ettok-p">' + inlineMd(line) + "</p>");
-    }
-    // An unclosed fence is the normal state while a reply is still streaming.
-    if (inCode && code.length) flushCode();
-    flushList();
-    return out.join("");
-  }
-
-  const MD_CSS = '.ettok-p{margin:0 0 9px}'
-    + '.ettok-mdh{margin:13px 0 6px;font-weight:600}'
-    + '.ettok-ul{margin:0 0 9px;padding-left:22px}.ettok-ul li{margin:3px 0}'
-    + '.ettok-code{background:rgba(128,128,128,.16);padding:1px 5px;border-radius:3px;'
-    + 'font-family:ui-monospace,Menlo,monospace;font-size:.9em}'
-    + '.ettok-pre{background:rgba(128,128,128,.12);padding:12px 14px;border-radius:5px;'
-    + 'overflow-x:auto;margin:0 0 10px}'
-    + '.ettok-pre code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.5}';
-
-  function useMarkdownStyles() {
-    useEffect(function () {
-      if (document.getElementById("ettok-md-css")) return;
-      const el = document.createElement("style");
-      el.id = "ettok-md-css";
-      el.textContent = MD_CSS;
-      document.head.appendChild(el);
-    }, []);
-  }
-
-  function parseFrame(frame) {
-    // One SSE frame is a block of "field: value" lines. The event name matters:
-    // tool activity arrives as `event: hermes.tool.progress`, and a parser that
-    // reads only `data:` would quietly file a tool call as an empty completion.
-    // Returns null for frames with nothing to render ([DONE], keepalives).
-    let event = "message";
-    let data = "";
-    for (const line of frame.split("\n")) {
-      if (line.startsWith("event:")) event = line.slice(6).trim();
-      else if (line.startsWith("data:")) data += line.slice(5).trim();
-    }
-    if (!data || data === "[DONE]") return null;
-    try {
-      return { event: event, data: JSON.parse(data) };
-    } catch (e) {
-      return null;
-    }
-  }
-
-  const C = {
-    wrap: { display: "flex", flexDirection: "column", gap: "12px", height: "calc(100vh - 210px)",
-            minHeight: "340px" },
-    log: { flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "14px",
-           paddingRight: "6px" },
-    who: { fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em",
-           opacity: 0.55, fontWeight: 600, marginBottom: "3px" },
-    body: { fontSize: "14px", lineHeight: 1.62 },
-    userBody: { fontSize: "14px", lineHeight: 1.62, background: "rgba(128,128,128,0.10)",
-                padding: "10px 14px", borderRadius: "6px" },
-    row: { display: "flex", gap: "8px", alignItems: "flex-end" },
-    input: { flex: 1, resize: "none", minHeight: "44px", maxHeight: "180px", padding: "11px 13px",
-             borderRadius: "6px", border: "1px solid rgba(128,128,128,0.3)", background: "transparent",
-             color: "inherit", font: "inherit", fontSize: "14px" },
-    tools: { display: "flex", flexDirection: "column", gap: "2px", fontSize: "12px",
-             fontFamily: "ui-monospace,Menlo,monospace", opacity: 0.75, margin: "0 0 8px" },
-    send: { padding: "11px 20px", borderRadius: "6px", border: "none", cursor: "pointer",
-            fontWeight: 600, background: "rgb(90,130,190)", color: "#fff" },
-  };
-
-  function Markdown(props) {
-    return h("div", {
-      style: props.role === "user" ? C.userBody : C.body,
-      dangerouslySetInnerHTML: { __html: renderMarkdown(props.text) },
-    });
-  }
-
-  function Chat() {
-    useMarkdownStyles();
-    const [messages, setMessages] = useState([]);
-    const [draft, setDraft] = useState("");
-    const [busy, setBusy] = useState(false);
-    const [health] = useEndpoint("/chat/health", 0);
-    const logRef = React.useRef(null);
-    const sessionId = React.useRef("ettok-dash-" + Math.random().toString(36).slice(2, 10));
-
-    useEffect(function () {
-      // Follow the tail while a reply streams in.
-      if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-    }, [messages]);
-
-    const send = useCallback(function () {
-      const text = draft.trim();
-      if (!text || busy) return;
-
-      const history = messages.concat([{ role: "user", content: text }]);
-      setMessages(history.concat([{ role: "assistant", content: "" }]));
-      setDraft("");
-      setBusy(true);
-
-      fetch(API + "/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, session_id: sessionId.current }),
-      }).then(function (res) {
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let acc = "";
-        let tools = [];
-
-        function pump() {
-          return reader.read().then(function (r) {
-            if (r.done) { setBusy(false); return; }
-            buffer += decoder.decode(r.value, { stream: true });
-            const parts = buffer.split("\n\n");
-            buffer = parts.pop();
-
-            for (const frame of parts) {
-              const parsed = parseFrame(frame);
-              if (!parsed) continue;
-              const event = parsed.event;
-              const obj = parsed.data;
-
-              if (event === "hermes.tool.progress") {
-                // What the agent is doing on this machine, while it does it.
-                // Dropping these is what makes a working agent look hung.
-                if (obj.status === "running") {
-                  tools = tools.concat([{ id: obj.toolCallId, emoji: obj.emoji,
-                                          label: obj.label || obj.tool, done: false }]);
-                } else {
-                  tools = tools.map(function (t) {
-                    return t.id === obj.toolCallId ? Object.assign({}, t, { done: true }) : t;
-                  });
-                }
-              } else if (obj.error) {
-                acc += "\n\n**" + obj.error + "**" + (obj.hint ? "\n\n" + obj.hint : "");
-              } else {
-                const choice = (obj.choices || [])[0] || {};
-                const delta = choice.delta || choice.message || {};
-                if (delta.content) acc += delta.content;
-              }
-              setMessages(history.concat([{ role: "assistant", content: acc, tools: tools }]));
-            }
-            return pump();
-          });
-        }
-        return pump();
-      }).catch(function (e) {
-        setMessages(history.concat([{
-          role: "assistant",
-          content: "**Could not reach the agent.** " + (e.message || String(e)),
-        }]));
-        setBusy(false);
-      });
-    }, [draft, busy, messages]);
-
-    return h("div", { style: C.wrap },
-      (health && !health.available)
-        ? h("div", { style: S.alert("warning") },
-            "The agent gateway is not running, so there is nothing here to talk to. "
-            + "Start it with `ettok gateway run`."
-            + (health.reason ? "  (" + health.reason + ")" : ""))
-        : null,
-
-      h("div", { style: C.log, ref: logRef },
-        messages.length === 0
-          ? h("div", { style: S.muted },
-              "Ask the agent about a case, a finding, or why something was or was not "
-              + "flagged. Replies render as text, not terminal output.")
-          : messages.map(function (m, i) {
-              return h("div", { key: i },
-                h("div", { style: C.who }, m.role === "user" ? "You" : "Ettok AI"),
-                (m.tools && m.tools.length)
-                  ? h("div", { style: C.tools }, m.tools.map(function (t, j) {
-                      return h("div", { key: j, style: { opacity: t.done ? 0.5 : 1 } },
-                        (t.emoji ? t.emoji + " " : "") + t.label + (t.done ? "" : " …"));
-                    }))
-                  : null,
-                m.content
-                  ? h(Markdown, { text: m.content, role: m.role })
-                  : (m.tools && m.tools.length)
-                      ? null
-                      : h("div", { style: S.muted }, "thinking…"));
-            })),
-
-      h("div", { style: C.row },
-        h("textarea", {
-          style: C.input,
-          value: draft,
-          placeholder: "Ask the agent…  (Enter to send, Shift+Enter for a new line)",
-          onChange: function (e) { setDraft(e.target.value); },
-          onKeyDown: function (e) {
-            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-          },
-        }),
-        h("button", {
-          style: Object.assign({}, C.send, (busy || !draft.trim()) ? { opacity: 0.45, cursor: "default" } : {}),
-          onClick: send,
-          disabled: busy || !draft.trim(),
-        }, busy ? "…" : "Send")));
-  }
-
   // ---- page -----------------------------------------------------------
 
-  function Tab(props) {
-    return h("button", {
-      onClick: props.onClick,
-      style: {
-        padding: "6px 14px", borderRadius: "5px", cursor: "pointer", fontSize: "13px",
-        fontWeight: 600, border: "1px solid rgba(128,128,128,0.25)",
-        background: props.active ? "rgba(90,130,190,0.15)" : "transparent",
-        color: props.active ? "rgb(90,130,190)" : "inherit",
-      },
-    }, props.label);
-  }
-
   function EttokPage() {
-    const [view, setView] = useState("monitoring");
-    const [status, statusErr] = useEndpoint("/status", view === "monitoring" ? POLL_MS : 0);
+    const [status, statusErr] = useEndpoint("/status", POLL_MS);
     const [knowledge] = useEndpoint("/knowledge", POLL_MS * 4);
     const [reports] = useEndpoint("/reports", POLL_MS * 2);
 
@@ -558,49 +284,41 @@
         h("h1", { style: S.h1 }, "Ettok AI"),
         h("p", { style: S.sub },
           "Hate speech monitoring for minority communities in Iraq. "
-          + "This agent collects and reports; the platform decides."),
-        h("div", { style: { display: "flex", gap: "8px", marginTop: "12px" } },
-          h(Tab, { label: "Monitoring", active: view === "monitoring",
-                   onClick: function () { setView("monitoring"); } }),
-          h(Tab, { label: "Chat", active: view === "chat",
-                   onClick: function () { setView("chat"); } }))),
+          + "This agent collects and reports; the platform decides.")),
 
-      view === "chat" ? h(Chat, null) : null,
+      h(Alerts, { alerts: status.alerts }),
+      h(Connection, { status: status }),
 
-      view === "chat" ? null : h(Alerts, { alerts: status.alerts }),
-      view === "chat" ? null : h(React.Fragment, null,
-        h(Connection, { status: status }),
+      h("div", { style: S.section },
+        h("h2", { style: S.h2 }, "Delivery"),
+        h("div", { style: S.grid },
+          h(Stat, { label: "waiting to send", value: q.pending || 0 }),
+          h(Stat, { label: "delivered", value: q.delivered || 0 }),
+          h(Stat, {
+            label: "failed permanently", value: q.failed_permanent || 0,
+            tone: (q.failed_permanent ? "rgb(200,70,50)" : null),
+          }),
+          h(Stat, { label: "evidence held locally", value: status.evidence_pending || 0 }))),
 
-        h("div", { style: S.section },
-          h("h2", { style: S.h2 }, "Delivery"),
-          h("div", { style: S.grid },
-            h(Stat, { label: "waiting to send", value: q.pending || 0 }),
-            h(Stat, { label: "delivered", value: q.delivered || 0 }),
-            h(Stat, {
-              label: "failed permanently", value: q.failed_permanent || 0,
-              tone: (q.failed_permanent ? "rgb(200,70,50)" : null),
-            }),
-            h(Stat, { label: "evidence held locally", value: status.evidence_pending || 0 }))),
+      h("div", { style: S.section },
+        h("h2", { style: S.h2 }, "Open cases"),
+        h(Cases, { knowledge: knowledge })),
 
-        h("div", { style: S.section },
-          h("h2", { style: S.h2 }, "Open cases"),
-          h(Cases, { knowledge: knowledge })),
+      h("div", { style: S.section },
+        h("h2", { style: S.h2 }, "Findings on the platform"),
+        h(Reports, { reports: reports })),
 
-        h("div", { style: S.section },
-          h("h2", { style: S.h2 }, "Findings on the platform"),
-          h(Reports, { reports: reports })),
+      h("div", { style: S.section },
+        h("h2", { style: S.h2 }, "What it can detect"),
+        h(Knowledge, { knowledge: knowledge })),
 
-        h("div", { style: S.section },
-          h("h2", { style: S.h2 }, "What it can detect"),
-          h(Knowledge, { knowledge: knowledge })),
+      h("div", { style: S.section },
+        h("h2", { style: S.h2 }, "Monitoring accounts"),
+        h(Accounts, { accounts: status.accounts })),
 
-        h("div", { style: S.section },
-          h("h2", { style: S.h2 }, "Monitoring accounts"),
-          h(Accounts, { accounts: status.accounts })),
-
-        h("div", { style: S.section },
-          h("h2", { style: S.h2 }, "Recent runs"),
-          h(Runs, { runs: status.runs }))));
+      h("div", { style: S.section },
+        h("h2", { style: S.h2 }, "Recent runs"),
+        h(Runs, { runs: status.runs })));
   }
 
   window.__HERMES_PLUGINS__.register("ettok", EttokPage);
