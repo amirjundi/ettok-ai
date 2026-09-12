@@ -1,7 +1,7 @@
 """Wake an existing agent session from a background completion event. Push-capable adapters
 (``supports_async_delivery``) get a synthetic ``MessageEvent(internal=True)`` via handle_message;
 stateless adapters (API server) would run that under a ``build_session_key()`` key that never
-matches the raw ``X-Ettok-Session-Id`` real turns use (invisible parallel session), so we self-POST
+matches the raw ``X-Hermes-Session-Id`` real turns use (invisible parallel session), so we self-POST
 ``/v1/chat/completions`` with the raw id header to resume the REAL session. Exception:
 async-delegation completions: the CLIENT owns the next turn, so they are never self-POSTed as a
 new ``role=user`` prompt (could cross a pending human-confirmation gate); instead
@@ -53,7 +53,7 @@ async def admit_internal_event(adapter: Any, event: Any) -> None:
 
 async def deliver_wake(adapter: Any, *, text: str, session_id: str = "", source: Any = None) -> None:
     """Deliver a wake turn to the session behind ``adapter``. ``session_id`` is the RAW session id
-    (``X-Ettok-Session-Id`` / state.db key) — required for non-push adapters. ``source`` is the
+    (``X-Hermes-Session-Id`` / state.db key) — required for non-push adapters. ``source`` is the
     ``SessionSource`` for the synthetic event — required for push-capable adapters. Raises on
     failure so the caller can rewind/retry."""
     if adapter_supports_push(adapter):
@@ -134,7 +134,7 @@ async def persist_delegation_delivery(adapter: Any, *, text: str, session_id: st
 
 async def _self_post_chat_completion(adapter: Any, *, text: str, session_id: str) -> None:
     """POST the wake text to the in-pod API server as a normal session turn, using the adapter's
-    own bind host/port/key. Session continuation via ``X-Ettok-Session-Id`` is 403-gated on
+    own bind host/port/key. Session continuation via ``X-Hermes-Session-Id`` is 403-gated on
     ``API_SERVER_KEY``, so a missing key is a hard error rather than a wake in a fresh session
     nobody watches."""
     import aiohttp
@@ -145,12 +145,12 @@ async def _self_post_chat_completion(adapter: Any, *, text: str, session_id: str
     api_key = str(getattr(adapter, "_api_key", "") or "")
     if not api_key:
         raise RuntimeError("wake self-post requires API_SERVER_KEY: session continuation via "
-                           "X-Ettok-Session-Id is rejected (403) on an unauthenticated API "
+                           "X-Hermes-Session-Id is rejected (403) on an unauthenticated API "
                            "server, so the wake cannot reach the target session")
     if ":" in host and not host.startswith("["):
         host = f"[{host}]"  # bare IPv6 literal
     url = f"http://{host}:{port}/v1/chat/completions"
-    headers = {"Authorization": f"Bearer {api_key}", "X-Ettok-Session-Id": session_id}
+    headers = {"Authorization": f"Bearer {api_key}", "X-Hermes-Session-Id": session_id}
     payload = {"model": str(getattr(adapter, "_model_name", "") or "hermes-agent"),
                "messages": [{"role": "user", "content": text}], "stream": False}
     last_err: Optional[BaseException] = None

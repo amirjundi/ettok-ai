@@ -3,7 +3,7 @@ pre/post_tool_call, timeout clamped to [1, 60], name) -> notify-only callbacks o
 manager, so every ``invoke_hook()`` site can POST lifecycle events (mirror of
 ``gateway/platforms/webhook.py``).  Fire-and-forget through a bounded queue + one daemon worker,
 so a target can never block a tool call or influence agent flow.  HMAC-SHA256 signed
-(``X-Ettok-Signature-256: sha256=<hex>`` over the raw body) when a secret is configured;
+(``X-Hermes-Signature-256: sha256=<hex>`` over the raw body) when a secret is configured;
 ``HERMES_SAFE_MODE=1`` skips registration; registration is idempotent.
 """
 
@@ -237,7 +237,7 @@ def _make_callback(event: str, target: WebhookTarget):
 
 def _serialize_payload(event: str, kwargs: Dict[str, Any], delivery_id: str) -> bytes:
     """Render the POST body: shell-hooks stdin shape plus delivery metadata.  ``delivery_id``
-    (also the ``X-Ettok-Delivery`` header) and ``timestamp`` live inside the HMAC-signed
+    (also the ``X-Hermes-Delivery`` header) and ``timestamp`` live inside the HMAC-signed
     body, so they double as replay protection."""
     # Profile resolved at fire time so a multiplexed gateway's receivers can tell which profile emitted.
     # See #92674.
@@ -251,12 +251,12 @@ def _serialize_payload(event: str, kwargs: Dict[str, Any], delivery_id: str) -> 
 
 def _build_delivery(event: str, target: WebhookTarget, body: bytes, delivery_id: str) -> Dict[str, Any]:
     headers = {
-        "Content-Type": "application/json", "User-Agent": "Ettok-Agent-Outbound-Webhook",
-        "X-Ettok-Event": event, "X-Ettok-Delivery": delivery_id,
+        "Content-Type": "application/json", "User-Agent": "Hermes-Agent-Outbound-Webhook",
+        "X-Hermes-Event": event, "X-Hermes-Delivery": delivery_id,
     }
     if target.secret:
         digest = hmac.new(target.secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
-        headers["X-Ettok-Signature-256"] = f"sha256={digest}"
+        headers["X-Hermes-Signature-256"] = f"sha256={digest}"
     return {"url": target.url, "label": target.label, "event": event, "body": body, "headers": headers, "timeout": target.timeout}
 
 

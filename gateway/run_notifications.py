@@ -1013,7 +1013,7 @@ class GatewayNotificationsMixin:
         from gateway.wake import WakeNotAccepted, adapter_supports_push, admit_internal_event
         source = await asyncio.to_thread(self._build_process_event_source, evt)
         if not source:
-            # API-server sessions bind the RAW X-Ettok-Session-Id key, not a structured ``agent:...`` key.
+            # API-server sessions bind the RAW X-Hermes-Session-Id key, not a structured ``agent:...`` key.
             raw_sid = _raw_process_event_session_id(evt)
             if raw_sid:
                 adapter = self.adapters.get(Platform.API_SERVER)

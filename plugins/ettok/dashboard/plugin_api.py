@@ -320,7 +320,7 @@ async def chat(payload: dict) -> Any:
     second place where the agent's behaviour is defined, and the whole reason
     for proxying rather than reimplementing is to avoid exactly that.
 
-    The session header is the exception worth explaining. `X-Ettok-Session-Id`
+    The session header is the exception worth explaining. `X-Hermes-Session-Id`
     is how the gateway resumes a conversation instead of starting a new one, and
     it comes back on the response naming the session the turn actually landed
     in. Both directions matter: without the request header every message is a
@@ -342,7 +342,7 @@ async def chat(payload: dict) -> Any:
     headers = _gateway_headers()
     resume = (payload.get('resume_session_id') or '').strip()
     if resume:
-        headers['X-Ettok-Session-Id'] = resume
+        headers['X-Hermes-Session-Id'] = resume
 
     url = f'{_gateway_url()}/v1/chat/completions'
 
@@ -359,7 +359,7 @@ async def chat(payload: dict) -> Any:
                     # header is written before the agent has resolved which
                     # session the turn belongs to, and a stream's headers are
                     # long flushed by the time it is known.
-                    landed = response.headers.get('X-Ettok-Session-Id')
+                    landed = response.headers.get('X-Hermes-Session-Id')
                     if landed:
                         yield _sse({'session_id': landed})
                     # Raw bytes, not lines. The gateway announces tool activity as

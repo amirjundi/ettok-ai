@@ -71,8 +71,8 @@ _STATIC_FEATURE_FLAGS = {
     "session_chat_streaming": True, "session_fork": True, "session_model_lock": True,
     "admin_config_rw": False, "jobs_admin": False, "memory_write_api": False,
     "skills_api": True, "audio_api": False, "realtime_voice": False,
-    "session_continuity_header": "X-Ettok-Session-Id",
-    "session_key_header": "X-Ettok-Session-Key"}
+    "session_continuity_header": "X-Hermes-Session-Id",
+    "session_key_header": "X-Hermes-Session-Key"}
 # /v1/capabilities "endpoints" table: name -> (method, path).
 _CAPABILITY_ENDPOINTS = (
     ("health", ("GET", "/health")), ("health_detailed", ("GET", "/health/detailed")),
@@ -769,7 +769,7 @@ class ResponseStore:
 
 _CORS_HEADERS = {
     "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization, Content-Type, Idempotency-Key, X-Ettok-Session-Id"}
+    "Access-Control-Allow-Headers": "Authorization, Content-Type, Idempotency-Key, X-Hermes-Session-Id"}
 _SECURITY_HEADERS = {
     "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
@@ -1561,7 +1561,7 @@ class APIServerAdapter(OpenAICompatRoutesMixin, BasePlatformAdapter):
     _SESSION_SOURCE = "api_server"
 
     def _declared_conversation_session(self, gateway_session_key: Optional[str]) -> Optional[str]:
-        """Resolve the live session a client declared with ``X-Ettok-Session-Key`` (the key
+        """Resolve the live session a client declared with ``X-Hermes-Session-Key`` (the key
         names the conversation, ``session_id`` its current transcript). Same reset-fenced
         recovery as ``SessionStore._recover_session_for_peer``; concurrent first requests
         converge (later row wins). None when undeclared, no live row, or DB error."""
@@ -1611,17 +1611,17 @@ class APIServerAdapter(OpenAICompatRoutesMixin, BasePlatformAdapter):
 
     def _parse_session_key_header(
         self, request: "web.Request") -> tuple[Optional[str], Optional["web.Response"]]:
-        """Validate ``X-Ettok-Session-Key`` (per-channel memory scope) -> ``(key_or_None, None)``
+        """Validate ``X-Hermes-Session-Key`` (per-channel memory scope) -> ``(key_or_None, None)``
         or ``(None, error)``. Requires API-key auth so a client can't guess another scope."""
-        raw = request.headers.get("X-Ettok-Session-Key", "").strip()
+        raw = request.headers.get("X-Hermes-Session-Key", "").strip()
         if not raw:
             return None, None
         if not self._api_key:
             logger.warning(
-                "X-Ettok-Session-Key rejected: no API key configured. "
+                "X-Hermes-Session-Key rejected: no API key configured. "
                 "Set API_SERVER_KEY to enable long-term memory scoping.")
             return None, _error_response(
-                "X-Ettok-Session-Key requires API key authentication. "
+                "X-Hermes-Session-Key requires API key authentication. "
                 "Configure API_SERVER_KEY to enable this feature.", 403)
         # Control characters could enable header injection on the echo path.
         if re.search(r'[\r\n\x00]', raw):
@@ -3051,10 +3051,10 @@ class APIServerAdapter(OpenAICompatRoutesMixin, BasePlatformAdapter):
 
     @staticmethod
     def _session_headers(session_id: str, gateway_session_key: Optional[str]) -> Dict[str, str]:
-        """``X-Ettok-Session-Id`` (+ ``X-Ettok-Session-Key`` when declared) response headers."""
-        headers = {"X-Ettok-Session-Id": session_id}
+        """``X-Hermes-Session-Id`` (+ ``X-Hermes-Session-Key`` when declared) response headers."""
+        headers = {"X-Hermes-Session-Id": session_id}
         if gateway_session_key:
-            headers["X-Ettok-Session-Key"] = gateway_session_key
+            headers["X-Hermes-Session-Key"] = gateway_session_key
         return headers
 
     def _effective_turn_runtime(self, runtime_request: Dict[str, Any], result: Any, usage: Any) -> Dict[str, Any]:

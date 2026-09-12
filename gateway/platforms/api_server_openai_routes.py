@@ -447,18 +447,18 @@ class OpenAICompatRoutesMixin:
         if not _content_has_visible_payload(user_message):
             return _invalid_request("No user message found in messages")
 
-        # X-Ettok-Session-Key scopes long-term memory per channel; independent of
-        # X-Ettok-Session-Id (the key persists across transcripts, the id rotates on /new).
+        # X-Hermes-Session-Key scopes long-term memory per channel; independent of
+        # X-Hermes-Session-Id (the key persists across transcripts, the id rotates on /new).
         gateway_session_key, key_err = self._parse_session_key_header(request)
         if key_err is not None:
             return key_err
-        # X-Ettok-Session-Id continues an existing session (history from state.db, not the body);
+        # X-Hermes-Session-Id continues an existing session (history from state.db, not the body);
         # requires a configured API key or any client could read history by guessing ids.
-        provided_session_id = request.headers.get("X-Ettok-Session-Id", "").strip()
+        provided_session_id = request.headers.get("X-Hermes-Session-Id", "").strip()
         if provided_session_id:
             if not self._api_key:
                 logger.warning(
-                    "Session continuation via X-Ettok-Session-Id rejected: "
+                    "Session continuation via X-Hermes-Session-Id rejected: "
                     "no API key configured.  Set API_SERVER_KEY to enable "
                     "session continuity.")
                 return _error_response("Session continuation requires API key authentication. "
@@ -502,7 +502,7 @@ class OpenAICompatRoutesMixin:
             user_message=user_message, conversation_history=history,
             ephemeral_system_prompt=system_prompt, session_id=session_id,
             gateway_session_key=gateway_session_key, **agent_overrides, route=route,
-            # #98619: only an explicitly provided X-Ettok-Session-Id is wake-capable (the
+            # #98619: only an explicitly provided X-Hermes-Session-Id is wake-capable (the
             # header is 403-gated on API_SERVER_KEY, so the wake self-post can authenticate
             # and the client can resume the session by sending it again). A fingerprint-derived
             # id from a header-less client is NOT: delegate_task keeps its forced-sync fallback
@@ -564,9 +564,9 @@ class OpenAICompatRoutesMixin:
         # Same #13437 identity contract as the SSE path: an explicit-header client is echoed
         # the stable id it sent; a fingerprint-derived (header-less) turn keeps reporting the
         # id the agent actually resolved, so headerless clients still learn where the turn went.
-        response_headers = {"X-Ettok-Session-Id": (provided_session_id or result.get("session_id", session_id))}
+        response_headers = {"X-Hermes-Session-Id": (provided_session_id or result.get("session_id", session_id))}
         if gateway_session_key:
-            response_headers["X-Ettok-Session-Key"] = gateway_session_key
+            response_headers["X-Hermes-Session-Key"] = gateway_session_key
         # Hard fail (no usable text AND a real failure) -> 502 OpenAI error envelope so SDK
         # clients raise instead of rendering the failure string as message.content.
         if not final_response and (is_failed or is_partial):
@@ -575,8 +575,8 @@ class OpenAICompatRoutesMixin:
                 code="agent_incomplete")
             err_body["error"]["hermes"] = {
                 "completed": completed, "partial": is_partial, "failed": is_failed}
-            response_headers["X-Ettok-Completed"] = "false"
-            response_headers["X-Ettok-Partial"] = "true" if is_partial else "false"
+            response_headers["X-Hermes-Completed"] = "false"
+            response_headers["X-Hermes-Partial"] = "true" if is_partial else "false"
             return web.json_response(err_body, status=502, headers=response_headers)
         # Soft partial (some text, run incomplete): 200 + finish_reason="length"/Ettok extras.
         response_data = {
@@ -588,10 +588,10 @@ class OpenAICompatRoutesMixin:
         if is_partial or is_failed or not completed:
             response_data["hermes"] = _hermes_extras(
                 completed, is_partial, is_failed, err_msg, finish_reason)
-            response_headers["X-Ettok-Completed"] = "false"
-            response_headers["X-Ettok-Partial"] = "true" if is_partial else "false"
+            response_headers["X-Hermes-Completed"] = "false"
+            response_headers["X-Hermes-Partial"] = "true" if is_partial else "false"
             if err_msg:
-                response_headers["X-Ettok-Error"] = _redact_api_error_text(err_msg, limit=200)
+                response_headers["X-Hermes-Error"] = _redact_api_error_text(err_msg, limit=200)
         return web.json_response(response_data, headers=response_headers)
 
     async def _run_idempotent(
@@ -624,9 +624,9 @@ class OpenAICompatRoutesMixin:
         if origin:
             sse_headers.update(self._cors_headers_for_origin(origin) or {})
         if session_id:
-            sse_headers["X-Ettok-Session-Id"] = session_id
+            sse_headers["X-Hermes-Session-Id"] = session_id
         if gateway_session_key:
-            sse_headers["X-Ettok-Session-Key"] = gateway_session_key
+            sse_headers["X-Hermes-Session-Key"] = gateway_session_key
         response = web.StreamResponse(status=200, headers=sse_headers)
         await response.prepare(request)
         return response
@@ -828,7 +828,7 @@ class OpenAICompatRoutesMixin:
         if body.get("truncation") == "auto":
             conversation_history = _auto_truncate_response_history(conversation_history)
 
-        # Session precedence: previous_response_id chain > declared X-Ettok-Session-Key > fresh
+        # Session precedence: previous_response_id chain > declared X-Hermes-Session-Key > fresh
         # id. Binding the declared key follows the same precedence: a chain-selected session must
         # not have its routing key rewritten to this header.
         _declared_selected = not stored_session_id and bool(gateway_session_key)
@@ -910,9 +910,9 @@ class OpenAICompatRoutesMixin:
                 "instructions": instructions, "session_id": _effective_session_id})
             if conversation:
                 self._response_store.set_conversation(conversation, response_id)
-        response_headers = {"X-Ettok-Session-Id": _effective_session_id}
+        response_headers = {"X-Hermes-Session-Id": _effective_session_id}
         if gateway_session_key:
-            response_headers["X-Ettok-Session-Key"] = gateway_session_key
+            response_headers["X-Hermes-Session-Key"] = gateway_session_key
         return web.json_response(response_data, headers=response_headers)
 
     async def _handle_get_response(self, request: "web.Request") -> "web.Response":
