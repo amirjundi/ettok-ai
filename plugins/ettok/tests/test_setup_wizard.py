@@ -136,3 +136,121 @@ def test_complete_knowledge_reports_nothing():
         markers={'yazidi': ['سنجار']},
     )
     assert wizard._knowledge_gaps(know) == []
+
+
+# ---------------------------------------------------------------------------
+# The tool list the agent carries
+# ---------------------------------------------------------------------------
+
+def test_the_monitoring_set_keeps_what_the_agent_actually_uses():
+    """Trimming must not remove a tool the agent needs mid-run.
+
+    Cheaper is not the goal; cheaper while still able to do the job is.
+    """
+    from plugins.ettok.setup_wizard import MONITORING_TOOLSETS
+
+    for needed in ('ettok', 'browser', 'skills', 'web'):
+        assert needed in MONITORING_TOOLSETS, f'{needed} would be dropped'
+
+
+def test_the_monitoring_set_drops_what_it_never_uses():
+    """Each toolset's schemas are re-read by the model on every single turn, so
+    an agent that will never open Spotify still pays for knowing how."""
+    from plugins.ettok.setup_wizard import MONITORING_TOOLSETS
+
+    for irrelevant in ('spotify', 'kanban', 'desktop_ui', 'video_gen',
+                       'homeassistant', 'discord', 'image_gen'):
+        assert irrelevant not in MONITORING_TOOLSETS
+
+
+def _tool_names(defs) -> set:
+    """Definitions come flat or wrapped in a function envelope, depending on shape."""
+    names = set()
+    for d in defs:
+        name = d.get('name') or (d.get('function') or {}).get('name')
+        if name:
+            names.add(name)
+    return names
+
+
+@pytest.fixture
+def plugin_loaded(tmp_path, monkeypatch):
+    """Load the plugin the way a session does, before toolsets are resolved.
+
+    This ordering is the point of the fixture, not incidental setup. The `ettok`
+    toolset does not exist until register(ctx) runs, so resolving toolsets first
+    logs "Unknown toolset: ettok" and silently drops every one of the agent's own
+    tools -- an agent that starts up fine and can do nothing.
+    """
+    import yaml
+
+    from plugins.ettok.setup_wizard import MONITORING_TOOLSETS
+
+    monkeypatch.setenv('HERMES_HOME', str(tmp_path))
+    (tmp_path / 'config.yaml').write_text(yaml.safe_dump({
+        'plugins': {'enabled': ['ettok']},
+        'toolsets': list(MONITORING_TOOLSETS),
+        # Without this the runtime defers plugin tools behind tool_search, and
+        # the agent's own ten become invisible to it. That is what these tests
+        # exist to catch.
+        'tools': {'tool_search': {'enabled': 'off'}},
+    }), encoding='utf-8')
+
+    import importlib
+    import tools.tool_search as ts
+    import model_tools
+    importlib.reload(ts)
+    importlib.reload(model_tools)
+
+    from hermes_cli import plugins as pmod
+    manager = pmod.PluginManager()
+    manager.discover_and_load()
+    assert manager._plugins['ettok'].enabled
+    return manager
+
+
+def test_trimming_measurably_shrinks_what_is_sent(plugin_loaded):
+    """The claim is a material reduction. Assert it rather than trust it.
+
+    Measured through the call the agent actually makes -- with an explicit
+    toolset list, not the no-argument form, which means "everything" and would
+    show no difference at all. Getting that wrong once made a working change look
+    like it did nothing.
+    """
+    import json
+
+    import model_tools
+    from plugins.ettok.setup_wizard import MONITORING_TOOLSETS
+
+    everything = json.dumps(model_tools.get_tool_definitions())
+    monitoring = json.dumps(
+        model_tools.get_tool_definitions(enabled_toolsets=MONITORING_TOOLSETS))
+
+    assert len(monitoring) < len(everything), 'trimming did not reduce the payload'
+    reduction = 1 - (len(monitoring) / len(everything))
+    assert reduction > 0.2, f'only {reduction:.0%} smaller; expected a material cut'
+
+
+def test_the_ettok_tools_survive_trimming(plugin_loaded):
+    """The failure this guards against is silent and total.
+
+    If the `ettok` toolset is not recognised, the filter drops all ten of the
+    agent's tools and it starts up looking healthy with nothing to do.
+    """
+    import model_tools
+    from plugins.ettok.setup_wizard import MONITORING_TOOLSETS
+
+    names = _tool_names(
+        model_tools.get_tool_definitions(enabled_toolsets=MONITORING_TOOLSETS))
+    for tool in ('ettok_scan', 'ettok_collect', 'ettok_sync_knowledge', 'ettok_submit'):
+        assert tool in names, f'{tool} was trimmed away'
+
+
+def test_the_browser_survives_trimming(plugin_loaded):
+    """Collection is the whole job; trimming must not remove the browser."""
+    import model_tools
+    from plugins.ettok.setup_wizard import MONITORING_TOOLSETS
+
+    names = _tool_names(
+        model_tools.get_tool_definitions(enabled_toolsets=MONITORING_TOOLSETS))
+    assert any(n.startswith('browser_') for n in names)

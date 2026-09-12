@@ -19,6 +19,25 @@ from pathlib import Path
 
 DIVIDER = '─' * 62
 
+# What this agent actually uses. The runtime's default is the `hermes-cli`
+# composite, which means every tool it ships -- desktop control, Spotify, Kanban,
+# video generation, Home Assistant. Each one's schema is re-read by the model on
+# every single turn, so an agent that will never open Spotify still pays for
+# knowing how, in latency and in tokens, on every message.
+#
+# Measured on this install: 46 tools, ~10,300 tokens of definitions per request.
+MONITORING_TOOLSETS = [
+    'ettok',        # this plugin
+    'browser',      # collection
+    'web',          # finding posts worth opening
+    'file',         # reading and writing locally
+    'terminal',     # occasional operator work
+    'skills',       # working-a-case
+    'todo',         # tracking a long run
+    'cronjob',      # scheduling itself
+    'clarify',      # asking an operator rather than guessing
+]
+
 
 def _say(text: str = '') -> None:
     print(text)
@@ -72,7 +91,7 @@ def run(args) -> int:
     from .platform.client import PlatformClient, PlatformError
     from .store import schema
 
-    total = 5
+    total = 6
     _say()
     _say('  Ettok AI — hate speech monitoring for minority communities in Iraq')
     _say('  This sets the agent up on this machine. It is safe to run again.')
@@ -160,8 +179,33 @@ def run(args) -> int:
         except (PlatformError, Exception) as exc:     # noqa: BLE001
             _say(f'  Could not sync — {exc}')
 
-    # -- 5. running by itself ----------------------------------------------
-    _step(5, total, 'Run unattended?')
+    # -- 5. trimming the tool list ------------------------------------------
+    _step(5, total, 'Trim the tools it carries?')
+    current = _current_toolsets()
+    if current == MONITORING_TOOLSETS:
+        _say('  Already trimmed to the monitoring set.')
+    else:
+        _say('  The runtime offers every tool it ships -- desktop control, Spotify,')
+        _say('  Kanban, video generation. The model re-reads all of their')
+        _say('  definitions on every turn, so an agent that will never open')
+        _say('  Spotify still pays for knowing how, on every message.')
+        _say()
+        _say('  Keeping: ' + ', '.join(MONITORING_TOOLSETS))
+        _say()
+        _say('  This also stops the runtime hiding plugin tools behind a search.')
+        _say('  Left on, it hides all ten Ettok tools -- an agent whose whole job')
+        _say('  is ettok_scan cannot see ettok_scan without looking for it first.')
+        _say()
+        if _confirm('Trim to the monitoring set?', default=True):
+            if _apply_toolsets():
+                _say('  Trimmed. Restart a session for it to take effect.')
+            else:
+                _say('  Could not write the config; run `ettok tools` to set it by hand.')
+        else:
+            _say('  Left as-is. `ettok tools` changes it later.')
+
+    # -- 6. running by itself ----------------------------------------------
+    _step(6, total, 'Run unattended?')
     _say('  A scheduled run survives reboots and a closed laptop, which an')
     _say('  in-process timer does not.')
     _say()
@@ -215,6 +259,51 @@ def _pair(cfg, pairing, args):
     os.environ['ETTOK_AGENT_KEY'] = result.agent_key
     _say(f'  Approved. Paired as "{result.agent_id}".')
     return config_mod.load(None)
+
+
+def _current_toolsets() -> list:
+    try:
+        from hermes_cli import config as hermes_config
+        return list((hermes_config.load_config() or {}).get('toolsets') or [])
+    except Exception:
+        return []
+
+
+def _apply_toolsets() -> bool:
+    """Narrow the tool list, and stop the agent's own tools being hidden from it.
+
+    Two changes, and the second matters more than the first.
+
+    Trimming the toolsets drops what monitoring never uses -- desktop control,
+    Spotify, Kanban, video generation -- whose schemas the model otherwise re-reads
+    on every single turn.
+
+    Turning tool_search off then keeps the remaining tools eager. Left on, the
+    runtime defers plugin tools behind a search to save context, which for a
+    general assistant is right and for this agent is backwards: measured here it
+    hid all ten Ettok tools, so an agent whose entire job is ettok_scan could not
+    see ettok_scan without going looking for it first.
+
+    Measured on this install: 10,289 tokens per request with everything and the
+    tools deferred, against 8,127 with this applied and all ten visible. Cheaper
+    and more capable, which is rare enough to be worth the comment.
+
+    Written to the runtime's config rather than forced in code, so an operator who
+    wants the full set can put it back with `ettok tools`.
+    """
+    try:
+        from hermes_cli import config as hermes_config
+        cfg = hermes_config.load_config() or {}
+        cfg['toolsets'] = list(MONITORING_TOOLSETS)
+        tools_cfg = cfg.setdefault('tools', {})
+        if isinstance(tools_cfg, dict):
+            search_cfg = tools_cfg.setdefault('tool_search', {})
+            if isinstance(search_cfg, dict):
+                search_cfg['enabled'] = 'off'
+        hermes_config.save_config(cfg)
+        return True
+    except Exception:
+        return False
 
 
 def _model_configured() -> bool:
