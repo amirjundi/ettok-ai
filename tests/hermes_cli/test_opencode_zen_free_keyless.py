@@ -63,7 +63,7 @@ class TestFreeRuntime:
     def test_headers_override_sdk_bearer(self):
         headers = opencode_zen_free_headers()
         assert headers["Authorization"] == ""
-        assert headers["X-Title"] == "Hermes Agent"
+        assert headers["X-Title"] == "Ettok AI"
 
 
 class TestRuntimeProviderKeylessRouting:

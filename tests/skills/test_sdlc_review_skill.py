@@ -54,7 +54,7 @@ def test_frontmatter_meets_hardline_standard(skill_text: str) -> None:
 
     for field in ("version", "author", "license", "platforms"):
         assert _frontmatter_value(skill_text, field)
-    assert not _frontmatter_value(skill_text, "author").startswith("Hermes Agent")
+    assert not _frontmatter_value(skill_text, "author").startswith("Ettok AI")
 
 
 def test_body_uses_required_modern_section_order(skill_text: str) -> None:

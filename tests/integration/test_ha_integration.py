@@ -259,7 +259,7 @@ class TestSendNotification:
             assert result.success is True
             assert len(server.received_notifications) == 1
             notif = server.received_notifications[0]
-            assert notif["title"] == "Hermes Agent"
+            assert notif["title"] == "Ettok AI"
             assert notif["message"] == "Test notification from agent"
 
     @pytest.mark.asyncio

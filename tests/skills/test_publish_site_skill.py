@@ -42,7 +42,7 @@ def test_frontmatter_parses(frontmatter: dict):
     assert frontmatter.get("name") == "publish-site"
     assert frontmatter.get("version"), "version field required"
     assert frontmatter.get("license") == "MIT"
-    assert "Hermes Agent" in frontmatter.get("author", "")
+    assert "Ettok AI" in frontmatter.get("author", "")
 
 
 def test_description_length_and_period(frontmatter: dict):

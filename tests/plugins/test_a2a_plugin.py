@@ -1707,7 +1707,7 @@ class TestMultiplexConstructionScope:
         assert adapter.port == _DEFAULT_PORT
         assert adapter.agent_name != "default-profile-agent"
         assert adapter._agents[""]["description"] == (
-            "Hermes Agent — a general-purpose agent reachable over A2A."
+            "Ettok AI — a general-purpose agent reachable over A2A."
         )
 
     def test_default_profile_unscoped_keeps_env_precedence(

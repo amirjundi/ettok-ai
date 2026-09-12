@@ -152,4 +152,4 @@ def test_skill_md_frontmatter_invariants():
     assert len(fm["description"]) <= 60
     assert fm["description"].endswith(".")
     assert "platforms" in fm and len(fm["platforms"]) >= 1
-    assert fm["author"].split(",")[0].strip() != "Hermes Agent"  # human credited first
+    assert fm["author"].split(",")[0].strip() != "Ettok AI"  # human credited first
