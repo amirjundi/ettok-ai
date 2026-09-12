@@ -226,3 +226,107 @@ def reports() -> dict:
         # An older platform has no reports/ endpoint. That is a missing feature,
         # not a broken agent, and the panel should say so rather than look failed.
         return {'available': False, 'reason': str(exc)}
+
+
+# ---------------------------------------------------------------------------
+# Chat
+#
+# The dashboard's own chat page is an xterm terminal streamed over a PTY, which
+# is fine for an operator and wrong for anyone else: it renders ANSI, not
+# markdown, and a research team handed a terminal will not use it.
+#
+# Rather than reimplement the agent loop, this proxies the OpenAI-compatible
+# endpoint the gateway already serves -- same agent, same tools, same session
+# handling -- and lets the browser render the stream as structured text.
+#
+# Proxied rather than called directly from the page because the gateway listens
+# on its own port, and a cross-origin fetch from the dashboard would need CORS
+# on a local API server that has no business allowing it.
+# ---------------------------------------------------------------------------
+
+GATEWAY_DEFAULT_PORT = 8642
+_CHAT_TIMEOUT_SECONDS = 300.0
+
+
+def _gateway_url() -> str:
+    import os
+    port = os.environ.get('API_SERVER_PORT', str(GATEWAY_DEFAULT_PORT))
+    host = os.environ.get('API_SERVER_HOST', '127.0.0.1')
+    return f'http://{host}:{port}'
+
+
+@router.get('/chat/health')
+def chat_health() -> dict:
+    """Whether there is anything to chat to.
+
+    Checked separately so the page can say "start the gateway" rather than
+    failing on the first message, which is when a user decides the thing is
+    broken.
+    """
+    import httpx
+
+    url = _gateway_url()
+    try:
+        with httpx.Client(timeout=3.0) as client:
+            response = client.get(f'{url}/v1/models')
+        return {
+            'available': response.status_code < 400,
+            'url': url,
+            'status': response.status_code,
+        }
+    except Exception as exc:                          # noqa: BLE001
+        return {
+            'available': False,
+            'url': url,
+            'reason': str(exc),
+            'hint': 'Start it with `ettok gateway run` (api_server platform enabled).',
+        }
+
+
+@router.post('/chat')
+async def chat(payload: dict) -> Any:
+    """Stream one exchange through the gateway, unchanged.
+
+    Deliberately a pass-through. Anything this rewrote would be a second place
+    where the agent's behaviour is defined, and the whole reason for proxying
+    rather than reimplementing is to avoid exactly that.
+    """
+    import httpx
+    from fastapi.responses import StreamingResponse
+
+    body = {
+        'model': payload.get('model') or 'hermes',
+        'messages': payload.get('messages') or [],
+        'stream': True,
+    }
+    if payload.get('session_id'):
+        body['user'] = payload['session_id']
+
+    url = f'{_gateway_url()}/v1/chat/completions'
+
+    async def relay():
+        try:
+            async with httpx.AsyncClient(timeout=_CHAT_TIMEOUT_SECONDS) as client:
+                async with client.stream('POST', url, json=body) as response:
+                    if response.status_code >= 400:
+                        detail = (await response.aread()).decode('utf-8', 'replace')[:400]
+                        yield _sse({'error': f'gateway returned {response.status_code}: {detail}'})
+                        return
+                    # Raw bytes, not lines. The gateway announces tool activity as
+                    # an `event: hermes.tool.progress` line followed by its `data:`
+                    # line, and re-framing line by line would split that pair --
+                    # the browser would then see a data frame with no event name
+                    # and quietly treat a tool call as an empty completion chunk.
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+        except Exception as exc:                      # noqa: BLE001
+            # Surfaced into the stream rather than raised: the page is already
+            # reading a stream, and an error it can render beats a dead socket.
+            yield _sse({'error': f'{type(exc).__name__}: {exc}',
+                        'hint': 'Is the gateway running? `ettok gateway run`'})
+
+    return StreamingResponse(relay(), media_type='text/event-stream')
+
+
+def _sse(obj: dict) -> bytes:
+    return f'data: {json.dumps(obj)}\n\n'.encode('utf-8')
