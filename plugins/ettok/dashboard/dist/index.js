@@ -75,8 +75,10 @@
     const [error, setError] = useState(null);
 
     const load = useCallback(function () {
-      fetch(API + path)
-        .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)); })
+      // SDK.fetchJSON, not fetch: the dashboard's API is session-authenticated,
+      // and the SDK is what knows whether this install uses a loopback token or
+      // a gated cookie. A bare fetch here just gets 401.
+      SDK.fetchJSON(API + path)
         .then(function (j) { setData(j); setError(null); })
         .catch(function (e) { setError(e.message || String(e)); });
     }, [path]);

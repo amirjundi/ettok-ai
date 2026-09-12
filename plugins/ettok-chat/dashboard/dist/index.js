@@ -179,8 +179,8 @@
     useEffect(function () {
       // Checked up front so the page can say "start the gateway" rather than
       // failing on the first message, which is when a user decides it is broken.
-      fetch(API + "/chat/health")
-        .then(function (r) { return r.json(); })
+      // SDK.fetchJSON attaches the dashboard session auth; a bare fetch 401s.
+      SDK.fetchJSON(API + "/chat/health")
         .then(setHealth)
         .catch(function (e) { setHealth({ available: false, reason: String(e) }); });
     }, []);
@@ -199,7 +199,9 @@
       setDraft("");
       setBusy(true);
 
-      fetch(API + "/chat", {
+      // authedFetch rather than fetchJSON: this reply is a stream, and we need the
+      // Response to read from, not parsed JSON.
+      SDK.authedFetch(API + "/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

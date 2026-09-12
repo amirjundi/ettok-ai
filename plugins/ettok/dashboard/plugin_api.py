@@ -255,6 +255,22 @@ def _gateway_url() -> str:
     return f'http://{host}:{port}'
 
 
+def _gateway_headers() -> dict:
+    """Bearer auth for the gateway, when a key is configured.
+
+    The gateway refuses to start without ``API_SERVER_KEY`` and 401s every
+    request that does not carry it, so a proxy that forwards no Authorization
+    header reaches a running gateway and is turned away -- which reads to the
+    user as "the chat is broken", not "a key is missing".
+    """
+    try:
+        from agent.secret_scope import get_secret
+        key = (get_secret('API_SERVER_KEY', '') or '').strip()
+    except Exception:                                 # noqa: BLE001
+        key = ''
+    return {'Authorization': f'Bearer {key}'} if key else {}
+
+
 @router.get('/chat/health')
 def chat_health() -> dict:
     """Whether there is anything to chat to.
@@ -268,7 +284,14 @@ def chat_health() -> dict:
     url = _gateway_url()
     try:
         with httpx.Client(timeout=3.0) as client:
-            response = client.get(f'{url}/v1/models')
+            response = client.get(f'{url}/v1/models', headers=_gateway_headers())
+        if response.status_code == 401:
+            # Running, but it does not accept us. Say which of the two it is.
+            return {
+                'available': False, 'url': url, 'status': 401,
+                'reason': 'the gateway rejected the API_SERVER_KEY this agent sent',
+                'hint': 'Set API_SERVER_KEY in .env to the same value the gateway uses.',
+            }
         return {
             'available': response.status_code < 400,
             'url': url,
@@ -307,7 +330,8 @@ async def chat(payload: dict) -> Any:
     async def relay():
         try:
             async with httpx.AsyncClient(timeout=_CHAT_TIMEOUT_SECONDS) as client:
-                async with client.stream('POST', url, json=body) as response:
+                async with client.stream('POST', url, json=body,
+                                          headers=_gateway_headers()) as response:
                     if response.status_code >= 400:
                         detail = (await response.aread()).decode('utf-8', 'replace')[:400]
                         yield _sse({'error': f'gateway returned {response.status_code}: {detail}'})
