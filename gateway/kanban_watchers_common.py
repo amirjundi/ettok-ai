@@ -98,7 +98,7 @@ def _gc_retention_days() -> int:
 
 
 def _kanban_dispatch_allowed() -> bool:
-    """False while the global emergency stop (`hermes pause`) is engaged.
+    """False while the global emergency stop (`ettok pause`) is engaged.
 
     Checked every tick before spawning, so a pause applies on the next tick;
     in-flight workers are never touched. Fails open if estop is unimportable.

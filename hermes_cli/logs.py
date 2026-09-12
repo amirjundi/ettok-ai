@@ -1,7 +1,7 @@
-"""``hermes logs`` — view and filter Hermes log files.
+"""``ettok logs`` — view and filter Ettok log files.
 
-``hermes logs [name] [-n N] [-f] [--level L] [--session S] [--component C] [--since 1h]``;
-``hermes logs list`` shows the available files.
+``ettok logs [name] [-n N] [-f] [--level L] [--session S] [--component C] [--since 1h]``;
+``ettok logs list`` shows the available files.
 """
 
 import re
@@ -109,7 +109,7 @@ def tail_log(
     log_path = get_hermes_home() / "logs" / filename
     if not log_path.exists():
         print(f"Log file not found: {log_path}")
-        print("(Logs are created when Hermes runs — try 'hermes chat' first)")
+        print("(Logs are created when Ettok runs — try 'ettok chat' first)")
         sys.exit(1)
 
     since_dt = None
@@ -258,4 +258,4 @@ def list_logs() -> None:
             found = True
 
     if not found:
-        print("  (no log files yet — run 'hermes chat' to generate logs)")
+        print("  (no log files yet — run 'ettok chat' to generate logs)")

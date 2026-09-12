@@ -316,7 +316,7 @@ class WebhookAdapter(BasePlatformAdapter):
 
     def toolsets_for_source(self, source) -> Optional[List[str]]:
         """Per-route ``toolsets`` override (config.yaml or a manual key in webhook_subscriptions.json —
-        deliberately NOT settable via `hermes webhook subscribe`, so an agent-created subscription
+        deliberately NOT settable via `ettok webhook subscribe`, so an agent-created subscription
         cannot self-grant tools)."""
         parts = str(getattr(source, "chat_id", "") or "").split(":", 2)
         if len(parts) < 2 or parts[0] != "webhook":

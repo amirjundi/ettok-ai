@@ -41,7 +41,7 @@ def nous_tool_gateway_unavailable_message(capability: str = "the Nous Tool Gatew
             return message
     except Exception:
         pass
-    return (f"{capability} is unavailable. Run `hermes model` to refresh your "
+    return (f"{capability} is unavailable. Run `ettok model` to refresh your "
             "Nous Portal login and billing status.")
 
 
@@ -116,7 +116,7 @@ def resolve_provider_secret(env_var: str, provider_id: str, config_value: str = 
     active multiplex turn the profile scope is authoritative: a miss returns ``""`` rather
     than borrowing another profile's env or pool. Never raises.
 
-    Resolution order (fixes #68003 — keys added via ``hermes auth add <provider>`` were invisible to the
+    Resolution order (fixes #68003 — keys added via ``ettok auth add <provider>`` were invisible to the
     voice tools, which only consulted env/.env):
     """
     key = str(config_value or "").strip() or _scoped_credential(env_var)
@@ -192,7 +192,7 @@ def _raw_section(section: str) -> Dict[str, Any] | None:
 
 
 def read_selection(section: str) -> str | None:
-    """THE single runtime read of the persisted `hermes tools` selection: ``"nous"`` (managed
+    """THE single runtime read of the persisted `ettok tools` selection: ``"nous"`` (managed
     gateway row), a vendor name (direct, own credentials), or ``None`` (never configured ->
     legacy autodetect allowed). Reads the RAW config.yaml so key presence means "actually
     written", not "schema default"; a raw ``local`` is therefore a real user selection.
@@ -248,7 +248,7 @@ def selection_error(section: str, selection_name: str, failure: str) -> str:
     """The uniform honest-error contract for a selected-but-broken provider."""
     failure = removed_backend_note(section, selection_name) or failure
     return (f"{section} is configured to use {selection_name} (set via hermes "
-            f"tools), but {failure}. Run 'hermes tools' to change it.")
+            f"tools), but {failure}. Run 'ettok tools' to change it.")
 
 
 def fal_key_is_configured() -> bool:

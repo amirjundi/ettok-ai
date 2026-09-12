@@ -1,4 +1,4 @@
-"""`hermes checkpoints` CLI subcommand.
+"""`ettok checkpoints` CLI subcommand.
 
 None of these require the agent to be running. Safe to call any time.
 """
@@ -54,7 +54,7 @@ def cmd_status(args: argparse.Namespace) -> int:
         print(f"Legacy archives ({len(legacy)}):")
         _print_archives(sorted(legacy, key=lambda a: a.get("mtime", 0), reverse=True))
         print()
-        print("Clear with: hermes checkpoints clear-legacy")
+        print("Clear with: ettok checkpoints clear-legacy")
     return 0
 
 
@@ -184,8 +184,8 @@ def cmd_clear_legacy(args: argparse.Namespace) -> int:
 
 
 def register_cli(parser: argparse.ArgumentParser) -> None:
-    """Wire subcommands onto the ``hermes checkpoints`` parser."""
-    parser.set_defaults(func=cmd_status)  # bare `hermes checkpoints` → status
+    """Wire subcommands onto the ``ettok checkpoints`` parser."""
+    parser.set_defaults(func=cmd_status)  # bare `ettok checkpoints` → status
     subs = parser.add_subparsers(dest="checkpoints_command", metavar="COMMAND")
 
     p_status = subs.add_parser("status", help="Show total size, project count, and per-project breakdown")

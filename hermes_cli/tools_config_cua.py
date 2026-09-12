@@ -1,5 +1,5 @@
-"""cua-driver installer, lock hygiene and pip-install helper for `hermes tools` /
-`hermes computer-use install`."""
+"""cua-driver installer, lock hygiene and pip-install helper for `ettok tools` /
+`ettok computer-use install`."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ _CUA_INSTALLER_TIMEOUT = 660
 # immediately, so this costs nothing in the normal case; it only caps how long a failed one can stall the
 # update. See #87703.
 _CUA_INSTALLER_DRAIN_GRACE = 15
-# Quiet ``hermes update`` refreshes stay bounded even when upstream waits on Read-Host / a consent
+# Quiet ``ettok update`` refreshes stay bounded even when upstream waits on Read-Host / a consent
 # prompt (explicit ``install --upgrade`` keeps the full ceiling); safe because the lock/network
 # preflights make a legitimate long wait impossible here.
 _CUA_BACKGROUND_UPDATE_TIMEOUT = 120
@@ -46,7 +46,7 @@ _CUA_INSTALL_PS1_URL = (
 _CUA_INSTALL_SH_URL = (
     "https://raw.githubusercontent.com/trycua/cua/main/libs/cua-driver/scripts/install.sh")
 _CUA_MANUAL_README = "https://github.com/trycua/cua/blob/main/libs/cua-driver/README.md"
-_UPGRADE_CMD = "hermes computer-use install --upgrade"
+_UPGRADE_CMD = "ettok computer-use install --upgrade"
 
 
 def _run_text(cmd: list, *, timeout, capture_output: bool = True,
@@ -103,7 +103,7 @@ def _resolved_cua_driver_cmd() -> Optional[str]:
 
 
 def _cua_driver_env() -> dict:
-    """cua-driver child env with the Hermes telemetry policy applied; falls back to the current
+    """cua-driver child env with the Ettok telemetry policy applied; falls back to the current
     environment if the helper can't be imported, so install/status never break."""
     try:
         from tools.computer_use.cua_backend import cua_driver_child_env
@@ -210,7 +210,7 @@ def _confirmed_update_check(driver_cmd: str, require_confirmed_update: bool) -> 
     """Ask the installed driver whether a newer release exists; returns ``(proceed, pin_version)``.
     ``proceed=False`` = stop with success (already latest, or indeterminate under
     ``require_confirmed_update``). An old driver (no check-update verb) or offline check yields
-    None: `hermes update` then keeps the installed version — an indeterminate check must never
+    None: `ettok update` then keeps the installed version — an indeterminate check must never
     cost a multi-minute silent reinstall on every update — while explicit `install --upgrade`
     falls through."""
     try:
@@ -246,7 +246,7 @@ def _report_repair_or_upgrade(ok: bool, *, repair_existing: bool, binary, before
         if not repaired.get("ready"):
             return _fail("    cua-driver was reinstalled, but its runtime contract is still "
                          f"unusable: {repaired.get('reason') or 'unknown error'}.",
-                         "    Run: hermes computer-use doctor")
+                         "    Run: ettok computer-use doctor")
     if ok and before:
         after = _cua_driver_version(binary)
         if after and after != before:
@@ -264,7 +264,7 @@ def install_cua_driver(upgrade: bool = False, require_confirmed_update: bool = F
     old/incomplete one and installs when missing; ``upgrade=True`` always refreshes."""
     system = platform.system()
     if system not in ("Darwin", "Windows", "Linux"):
-        if not upgrade:  # silent under `hermes update`, which calls this for every user
+        if not upgrade:  # silent under `ettok update`, which calls this for every user
             _print_warning(
                 "    Computer Use (cua-driver) is unsupported on this platform; skipping.")
         return False
@@ -290,8 +290,8 @@ def install_cua_driver(upgrade: bool = False, require_confirmed_update: bool = F
                          f"      {_CUA_MANUAL_README}")
         return _run_cua_driver_installer(label="Installing")
 
-    # A driver failing Hermes' runtime contract (version floor, missing manifest verbs) is repaired
-    # regardless of mode. Hermes' minimum requirement IS the confirmation an upgrade is needed, so
+    # A driver failing Ettok' runtime contract (version floor, missing manifest verbs) is repaired
+    # regardless of mode. Ettok' minimum requirement IS the confirmation an upgrade is needed, so
     # this path must not defer to the driver's `check-update` verb — a cached/indeterminate "no
     # update" answer would pin users on an unusable driver forever.
     contract = _cua_driver_contract_status(binary) if binary else None
@@ -308,7 +308,7 @@ def install_cua_driver(upgrade: bool = False, require_confirmed_update: bool = F
         return True
     if repair_existing:
         _print_warning(f"    Found cua-driver {contract.get('version') or 'unknown version'}, but "
-                       "Hermes cannot use its current runtime contract: "
+                       "Ettok cannot use its current runtime contract: "
                        f"{contract.get('reason') or 'required runtime features are missing'}.")
         if override:
             return _fail("    Update the binary selected by HERMES_CUA_DRIVER_CMD, or unset the "
@@ -557,7 +557,7 @@ def _print_cua_platform_notes(is_windows: bool, is_linux: bool, *, fresh_install
         _print_info("      System Settings > Privacy & Security > Accessibility")
         _print_info("      System Settings > Privacy & Security > Screen Recording")
         if fresh_install:
-            _print_info("    Both must allow the terminal / Hermes process.")
+            _print_info("    Both must allow the terminal / Ettok process.")
 
 
 def _kill_installer_tree(proc, *, is_windows: bool) -> None:
@@ -682,7 +682,7 @@ def _installer_popen_kwargs(is_windows: bool, verbose: bool, env: dict) -> dict:
     """Popen kwargs for the upstream installer.
     POSIX: own process group so a timeout kill takes out the whole `curl | bash` pipeline (and the
     exec'd _install-rust.sh), not just the outer shell — surviving grandchildren would keep
-    holding the install lock and wedge every later run. Non-verbose (`hermes update` refresh):
+    holding the install lock and wedge every later run. Non-verbose (`ettok update` refresh):
     capture the chatty "Next steps" wall and log it so a failure stays debuggable; verbose
     interactive installs stream live."""
     kwargs: dict = {"shell": False, "env": env}
@@ -699,7 +699,7 @@ def _installer_popen_kwargs(is_windows: bool, verbose: bool, env: dict) -> dict:
 
 def _record_installer_output(out: str, returncode: int) -> None:
     """Keep a captured (non-verbose) installer transcript without echoing it to the terminal.
-    During `hermes update`, sys.stdout is the mirroring _UpdateOutputStream whose `_log` handle is
+    During `ettok update`, sys.stdout is the mirroring _UpdateOutputStream whose `_log` handle is
     ~/.hermes/logs/update.log — write straight to it so the full output is kept (success AND
     failure)."""
     _update_log = getattr(sys.stdout, "_log", None)
@@ -737,8 +737,8 @@ def _run_cua_driver_installer(label: str = "Installing", verbose: bool = True,
     # See #58762.
     _clear_stale_cua_install_lock()
 
-    # Unattended refreshes (installer_timeout set by `hermes update`) preflight and may skip.
-    # Unattended refreshes (installer_timeout set by `hermes update`) fail FAST on the two conditions that
+    # Unattended refreshes (installer_timeout set by `ettok update`) preflight and may skip.
+    # Unattended refreshes (installer_timeout set by `ettok update`) fail FAST on the two conditions that
     # otherwise consume the whole ceiling: 1. Install lock held by a live process — upstream would poll it
     # for up to LOCK_STALE_AFTER_SECONDS=600 before probing the holder. That is the 11-minute silent hang
     # class (#87703; observed live 2026-08-25: "cua-driver refreshing timed out after 660s"). 2. Release

@@ -1,4 +1,4 @@
-"""Offline, non-destructive recovery for a damaged Hermes session database.
+"""Offline, non-destructive recovery for a damaged Ettok session database.
 
 The source is never opened by SQLite: it and its WAL/SHM/journal sidecars are copied to a disposable
 work dir first. Canonical rows are copied into a fresh current-schema database; derived FTS tables and
@@ -326,10 +326,10 @@ def _snapshot_and_inspect(
         snapshot_source, copied = _copy_source_bundle(source, Path(temp_dir.name))
         if _source_fingerprint(source) != before:
             raise SessionRecoverySafetyError(
-                "The source database bundle changed while it was being copied. Stop every Hermes process using this "
+                "The source database bundle changed while it was being copied. Stop every Ettok process using this "
                 "profile and retry. This includes the interactive `hermes` CLI session this command may have been "
                 "launched from: a running parent CLI writes session bookkeeping (compression ticks, context "
-                "tracking) to state.db in the background and counts as a Hermes process even after the gateway is "
+                "tracking) to state.db in the background and counts as a Ettok process even after the gateway is "
                 "stopped. Run the recovery from a fresh shell with no `hermes` session open, or point --source at an "
                 "immutable snapshot copy of the database."
             )

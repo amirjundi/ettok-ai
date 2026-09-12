@@ -1,4 +1,4 @@
-"""``hermes profile`` subcommand parser."""
+"""``ettok profile`` subcommand parser."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Callable
 def build_profile_parser(subparsers, *, cmd_profile: Callable) -> None:
     """Attach the ``profile`` subcommand to ``subparsers``."""
     profile_parser = subparsers.add_parser(
-        "profile", help="Manage profiles — multiple isolated Hermes instances")
+        "profile", help="Manage profiles — multiple isolated Ettok instances")
     profile_subparsers = profile_parser.add_subparsers(dest="profile_action")
 
     profile_subparsers.add_parser("list", help="List all profiles")
@@ -30,13 +30,13 @@ def build_profile_parser(subparsers, *, cmd_profile: Callable) -> None:
         "--no-alias", action="store_true", help="Skip wrapper script creation")
     profile_create.add_argument(
         "--no-skills", action="store_true",
-        help="Create an empty profile with no bundled skills (opts out of `hermes update` skill sync)",
+        help="Create an empty profile with no bundled skills (opts out of `ettok update` skill sync)",
     )
     profile_create.add_argument(
         "--description", default=None,
         help="One- or two-sentence description of what this profile is good at. "
              "Used by the kanban decomposer to route tasks based on role instead "
-             "of profile name alone. Skip and add later via `hermes profile describe`.")
+             "of profile name alone. Skip and add later via `ettok profile describe`.")
 
     profile_delete = profile_subparsers.add_parser("delete", help="Delete a profile")
     profile_delete.add_argument("profile_name", help="Profile to delete")
@@ -84,7 +84,7 @@ def build_profile_parser(subparsers, *, cmd_profile: Callable) -> None:
     profile_export.add_argument(
         "-o", "--output", default=None,
         help="Output file (default: a managed profile-exports/<name>-<timestamp>.tar.gz "
-             "under the default Hermes home)")
+             "under the default Ettok home)")
 
     profile_import = profile_subparsers.add_parser("import", help="Import a profile from archive")
     profile_import.add_argument("archive", help="Path to .tar.gz archive")
@@ -95,7 +95,7 @@ def build_profile_parser(subparsers, *, cmd_profile: Callable) -> None:
     # ---------- Distribution subcommands (issue #20456) ----------
     profile_install = profile_subparsers.add_parser(
         "install", help="Install a profile distribution from a git URL or local directory",
-        description="Install a Hermes profile distribution. SOURCE can be a git URL "
+        description="Install a Ettok profile distribution. SOURCE can be a git URL "
             "(github.com/user/repo, https://..., git@...) or a local "
             "directory containing distribution.yaml at its root.")
     profile_install.add_argument("source", help="Distribution source (git URL or local directory)")

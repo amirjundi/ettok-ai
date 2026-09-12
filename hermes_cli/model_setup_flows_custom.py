@@ -42,7 +42,7 @@ def _probe_custom_endpoint(effective_key: str, effective_url: str) -> tuple[dict
     elif probe.get("models") is not None:
         print(f"Verified endpoint via {probe.get('probed_url')} ({len(probe.get('models') or [])} model(s) visible)")
     else:
-        print(f"Warning: could not verify this endpoint via {probe.get('probed_url')}. Hermes will still save it.")
+        print(f"Warning: could not verify this endpoint via {probe.get('probed_url')}. Ettok will still save it.")
         suggested = probe.get("suggested_base_url")
         if suggested and suggested.endswith("/v1"):
             print(f"  If this server expects /v1 in the path, try base URL: {suggested}")
@@ -178,7 +178,7 @@ def _model_flow_custom(config):
             _caller_model = {"default": _caller_model} if _caller_model else {}
         _apply_endpoint(_caller_model)
         config["model"] = _caller_model
-        print("Endpoint saved. Use `/model` in chat or `hermes model` to set a model.")
+        print("Endpoint saved. Use `/model` in chat or `ettok model` to set a model.")
 
     # Auto-save to custom_providers so it appears in the menu next time
     _save_custom_provider(effective_url, effective_key, model_name or "", context_length=context_length,

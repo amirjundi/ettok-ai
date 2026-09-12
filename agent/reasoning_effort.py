@@ -1,6 +1,6 @@
 """Canonical reasoning-effort vocabulary and wire clamping.
 
-Hermes' internal effort ladder (``VALID_REASONING_EFFORTS`` plus ``none``) is wider than any
+Ettok' internal effort ladder (``VALID_REASONING_EFFORTS`` plus ``none``) is wider than any
 single provider wire accepts; hand-rolled per-transport maps leaked new levels (``ultra``) to
 wires that 400 and inverted the ladder (unknown → weak default). Single source of truth:
 :data:`EFFORT_LADDER` (low→high), :func:`clamp_effort` (verbatim if supported, else the
@@ -20,7 +20,7 @@ from typing import Optional, Sequence
 _KIMI_K3_SLUG_RE = re.compile(r"(?:^|[^a-z0-9])k3(?:[^a-z0-9]|$)")
 
 # Canonical low→high ordering for nearest-level clamping. Includes "none" so an explicit
-# disable can be clamped when a provider publishes it as a level. ``ultra`` is Hermes-internal
+# disable can be clamped when a provider publishes it as a level. ``ultra`` is Ettok-internal
 # (the Codex product tier): no wire accepts it, every declared set stops at ``max``.
 EFFORT_LADDER: tuple[str, ...] = ("none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra")
 
@@ -83,7 +83,7 @@ META_AI_EFFORTS: tuple[str, ...] = ("minimal", "low", "medium", "high", "xhigh")
 
 
 def is_astra_model(model: Optional[str]) -> bool:
-    """``gpt-6-astra`` or its Hermes-side ``-900k`` picker alias, with or without a ``vendor/`` prefix.
+    """``gpt-6-astra`` or its Ettok-side ``-900k`` picker alias, with or without a ``vendor/`` prefix.
     The single home for the slug set: picker gating, effort vocabulary and the request sanitizer all
     key off it, so a new Astra alias is one edit."""
     return (model or "").strip().lower().rsplit("/", 1)[-1] in ASTRA_MODEL_IDS

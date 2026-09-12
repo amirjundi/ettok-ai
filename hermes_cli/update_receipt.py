@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 _RECEIPT_KEEP = 20  # keep the last N receipts per profile home
 COMMAND_BOUNDARY_STOP_REASON = "completed at command boundary"
 
-# ``hermes update`` is a single-threaded CLI command; a module singleton lets the 7k-line updater
+# ``ettok update`` is a single-threaded CLI command; a module singleton lets the 7k-line updater
 # record steps from any depth without threading a handle through every helper.
 _current: Optional["UpdateReceipt"] = None
 
@@ -52,7 +52,7 @@ def _str_records(entries: Any, keys: tuple[str, ...], *, pid: bool = False) -> l
 
 
 class UpdateReceipt:
-    """Collects the observable facts of one ``hermes update`` run."""
+    """Collects the observable facts of one ``ettok update`` run."""
 
     def __init__(self) -> None:
         self.data: dict[str, Any] = {
@@ -96,7 +96,7 @@ class UpdateReceipt:
             persisted["skipped"] = _str_records(
                 fresh_recovery.get("skipped", []), ("profile", "kind", "supervisor", "reason")
             )
-            # ``hermes serve`` hosts tui_gateway and is not a gateway profile, so neither the
+            # ``ettok serve`` hosts tui_gateway and is not a gateway profile, so neither the
             # per-profile buckets above nor the fleet-version matrix can describe it. Persist its
             # unit outcomes and any process that survived on the pre-update generation, or the
             # receipt keeps claiming a clean recovery the operator's box contradicts.
@@ -190,7 +190,7 @@ def finalize_update_receipt(outcome: str, fleet: list | None = None, stop_reason
 def finalize_pending_update_receipt(exit_code: Optional[int] = None, stop_reason: str = "") -> Optional[Path]:
     """Command-boundary safety net: persist a still-open receipt, if any. Never raises.
 
-    ``hermes update`` has many early ``sys.exit`` paths (preflight refusals, venv-holder refusal,
+    ``ettok update`` has many early ``sys.exit`` paths (preflight refusals, venv-holder refusal,
     fetch failure) predating the inner finalize calls; finalizing here means refused/failed runs —
     where a receipt matters most — leave a record. Exit 0/None → ``success``, exit 2 → ``refused``
     (preflight convention), else → ``failed``.
@@ -369,6 +369,6 @@ def print_fleet_version_matrix(fleet: list[dict[str, Any]]) -> bool:
             print("  ⚠ Stale gateways keep serving pre-update code until restarted:")
         if any_down:
             print("  ⚠ Down gateways stopped serving messaging entirely — restart them:")
-        print("      hermes gateway restart                # active profile")
+        print("      ettok gateway restart                # active profile")
         print("      hermes -p <profile> gateway restart   # named profile")
     return any_stale or any_down

@@ -83,7 +83,7 @@ HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀�
 # === Skills scanning ===
 
 # Per-process caches: ``None`` until computed, then a 1-tuple ``(value,)`` so a computed ``None``
-# is distinguishable from "not yet computed". Reset by assigning ``None`` (tests, ``hermes skills``).
+# is distinguishable from "not yet computed". Reset by assigning ``None`` (tests, ``ettok skills``).
 _available_skills_cache: Optional[tuple] = None
 _git_banner_state_cache: Optional[tuple] = None
 _latest_release_cache: Optional[tuple] = None
@@ -176,7 +176,7 @@ def _git_run(args: list[str], *, cwd: Optional[Path] = None, timeout: int = 5, t
     from hermes_cli._subprocess_compat import noninteractive_git_env, windows_hide_flags
 
     # The banner/update probes run from GUI-hosted backends too (desktop-spawned
-    # ``hermes serve``), where a bare git child flashes a console window.
+    # ``ettok serve``), where a bare git child flashes a console window.
     kwargs: dict = {"creationflags": windows_hide_flags()}
     if network:
         kwargs.update({"stdin": subprocess.DEVNULL, "env": noninteractive_git_env()})
@@ -339,7 +339,7 @@ def _check_via_local_git(repo_dir: Path) -> Optional[int]:
     with GitHub, and across the install base that was tens of millions of fetch requests a day
     (GitHub asked us to poll the API instead). Two tip SHAs are enough — the remote one from the
     API, the local one from ``rev-parse`` — and ``_tips_behind`` recovers the exact count through
-    the compare API when they differ. ``git fetch`` happens only inside ``hermes update``.
+    the compare API when they differ. ``git fetch`` happens only inside ``ettok update``.
     """
     # Probe the origin URL under the config-isolated env: a global url.<https>.insteadOf rewrite
     # otherwise makes an SSH origin masquerade as HTTPS (#104591).
@@ -357,7 +357,7 @@ def _check_via_local_git(repo_dir: Path) -> Optional[int]:
     global _last_target_rev
     _last_target_rev = target_rev
     # Tip SHAs alone can't distinguish "behind" from a local commit AHEAD of origin/main, and
-    # misreporting an ahead checkout nudges the user into `hermes update`, which can wipe carried
+    # misreporting an ahead checkout nudges the user into `ettok update`, which can wipe carried
     # work — hence the ancestor check inside _tips_behind, against the FRESH upstream SHA.
     return _tips_behind(head_rev, target_rev, repo_dir)
 
@@ -369,7 +369,7 @@ def _read_json(path: Path) -> Optional[dict]:
 
 
 def check_for_updates(*, passive: bool = False) -> Optional[int]:
-    """Check whether a Hermes update is available.
+    """Check whether a Ettok update is available.
 
     If ``HERMES_REVISION`` is set (nix builds embed it), compare it to upstream main; otherwise
     compare the local checkout's HEAD. Both go through the GitHub API, never ``git fetch``.
@@ -393,7 +393,7 @@ def check_for_updates(*, passive: bool = False) -> Optional[int]:
     if _quiet(_install_method) in {"docker", "apt"}:
         return None
     # Cache is invalidated when the embedded rev OR installed version changed since the last check.
-    # For a git checkout the local HEAD is part of the key too: `hermes update` moves HEAD, and a
+    # For a git checkout the local HEAD is part of the key too: `ettok update` moves HEAD, and a
     # stale "3 behind" must not survive the update it just prompted.
     now = time.time()
     repo_dir = None if embedded_rev else _resolve_repo_dir()
@@ -417,7 +417,7 @@ def check_for_updates(*, passive: bool = False) -> Optional[int]:
 
 
 def _resolve_repo_dir() -> Optional[Path]:
-    """The active Hermes git checkout, or None if this isn't a git install.
+    """The active Ettok git checkout, or None if this isn't a git install.
 
     Prefers the running code's location: ``$HERMES_HOME/hermes-agent/`` may be a stale copy
     carried over by ``--clone-all``.
@@ -477,7 +477,7 @@ def get_latest_release_tag(repo_dir: Optional[Path] = None) -> Optional[tuple]:
 
 def format_banner_version_label() -> str:
     """Return the version label shown in the startup banner title."""
-    base = f"Hermes Agent v{VERSION} ({RELEASE_DATE})"
+    base = f"Ettok AI v{VERSION} ({RELEASE_DATE})"
     state = get_git_banner_state()
     if not state:
         return base
@@ -826,7 +826,7 @@ def _banner_left_lines(model: str, cwd: str, session_id, context_length, provide
         lines.append(f"[{accent}]MoA: {_short_label(model)}[/]{agg_str}{ctx_str}{nous_str}")
     elif not (model or "").strip() or (model or "").strip().lower() == "unknown":
         # Unconfigured install: the clearest place to say what is wrong and how to fix it.
-        lines.append(f"[bold red]no model configured[/] [dim {dim}]— run /model or hermes setup[/]")
+        lines.append(f"[bold red]no model configured[/] [dim {dim}]— run /model or ettok setup[/]")
     else:
         model_short = model.split("/")[-1].removesuffix(".gguf")
         lines.append(f"[{accent}]{_short_label(model_short)}[/]{ctx_str}{nous_str}")

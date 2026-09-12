@@ -72,7 +72,7 @@ def _install_kittentts_deps() -> bool:
 
 def _xai_oauth_logged_in_for_setup() -> bool:
     """True iff xAI Grok OAuth credentials are stored locally, so TTS/STT setup can skip the
-    API-key prompt for users who logged in via ``hermes model`` -> xAI Grok OAuth."""
+    API-key prompt for users who logged in via ``ettok model`` -> xAI Grok OAuth."""
     try:
         from hermes_cli.auth import get_xai_oauth_auth_status
         return bool(get_xai_oauth_auth_status().get("logged_in"))
@@ -193,7 +193,7 @@ def _xai_api_key_path():
         _setup.print_success("xAI TTS API key saved")
         return None
     from hermes_constants import display_hermes_home as _dhh
-    return ("No xAI API key provided for TTS. Configure XAI_API_KEY via hermes setup model "
+    return ("No xAI API key provided for TTS. Configure XAI_API_KEY via ettok setup model "
             f"or {_dhh()}/.env to use xAI TTS. Falling back to Edge TTS.")
 
 
@@ -259,7 +259,7 @@ def _setup_tts_provider(config: dict):
 
 
 def setup_tts(config: dict):
-    """Standalone TTS setup (for 'hermes setup tts')."""
+    """Standalone TTS setup (for 'ettok setup tts')."""
     _setup_tts_provider(config)
 
 

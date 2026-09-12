@@ -1,6 +1,6 @@
 """Which platform env vars the setup surfaces hide.
 
-Hiding is a *presentation* decision only: the vars keep working through ``hermes config set``,
+Hiding is a *presentation* decision only: the vars keep working through ``ettok config set``,
 ``.env`` and ``config.yaml``, and the gateway reads them exactly as before.
 """
 

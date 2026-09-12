@@ -47,7 +47,7 @@ class WebSearchProvider(ProviderBase):
     @abc.abstractmethod
     def is_available(self) -> bool:
         """True when this provider can service calls. Cheap check only (env var, importable
-        dep, instance URL) — NO network; runs at tool registration and on every ``hermes tools`` paint."""
+        dep, instance URL) — NO network; runs at tool registration and on every ``ettok tools`` paint."""
 
     def supports_search(self) -> bool:
         """True if this provider implements :meth:`search`."""

@@ -170,7 +170,7 @@ def _dispatch_tick_lock(db_path: Path):
     gateway's async watcher must never stall; the loser retries next interval.
     Without ``fcntl``/``msvcrt`` it degrades to a no-op (yields ``True``).
 
-    Motivation (issue #35240): a ``hermes gateway run --replace`` / ``gateway restart`` invoked from a shell
+    Motivation (issue #35240): a ``ettok gateway run --replace`` / ``gateway restart`` invoked from a shell
     on a systemd/launchd host can leave an orphan gateway whose dispatcher escapes the service cgroup,
     survives ``systemctl restart``, and becomes a *second* long-lived writer on the same ``kanban.db``. The
     startup guard (``_guard_supervised_gateway_conflict``) blocks the common way an orphan is born, but this
@@ -571,7 +571,7 @@ def repair_db(db_path: Optional[Path] = None, *, board: Optional[str] = None) ->
     Same policy as :func:`_guard_existing_db_is_healthy` (quarantine BEFORE
     any mutation; REINDEX under the init flock; anything non-index stays
     corrupt), but returns a :class:`RepairResult` instead of raising so
-    ``hermes kanban repair`` can pick its exit code. ``OperationalError``
+    ``ettok kanban repair`` can pick its exit code. ``OperationalError``
     (locked/busy) still propagates raw: a locked healthy DB must not be
     quarantined."""
     path = db_path if db_path is not None else _kb.kanban_db_path(board=board)
@@ -686,7 +686,7 @@ def connect(db_path: Optional[Path] = None, *, board: Optional[str] = None) -> s
 
     # Fast path: once THIS process has initialized this path, skip the
     # cross-process init lock. Taking it on every connect let a single stalled
-    # holder (e.g. an external `hermes kanban list` mid-integrity-probe) block
+    # holder (e.g. an external `ettok kanban list` mid-integrity-probe) block
     # the gateway dispatcher's next-tick connect() forever, and steady-state has
     # nothing for it to protect (no schema/migration writes).
     resolved = str(path.resolve())

@@ -205,7 +205,7 @@ _last_auto_archive_check: Dict[str, float] = {}
 
 def _maybe_auto_archive_for_profile(profile: Optional[str]) -> None:
     """Config-gated stale-session auto-archive for ``profile``; never raises.
-    ``hermes serve`` runs neither CLI nor gateway startup hooks, so this
+    ``ettok serve`` runs neither CLI nor gateway startup hooks, so this
     session-list trigger is what makes ``sessions.auto_archive`` work there."""
     try:
         key = profile or ""

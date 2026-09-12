@@ -489,15 +489,15 @@ class SessionSchemaMixin:
             logger.error(
                 "state.db FTS repair has been blocked by the same holder(s) for %d deferrals over %.0f min "
                 "(%s); waiting is futile. Stop ONLY the other holder(s) — this process keeps running and its "
-                "own retry admits the rebuild within %.0fs of the holder leaving. `hermes doctor` shows this.",
+                "own retry admits the rebuild within %.0fs of the holder leaving. `ettok doctor` shows this.",
                 holders_attempts, (now - holders_since) / 60.0,
                 ", ".join(f"pid {pid}: {_holder_cmdline(pid)}" for pid in holder_pids), _FTS_STALE_RETRY_SECONDS,
             )
         elif attempts >= _FTS_HOLDER_ESCALATE_ATTEMPTS and now - first_seen >= _FTS_HOLDER_ESCALATE_SECONDS:
             logger.error(
                 "state.db FTS repair remains blocked after %d deferrals by holder(s) %s. Stop the listed "
-                "processes (this process's own retry then rebuilds), or run `hermes sessions optimize-storage` "
-                "with every holder stopped. `hermes doctor` reports this degraded state.", attempts, foreign_holders,
+                "processes (this process's own retry then rebuilds), or run `ettok sessions optimize-storage` "
+                "with every holder stopped. `ettok doctor` reports this degraded state.", attempts, foreign_holders,
             )
         logger.warning(
             "Deferred stale state.db FTS rebuild while foreign processes "
@@ -968,7 +968,7 @@ class SessionSchemaMixin:
             self._migrate_v22_session_model_usage(cursor)
         # v23: FTS storage redesign (external-content tables). OPT-IN, NOT AUTOMATIC: the
         # transition is disk-heavy (~2x transient) and long (hours on 25 GB), so an existing
-        # install only gets a flag; `hermes sessions optimize-storage` performs it. The FTS
+        # install only gets a flag; `ettok sessions optimize-storage` performs it. The FTS
         # layout is tracked by the independent `fts_storage_version` marker, so
         # schema_version still advances for legacy-FTS users.
         if current_version < 23 and fts5_available and self._db_needs_fts_storage_upgrade(cursor):

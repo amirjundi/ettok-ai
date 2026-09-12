@@ -137,7 +137,7 @@ def invalidate_cached_token() -> None:
 
 def _billing_not_logged_in(exc: Optional[BaseException] = None) -> "BillingAuthError":
     """Build the canonical 'not logged in' BillingAuthError (single source)."""
-    err = BillingAuthError("Not logged into Nous Portal — run `hermes portal` to log in.", status=401, error="invalid_token")
+    err = BillingAuthError("Not logged into Nous Portal — run `ettok portal` to log in.", status=401, error="invalid_token")
     if exc is not None:
         err.__cause__ = exc
     return err

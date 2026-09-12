@@ -1,4 +1,4 @@
-"""hermes claw — OpenClaw migration commands."""
+"""ettok claw — OpenClaw migration commands."""
 
 import importlib.util
 import itertools
@@ -27,7 +27,7 @@ _OPENCLAW_SCRIPT_INSTALLED = get_hermes_home() / "skills" / _SCRIPT_REL
 # Known OpenClaw directory names (current + legacy)
 _OPENCLAW_DIR_NAMES = (".openclaw", ".clawdbot", ".moltbot")
 
-# `hermes claw migrate` flags/defaults. Secrets are never included implicitly: --migrate-secrets
+# `ettok claw migrate` flags/defaults. Secrets are never included implicitly: --migrate-secrets
 # is required even under --preset full (OpenClaw's two-phase posture); no silent API-key import.
 _MIGRATE_ARG_DEFAULTS = (
     ("source", None), ("dry_run", False), ("preset", "full"), ("overwrite", False),
@@ -54,7 +54,7 @@ def _print_banner(title: str) -> None:
     """Print the magenta boxed banner shared by the claw subcommands."""
     print()
     rule = "─" * 57
-    for line in (f"┌{rule}┐", f"│          ⚕ Hermes — {title:<35s}│", f"└{rule}┘"):
+    for line in (f"┌{rule}┐", f"│          ⚕ Ettok — {title:<35s}│", f"└{rule}┘"):
         print(color(line, Colors.MAGENTA))
 
 
@@ -145,7 +145,7 @@ def _warn_if_openclaw_running(auto_yes: bool) -> None:
         auto_yes, "OpenClaw appears to be running:", running,
         ("Messaging platforms (Telegram, Discord, Slack) only allow one "
          "active session per bot token. If you continue, both OpenClaw and "
-         "Hermes may try to use the same token, causing disconnects.",
+         "Ettok may try to use the same token, causing disconnects.",
          "Recommendation: stop OpenClaw before migrating."),
         "Continue anyway?", declined="Migration cancelled. Stop OpenClaw and try again.",
         non_tty=("Non-interactive session — continuing to preview only.",),
@@ -154,17 +154,17 @@ def _warn_if_openclaw_running(auto_yes: bool) -> None:
 
 
 def _warn_if_gateway_running(auto_yes: bool) -> None:
-    """Warn if a Hermes gateway has connected platforms (token conflicts, e.g. Telegram 409)."""
+    """Warn if a Ettok gateway has connected platforms (token conflicts, e.g. Telegram 409)."""
     from gateway.status import get_running_pid, read_runtime_status
     platforms = ((read_runtime_status() or {}).get("platforms") or {}) if get_running_pid() else {}
     connected = [name for name, info in platforms.items()
                  if isinstance(info, dict) and info.get("state") == "connected"]
     if connected and _warn_running(
-        auto_yes, "Hermes gateway is running with active connections: " + ", ".join(connected), [],
+        auto_yes, "Ettok gateway is running with active connections: " + ", ".join(connected), [],
         ("Migrating bot tokens while the gateway is active will cause "
          "conflicts (Telegram, Discord, and Slack only allow one active "
          "session per token).",
-         "Recommendation: stop the gateway first with 'hermes gateway stop'."),
+         "Recommendation: stop the gateway first with 'ettok gateway stop'."),
         "Continue anyway?", declined="Migration cancelled. Stop the gateway and try again.",
     ) is False:
         sys.exit(0)
@@ -221,21 +221,21 @@ def _archive_directory(source_dir: Path, dry_run: bool = False) -> Path:
 
 
 def claw_command(args):
-    """Route hermes claw subcommands."""
+    """Route ettok claw subcommands."""
     action = getattr(args, "claw_action", None)
     if action == "migrate":
         _cmd_migrate(args)
     elif action in {"cleanup", "clean"}:
         _cmd_cleanup(args)
     else:
-        print("Usage: hermes claw <command> [options]\n\nCommands:\n"
-              "  migrate          Migrate settings from OpenClaw to Hermes\n"
+        print("Usage: ettok claw <command> [options]\n\nCommands:\n"
+              "  migrate          Migrate settings from OpenClaw to Ettok\n"
               "  cleanup          Archive leftover OpenClaw directories after migration\n\n"
-              "Run 'hermes claw <command> --help' for options.")
+              "Run 'ettok claw <command> --help' for options.")
 
 
 def _cmd_migrate(args):
-    """Run the OpenClaw → Hermes migration: preflight, preview, confirm, back up, apply."""
+    """Run the OpenClaw → Ettok migration: preflight, preview, confirm, back up, apply."""
     opts = SimpleNamespace(**{k: getattr(args, k, d) for k, d in _MIGRATE_ARG_DEFAULTS})
     # Explicit --source, else first existing of current + legacy names; default to ~/.openclaw.
     opts.source_dir = (Path(opts.source) if opts.source
@@ -245,7 +245,7 @@ def _cmd_migrate(args):
         return _error_block(
             f"OpenClaw directory not found: {opts.source_dir}",
             "Make sure your OpenClaw installation is at the expected path.",
-            "You can specify a custom path: hermes claw migrate --source /path/to/.openclaw")
+            "You can specify a custom path: ettok claw migrate --source /path/to/.openclaw")
     script_path = _find_migration_script()
     if not script_path:
         return _error_block(
@@ -274,9 +274,9 @@ def _cmd_migrate(args):
     print()
     if _confirm(opts.yes, "Proceed with migration?", default=True, declined="Migration cancelled.",
                 non_tty=("Non-interactive session — preview only.",
-                         "To execute, re-run with: hermes claw migrate --yes")):
+                         "To execute, re-run with: ettok claw migrate --yes")):
         _apply_migration(run_migrator, opts)
-    # Source directory is left untouched — archiving is `hermes claw cleanup`'s job.
+    # Source directory is left untouched — archiving is `ettok claw cleanup`'s job.
 
 
 def _load_migrator(script_path: Path, opts: SimpleNamespace) -> Optional[Callable[[bool], dict]]:
@@ -336,7 +336,7 @@ def _preview_migration(run_migrator: Callable[[bool], dict], opts: SimpleNamespa
 def _apply_migration(run_migrator: Callable[[bool], dict], opts: SimpleNamespace) -> None:
     """Take a pre-migration backup (unless --no-backup), execute, and print the report. The backup
     shares the pre-update backup's implementation (exclusions, SQLite safe-copy, zip) so it is
-    restorable with `hermes import`: one restore point before any mutation, pruned to the last 5."""
+    restorable with `ettok import`: one restore point before any mutation, pruned to the last 5."""
     backup_archive: Optional[Path] = None
     if not opts.no_backup:
         try:
@@ -347,11 +347,11 @@ def _apply_migration(run_migrator: Callable[[bool], dict], opts: SimpleNamespace
                 print()
                 print_success(f"Pre-migration backup: {backup_archive} "
                               f"({_format_size(backup_archive.stat().st_size)})")
-                print_info(f"Restore with: hermes import {backup_archive.name}")
+                print_info(f"Restore with: ettok import {backup_archive.name}")
         except Exception as e:
             return _error_block(
                 f"Could not create pre-migration backup: {e}",
-                "Re-run with --no-backup to skip, or free up disk space under the Hermes home.",
+                "Re-run with --no-backup to skip, or free up disk space under the Ettok home.",
                 debug="Pre-migration backup error")
     try:
         report = run_migrator(True)
@@ -359,7 +359,7 @@ def _apply_migration(run_migrator: Callable[[bool], dict], opts: SimpleNamespace
         _error_block(f"Migration failed: {e}", debug="OpenClaw migration error")
         if backup_archive:
             _info(f"A pre-migration backup is available at: {backup_archive}",
-                  f"Restore with: hermes import {backup_archive.name}")
+                  f"Restore with: ettok import {backup_archive.name}")
         return
     _print_migration_report(report, dry_run=False)
 
@@ -382,7 +382,7 @@ def _cmd_cleanup(args):
          "immediately recreate an empty skeleton directory, destroying your config.",
          "Stop OpenClaw first: systemctl --user stop openclaw-gateway.service"),
         "Proceed anyway?",
-        declined="Aborted. Stop OpenClaw first, then re-run: hermes claw cleanup",
+        declined="Aborted. Stop OpenClaw first, then re-run: ettok claw cleanup",
         non_tty=("Non-interactive session — aborting. Stop OpenClaw and re-run.",)):
         return
     total_archived = 0
@@ -393,7 +393,7 @@ def _cmd_cleanup(args):
             print_info(f"Would archive: {source_dir} → {archive_path}")
         elif _confirm(auto_yes, f"Archive {source_dir}?", default=True, declined="Skipped.",
                       non_tty=(f"Non-interactive session — would archive: {source_dir}",
-                               "To execute, re-run with: hermes claw cleanup --yes")):
+                               "To execute, re-run with: ettok claw cleanup --yes")):
             try:
                 archive_path = _archive_directory(source_dir)
                 print_success(f"Archived: {source_dir} → {archive_path}")
@@ -479,7 +479,7 @@ def _print_migration_report(report: dict, dry_run: bool):
         print_info(f"Full report saved to: {report['output_dir']}")
     if dry_run:
         _info("", "To execute the migration, run without --dry-run:",
-              f"  hermes claw migrate --preset {report.get('preset', 'full')}")
+              f"  ettok claw migrate --preset {report.get('preset', 'full')}")
     elif migrated:
         print()
         print_success("Migration complete!")
@@ -491,5 +491,5 @@ def _print_migration_report(report: dict, dry_run: bool):
                 "  Your OPENROUTER_API_KEY and other provider keys must be added manually."):
                 print(color(line, Colors.YELLOW))
             _info("", "To migrate API keys, re-run with:",
-                  "  hermes claw migrate --migrate-secrets", "", "Or add your key manually:",
-                  "  hermes config set OPENROUTER_API_KEY sk-or-v1-...")
+                  "  ettok claw migrate --migrate-secrets", "", "Or add your key manually:",
+                  "  ettok config set OPENROUTER_API_KEY sk-or-v1-...")

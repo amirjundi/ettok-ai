@@ -1,6 +1,6 @@
 """Global emergency stop (ESTOP) — a resumable pause for NEW work only.
 
-``hermes pause`` writes a sentinel at ``$HERMES_HOME/ESTOP``; ``hermes resume``
+``ettok pause`` writes a sentinel at ``$HERMES_HOME/ESTOP``; ``ettok resume``
 removes it. While it exists the cron scheduler, kanban dispatcher and new gateway
 turns skip work; in-flight work is never killed. The check is one or two uncached
 ``os.stat`` calls (process home + fleet root when they differ). The body is optional
@@ -29,7 +29,7 @@ _logged_components: set[str] = set()
 
 
 def sentinel_path() -> Path:
-    """Path of the ESTOP sentinel this process would write on `hermes pause`."""
+    """Path of the ESTOP sentinel this process would write on `ettok pause`."""
     return _hermes_home() / SENTINEL_NAME
 
 
@@ -116,7 +116,7 @@ def paused_reply() -> Optional[str]:
     if state is None:
         return None
     tag = f" ({state['reason']})" if state.get("reason") else ""
-    return f"⏸️ Hermes is paused{tag}. New work is on hold; run `hermes resume` to pick things back up."
+    return f"⏸️ Ettok is paused{tag}. New work is on hold; run `ettok resume` to pick things back up."
 
 
 def check_paused(component: str, logger: logging.Logger) -> bool:
@@ -132,7 +132,7 @@ def check_paused(component: str, logger: logging.Logger) -> bool:
         reason = (get_state() or {}).get("reason")
         suffix = f" (reason: {reason})" if reason else ""
         logger.info(
-            "%s dispatch paused by global emergency stop%s — remove with `hermes resume` (%s)",
+            "%s dispatch paused by global emergency stop%s — remove with `ettok resume` (%s)",
             component, suffix, sentinel_path(),
         )
     return True

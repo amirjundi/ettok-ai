@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """X Search tool backed by xAI's built-in ``x_search`` Responses API tool.
 
-Registers when either xAI credential path is available (``XAI_API_KEY`` or ``hermes auth add
+Registers when either xAI credential path is available (``XAI_API_KEY`` or ``ettok auth add
 xai-oauth``). At call time an explicit ``XAI_API_KEY`` wins (``prefer_api_key=True``): x_search
 is API-metered and the subscription OAuth bearer answers ``/v1/responses`` without citations.
 Date filters are validated client-side so malformed windows fail fast instead of burning a
@@ -69,7 +69,7 @@ def _resolve_xai_bearer() -> Tuple[str, str, str]:
     api_key = str(creds.get("api_key") or "").strip()
     if not api_key:
         raise RuntimeError(
-            "No xAI credentials available. Run `hermes auth add xai-oauth` "
+            "No xAI credentials available. Run `ettok auth add xai-oauth` "
             "to sign in with your SuperGrok subscription, or set XAI_API_KEY."
         )
     base_url = str(creds.get("base_url") or DEFAULT_XAI_BASE_URL).strip().rstrip("/")

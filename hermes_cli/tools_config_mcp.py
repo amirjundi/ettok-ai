@@ -1,4 +1,4 @@
-"""MCP tool checklists and the non-interactive ``hermes tools enable|disable|list`` command."""
+"""MCP tool checklists and the non-interactive ``ettok tools enable|disable|list`` command."""
 
 from __future__ import annotations
 

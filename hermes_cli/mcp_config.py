@@ -1,4 +1,4 @@
-"""MCP Server Management CLI — ``hermes mcp`` subcommand."""
+"""MCP Server Management CLI — ``ettok mcp`` subcommand."""
 
 import asyncio
 import logging
@@ -454,9 +454,9 @@ def cmd_mcp_add(args):
     if not url and not command:
         _error("Must specify --url <endpoint>, --command <cmd>, or --preset <name>")
         _info("Examples:")
-        _info('  hermes mcp add ink --url "https://mcp.ml.ink/mcp"')
-        _info('  hermes mcp add github --command npx --args @modelcontextprotocol/server-github')
-        _info('  hermes mcp add myserver --preset mypreset')
+        _info('  ettok mcp add ink --url "https://mcp.ml.ink/mcp"')
+        _info('  ettok mcp add github --command npx --args @modelcontextprotocol/server-github')
+        _info('  ettok mcp add myserver --preset mypreset')
         return
 
     if name in _get_mcp_servers() and not _confirm(
@@ -491,7 +491,7 @@ def cmd_mcp_add(args):
             server_config["enabled"] = False
             if _save_mcp_server(name, server_config):
                 _success(f"Saved '{name}' to config (disabled)")
-                _info("Fix the issue, then: hermes mcp test " + name)
+                _info("Fix the issue, then: ettok mcp test " + name)
         return
 
     if not tools:
@@ -523,7 +523,7 @@ def cmd_mcp_remove(args):
     _remove_mcp_server(name)
     _success(f"Removed '{name}' from config")
     # Route OAuth cleanup through MCPOAuthManager so any provider cached in this process (e.g. from
-    # an earlier `hermes mcp test`) is evicted too.
+    # an earlier `ettok mcp test`) is evicted too.
     try:
         from tools.mcp_oauth_manager import get_manager
         get_manager().remove(name)
@@ -540,8 +540,8 @@ def cmd_mcp_list(args=None):
         _info("No MCP servers configured.")
         print()
         _info("Add one with:")
-        _info('  hermes mcp add <name> --url <endpoint>')
-        _info('  hermes mcp add <name> --command <cmd> --args <args...>')
+        _info('  ettok mcp add <name> --url <endpoint>')
+        _info('  ettok mcp add <name> --command <cmd> --args <args...>')
         print()
         return
 
@@ -632,7 +632,7 @@ def _reauth_oauth_server(name: str, server_config: dict, *, flow: str | None = N
         return False
     if server_config.get("auth") != "oauth":
         _error(f"Server '{name}' is not configured for OAuth (auth={server_config.get('auth')})")
-        _info("Use `hermes mcp remove` + `hermes mcp add` to reconfigure auth.")
+        _info("Use `ettok mcp remove` + `ettok mcp add` to reconfigure auth.")
         return False
 
     oauth_cfg = server_config.get("oauth") or {}
@@ -652,7 +652,7 @@ def _reauth_oauth_server(name: str, server_config: dict, *, flow: str | None = N
 
     # The probe triggers the OAuth flow (browser redirect + callback capture). Honor the configured
     # connect_timeout, floored at 315s (the 300s OAuth callback window + headroom) — matching the GUI
-    # re-auth path in web_server.py. force_interactive_oauth: `hermes mcp login` is explicitly
+    # re-auth path in web_server.py. force_interactive_oauth: `ettok mcp login` is explicitly
     # user-initiated even when stdin isn't a TTY (desktop / agent-spawned terminals), where
     # _is_interactive() alone would refuse to open a browser.
     try:
@@ -689,7 +689,7 @@ def _reauth_oauth_server(name: str, server_config: dict, *, flow: str | None = N
             ):
                 print(color(f"    {line}", Colors.DIM))
             print()
-            _info("Then re-run `hermes mcp login " + name + "`.")
+            _info("Then re-run `ettok mcp login " + name + "`.")
             return False
         if tools:
             _success(f"Authenticated — {len(tools)} tool(s) available")
@@ -741,7 +741,7 @@ def cmd_mcp_reauth(args):
         return
     if not name:
         _error("Specify a server name, or use --all to re-auth every OAuth server.")
-        _info("Usage: hermes mcp reauth <name>   |   hermes mcp reauth --all")
+        _info("Usage: ettok mcp reauth <name>   |   ettok mcp reauth --all")
         return
     cfg = _lookup_server(name, servers)
     if cfg is not None:
@@ -785,7 +785,7 @@ def cmd_mcp_configure(args):
     """Reconfigure which tools are enabled for an existing MCP server."""
     import sys as _sys
     if not _sys.stdin.isatty():
-        print("Error: 'hermes mcp configure' requires an interactive terminal.", file=_sys.stderr)
+        print("Error: 'ettok mcp configure' requires an interactive terminal.", file=_sys.stderr)
         _sys.exit(1)
     name = args.name
     cfg = _lookup_server(name, _get_mcp_servers(), "Available")
@@ -859,24 +859,24 @@ def cmd_mcp_configure(args):
 
 
 _MCP_USAGE = (
-    "hermes mcp                                    Open the catalog picker (default)",
-    "hermes mcp catalog                            List Nous-approved MCPs",
-    "hermes mcp install <name>                     Install a catalog MCP",
-    "hermes mcp serve                              Run as MCP server",
-    "hermes mcp add <name> --url <endpoint>        Add a custom MCP server",
-    "hermes mcp add <name> --command <cmd>         Add a stdio server",
-    "hermes mcp add <name> --preset <preset>       Add from a known preset",
-    "hermes mcp remove <name>                      Remove a server",
-    "hermes mcp list                               List configured servers",
-    "hermes mcp test <name>                        Test connection",
-    "hermes mcp configure <name>                   Toggle tools",
-    "hermes mcp login <name>                       Re-authenticate OAuth",
-    "hermes mcp reauth <name> | --all              Re-auth one or all OAuth servers",
+    "ettok mcp                                    Open the catalog picker (default)",
+    "ettok mcp catalog                            List Nous-approved MCPs",
+    "ettok mcp install <name>                     Install a catalog MCP",
+    "ettok mcp serve                              Run as MCP server",
+    "ettok mcp add <name> --url <endpoint>        Add a custom MCP server",
+    "ettok mcp add <name> --command <cmd>         Add a stdio server",
+    "ettok mcp add <name> --preset <preset>       Add from a known preset",
+    "ettok mcp remove <name>                      Remove a server",
+    "ettok mcp list                               List configured servers",
+    "ettok mcp test <name>                        Test connection",
+    "ettok mcp configure <name>                   Toggle tools",
+    "ettok mcp login <name>                       Re-authenticate OAuth",
+    "ettok mcp reauth <name> | --all              Re-auth one or all OAuth servers",
 )
 
 
 def mcp_command(args):
-    """Main dispatcher for ``hermes mcp`` subcommands."""
+    """Main dispatcher for ``ettok mcp`` subcommands."""
     action = getattr(args, "mcp_action", None)
     if action == "serve":
         from mcp_serve import run_mcp_server

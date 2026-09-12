@@ -350,6 +350,21 @@ def _apply_toolsets() -> bool:
         if isinstance(browser_cfg, dict) and not browser_cfg.get('backend'):
             browser_cfg['backend'] = 'off'
 
+        # Presentation, so Ettok does not arrive wearing the upstream product's
+        # colours. `mono` is the monochrome skin; the dashboard has a theme of
+        # the same name and the two are set together so the terminal and the
+        # browser look like one product. Same rule as above: only when the
+        # operator has not already chosen.
+        display_cfg = cfg.setdefault('display', {})
+        if isinstance(display_cfg, dict) and not display_cfg.get('skin'):
+            display_cfg['skin'] = 'mono'
+        dashboard_cfg = cfg.setdefault('dashboard', {})
+        if isinstance(dashboard_cfg, dict) and not dashboard_cfg.get('theme'):
+            dashboard_cfg['theme'] = 'mono'
+        if isinstance(dashboard_cfg, dict) and not dashboard_cfg.get('font'):
+            # OpenClaw's default UI face, so the two read as one family.
+            dashboard_cfg['font'] = 'instrument-sans'
+
         hermes_config.save_config(cfg)
         return True
     except Exception:

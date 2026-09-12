@@ -1,4 +1,4 @@
-"""Unified provider-credential lifecycle across every store Hermes reads.
+"""Unified provider-credential lifecycle across every store Ettok reads.
 
 Deleting a key from ``.env`` alone leaves the stale ``credential_pool`` entry (and the
 ``provider_models_cache.json`` row) behind, so the provider keeps appearing in the model picker
@@ -154,7 +154,7 @@ def purge_env_credential_references(
     """
     pruned = _prune_env_pool_entries(env_var)
     providers = sorted(set(pruned) | set(_providers_for_env_var(env_var)))
-    # Make the removal sticky the same way `hermes auth remove` does: a lingering shell export (or
+    # Make the removal sticky the same way `ettok auth remove` does: a lingering shell export (or
     # another live process's os.environ) would otherwise re-seed the pool entry on the next
     # load_pool(). The save path lifts the suppression on an explicit re-add.
     _for_each_provider(providers, "hermes_cli.auth.suppress_credential_source", f"env:{env_var}")
@@ -172,13 +172,13 @@ def save_provider_env_credential(env_var: str, value: str) -> Dict[str, Any]:
     lands in ``auth.json`` (a ``.env``-only write left env-backed providers 401'ing).
 
     Suppressed ``env:<VAR>`` pool sources are re-enabled so a deliberate re-add through the UI behaves like
-    ``hermes auth add``. See #62269.
+    ``ettok auth add``. See #62269.
     The save also forces an immediate ``load_pool()`` for every provider registered against this env var so
     the env-seeded ``credential_pool`` entry is materialized to ``auth.json`` right now — the live runtime
     reads from the pool, and before #96058 the Desktop "Save" action only touched ``.env`` while
     ``auth.json``'s mtime stayed unchanged, so an OpenCode Go (or any other env-backed provider) request
-    kept 401'ing until the user ran ``hermes auth add <provider> --type api-key`` separately. This makes the
-    Desktop save's effect on disk match what ``hermes auth add`` does.
+    kept 401'ing until the user ran ``ettok auth add <provider> --type api-key`` separately. This makes the
+    Desktop save's effect on disk match what ``ettok auth add`` does.
     """
     from hermes_cli.config import load_env, save_env_value
 

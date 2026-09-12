@@ -101,7 +101,7 @@ def _run_xai_video_tool(args: Dict[str, Any], op: str, run, **extra: Any) -> str
             "success": False,
             "error": (
                 "xAI video edit/extend tools require `video_gen.provider` to be "
-                "configured as `xai` via `hermes tools` -> Video Generation."
+                "configured as `xai` via `ettok tools` -> Video Generation."
             ),
             "error_type": "provider_not_configured",
             "provider": "xai",

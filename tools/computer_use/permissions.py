@@ -1,7 +1,7 @@
 """Cross-platform Computer Use readiness + macOS permission helpers. "Ready to drive" differs per platform: macOS
 needs explicit TCC grants (Accessibility + Screen Recording) via cua-driver ``permissions status`` / ``permissions
 grant``; Windows/Linux have no TCC toggles, so readiness == driver health. The grants attach to cua-driver's OWN
-identity (``com.trycua.driver``), not Hermes, so ``grant`` launches CuaDriver via LaunchServices for correct dialog
+identity (``com.trycua.driver``), not Ettok, so ``grant`` launches CuaDriver via LaunchServices for correct dialog
 attribution. ``cua-driver doctor --json`` is the universal signal; ``computer_use_status`` folds it with the macOS
 detail into one payload for the desktop card, the ``permissions`` CLI and ``/api/tools/computer-use/status``."""
 
@@ -98,7 +98,7 @@ def request_permissions_grant(driver_cmd: Optional[str] = None) -> int:
     from tools.computer_use.cua_backend_driver import resolve_cua_driver_cmd
     binary = resolve_cua_driver_cmd(driver_cmd)
     if not binary:
-        print("cua-driver: not installed. Run: hermes computer-use install")
+        print("cua-driver: not installed. Run: ettok computer-use install")
         return 2
     print("Requesting Accessibility + Screen Recording for CuaDriver.\n"
           "macOS will show a dialog attributed to CuaDriver (com.trycua.driver) — approve it, then return here.")

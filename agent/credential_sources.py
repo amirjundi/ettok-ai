@@ -1,7 +1,7 @@
-"""Unified removal contract for every credential source Hermes reads from.
+"""Unified removal contract for every credential source Ettok reads from.
 
 Readers live in ``agent.credential_pool``; what is unified here is **removal**:
-``hermes auth remove <provider> <N>`` must make the entry stay gone across
+``ettok auth remove <provider> <N>`` must make the entry stay gone across
 ``load_pool()`` calls. Each source registers a ``RemovalStep`` whose
 ``remove_fn`` cleans the external state the source reads from, and the
 dispatcher suppresses ``(provider, source_id)`` in auth.json so the seeding
@@ -91,9 +91,9 @@ def _remove_env_source(provider: str, removed) -> RemovalResult:
             f"Note: {env_var} is still set in your shell environment "
             f"(not in ~/.hermes/.env).",
             "  Unset it there (shell profile, systemd EnvironmentFile, "
-            "launchd plist, etc.) or it will keep being visible to Hermes.",
-            f"  The pool entry is now suppressed — Hermes will ignore "
-            f"{env_var} until you run `hermes auth add {provider}`.",
+            "launchd plist, etc.) or it will keep being visible to Ettok.",
+            f"  The pool entry is now suppressed — Ettok will ignore "
+            f"{env_var} until you run `ettok auth add {provider}`.",
         ])
     else:
         result.hints.append(
@@ -112,7 +112,7 @@ def _remove_hermes_pkce(provider: str, removed) -> RemovalResult:
     if oauth_file.exists():
         try:
             oauth_file.unlink()
-            result.cleaned.append("Cleared Hermes Anthropic OAuth credentials")
+            result.cleaned.append("Cleared Ettok Anthropic OAuth credentials")
         except OSError as exc:
             result.hints.append(f"Could not delete {oauth_file}: {exc}")
     return result
@@ -140,7 +140,7 @@ def _remove_auth_store_oauth(provider: str, removed) -> RemovalResult:
 def _remove_xai_oauth_device_code(provider: str, removed) -> RemovalResult:
     result = _remove_auth_store_oauth(provider, removed)
     result.hints.append(
-        "Run `hermes model` → xAI Grok OAuth (SuperGrok / Premium+) to re-authenticate if needed."
+        "Run `ettok model` → xAI Grok OAuth (SuperGrok / Premium+) to re-authenticate if needed."
     )
     return result
 
@@ -158,7 +158,7 @@ def _remove_codex_device_code(provider: str, removed) -> RemovalResult:
     result.hints.extend([
         "Suppressed openai-codex device_code source — it will not be re-seeded.",
         "Note: Codex CLI credentials still live in ~/.codex/auth.json",
-        "Run `hermes auth add openai-codex` to re-enable if needed.",
+        "Run `ettok auth add openai-codex` to re-enable if needed.",
     ])
     return result
 
@@ -175,7 +175,7 @@ def _remove_copilot_gh(provider: str, removed) -> RemovalResult:
     return RemovalResult(hints=[
         "Suppressed all copilot token sources (gh_cli + env vars) — they will not be re-seeded.",
         "Note: Your gh CLI / shell environment is unchanged.",
-        "Run `hermes auth add copilot` to re-enable if needed.",
+        "Run `ettok auth add copilot` to re-enable if needed.",
     ])
 
 
@@ -209,7 +209,7 @@ _REGISTRY: List[RemovalStep] = [
         remove_fn=_suppress_only(
             "Suppressed claude_code credential — it will not be re-seeded.",
             "Note: Claude Code credentials still live in ~/.claude/.credentials.json",
-            "Run `hermes auth add anthropic` to re-enable if needed.",
+            "Run `ettok auth add anthropic` to re-enable if needed.",
         ),
         description="~/.claude/.credentials.json",
     ),
@@ -239,7 +239,7 @@ _REGISTRY: List[RemovalStep] = [
         remove_fn=_suppress_only(
             "Suppressed qwen-cli credential — it will not be re-seeded.",
             "Note: Qwen CLI credentials still live in ~/.qwen/oauth_creds.json",
-            "Run `hermes auth add qwen-oauth` to re-enable if needed.",
+            "Run `ettok auth add qwen-oauth` to re-enable if needed.",
         ),
         description="~/.qwen/oauth_creds.json",
     ),

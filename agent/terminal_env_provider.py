@@ -79,14 +79,14 @@ class TerminalEnvironmentProvider(ProviderBase):
         return ("ready", "") if self.is_available() else ("needs_setup", f"{self.display_name} is not configured.")
 
     def setup_instructions(self) -> List[str]:
-        """Lines printed by ``hermes setup`` after selection (the wizard persists ``terminal.backend`` itself)."""
+        """Lines printed by ``ettok setup`` after selection (the wizard persists ``terminal.backend`` itself)."""
         return []
 
     def post_setup(self) -> None:
-        """Optional interactive hook run by ``hermes setup`` after selection (prompt for tokens, install SDKs)."""
+        """Optional interactive hook run by ``ettok setup`` after selection (prompt for tokens, install SDKs)."""
 
     def doctor_checks(self) -> List[Tuple[bool, str, str]]:
-        """``hermes doctor`` rows ``(ok, label, detail)``; default reflects :meth:`is_available`."""
+        """``ettok doctor`` rows ``(ok, label, detail)``; default reflects :meth:`is_available`."""
         try:
             ok = bool(self.is_available())
         except Exception:

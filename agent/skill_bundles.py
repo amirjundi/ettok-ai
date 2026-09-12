@@ -160,7 +160,7 @@ def build_bundle_invocation_message(
     return ("\n\n".join([header, *skill_blocks]), loaded_names, missing)
 
 
-# File-level CRUD — used by `hermes bundles`.
+# File-level CRUD — used by `ettok bundles`.
 
 
 def bundle_path_for(name: str) -> Path:

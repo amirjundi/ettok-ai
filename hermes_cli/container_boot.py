@@ -70,9 +70,9 @@ def reconcile_profile_gateways(
 
     Always registers a ``gateway-default`` slot for the root profile (the implicit profile at
     the top of ``$HERMES_HOME``): ``hermes_cli.gateway`` maps an empty profile suffix to it,
-    so it is what ``hermes gateway start`` (no ``-p``) targets.
+    so it is what ``ettok gateway start`` (no ``-p``) targets.
 
-    Without it, bare ``hermes gateway start`` inside the container would land on ``s6-svc -u
+    Without it, bare ``ettok gateway start`` inside the container would land on ``s6-svc -u
     /run/service/gateway-default`` → uncaught ``CalledProcessError`` → traceback to the user (PR #30136
     review).
     """
@@ -101,7 +101,7 @@ def reconcile_profile_gateways(
     profiles_root = hermes_home / "profiles"
     if profiles_root.is_dir():
         for entry in sorted(profiles_root.iterdir()):
-            # SOUL.md (seeded by `hermes profile create`) is the "real profile" marker.
+            # SOUL.md (seeded by `ettok profile create`) is the "real profile" marker.
             if not entry.is_dir() or not (entry / "SOUL.md").exists():
                 continue
             # "default" is reserved for the root profile slot above.

@@ -370,10 +370,10 @@ def _find_bundled_tui(hermes_cli_dir: Path | None = None) -> Path | None:
 
 def _restore_tui_workspace(tui_dir: Path) -> bool:
     """Best-effort ``git restore`` of a missing ``ui-tui/`` (Windows AV/NTFS filters can delete
-    tracked files after ``hermes update``); True when the directory exists afterwards.
+    tracked files after ``ettok update``); True when the directory exists afterwards.
 
     On Windows an antivirus / NTFS filter driver can leave tracked ``ui-tui/`` files deleted in the working
-    tree after ``hermes update`` (HEAD stays intact; the files just vanish — see issue #49145). Those files
+    tree after ``ettok update`` (HEAD stays intact; the files just vanish — see issue #49145). Those files
     are tracked, so ``git restore`` puts them back deterministically. Best-effort: returns False (rather
     than raising) when git is unavailable, this isn't a checkout, or the restore leaves the directory still
     missing — the caller then prints the manual-recovery message.
@@ -408,14 +408,14 @@ def _ensure_tui_workspace(tui_dir: Path) -> None:
         return
 
     print(
-        "Error: the TUI workspace is missing from this Hermes checkout.\n"
+        "Error: the TUI workspace is missing from this Ettok checkout.\n"
         f"Expected directory: {tui_dir}\n"
-        "This usually means `hermes update` left tracked ui-tui files deleted.\n"
+        "This usually means `ettok update` left tracked ui-tui files deleted.\n"
         "Recovery:\n"
-        "  1. From the Hermes checkout, run `git restore -- ui-tui`\n"
+        "  1. From the Ettok checkout, run `git restore -- ui-tui`\n"
         "  2. Run `npm install --silent --no-fund --no-audit --progress=false`\n"
         "  3. Retry `hermes --tui`\n"
-        "If the checkout is still inconsistent, run `hermes update --force`.",
+        "If the checkout is still inconsistent, run `ettok update --force`.",
         file=sys.stderr)
     sys.exit(1)
 
@@ -811,7 +811,7 @@ def _launch_tui(
                 from cli import _cleanup_worktree
                 _cleanup_worktree(wt_info)
 
-    # Exit code 42 = TUI requested an update. Relaunch as `hermes update`;
+    # Exit code 42 = TUI requested an update. Relaunch as `ettok update`;
     # preserve_inherited=False keeps --tui and other flags out of the subcommand.
     if code == 42:
         from hermes_cli.relaunch import relaunch
@@ -823,11 +823,11 @@ def _launch_tui(
 
 def _pin_kanban_board_env() -> None:
     """Pin the active kanban board into ``HERMES_KANBAN_BOARD`` so in-process tools and shelled-out
-    ``hermes kanban`` calls agree even if a concurrent ``boards switch`` flips the file mid-turn.
+    ``ettok kanban`` calls agree even if a concurrent ``boards switch`` flips the file mid-turn.
 
-    Without this, in-process tools (``kanban_*``) and shelled-out CLI calls (``hermes kanban …``) resolve
+    Without this, in-process tools (``kanban_*``) and shelled-out CLI calls (``ettok kanban …``) resolve
     the board on different paths: the env-pin if set, otherwise the global ``<root>/kanban/current`` file. A
-    concurrent ``hermes kanban boards switch`` from another session can flip the file mid-turn, so the same
+    concurrent ``ettok kanban boards switch`` from another session can flip the file mid-turn, so the same
     chat sees its tool calls hit board A while its shell calls hit board B (#20074). Pinning at chat boot
     mirrors what the dispatcher already does for spawned workers.
     """
@@ -851,7 +851,7 @@ def _resolve_use_tui(args) -> bool:
     ``HERMES_TUI=1`` → TUI; ``display.interface`` config; default classic.
 
     The TTY gate is load-bearing: ambient preferences must never hijack a piped
-    ``hermes chat -q`` (kanban workers, cron) — the Ink no-TTY bail-out exits 0 and
+    ``ettok chat -q`` (kanban workers, cron) — the Ink no-TTY bail-out exits 0 and
     the worker dies with a protocol violation. Explicit ``--tui`` still bails out.
     """
     if getattr(args, "cli", False):

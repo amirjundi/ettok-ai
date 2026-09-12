@@ -138,7 +138,7 @@ def _nous_recommended_default() -> dict:
 @router.get("/api/model/recommended-default")
 def get_recommended_default_model(provider: str = ""):
     """Recommended default model for a freshly-authenticated provider, mirroring
-    ``hermes model``'s curation so GUI onboarding lands on a sensible default.
+    ``ettok model``'s curation so GUI onboarding lands on a sensible default.
     Nous honors the user's free/paid tier. Any other provider gets the preferred
     silent default when its curated list carries it, else the first curated model —
     aggregator lists lead with the priciest Anthropic flagship, which must never be

@@ -52,7 +52,7 @@ def _model_flow_bedrock_api_key(config, region, current_model=""):
     from hermes_cli.models import _PROVIDER_MODELS
     mantle_base_url = f"https://bedrock-mantle.{region}.api.aws/v1"
 
-    # Check env var and credential pool (keys added via `hermes auth`)
+    # Check env var and credential pool (keys added via `ettok auth`)
     bedrock_pconfig = ProviderConfig(id="bedrock", name="Bedrock", auth_type="api_key", api_key_env_vars=("AWS_BEARER_TOKEN_BEDROCK",))
     existing_key, existing_source = _resolve_api_key_provider_secret("bedrock", bedrock_pconfig)
     if existing_key:

@@ -55,24 +55,24 @@ def _egress_proxy_args_for_docker() -> tuple[list[str], dict[str, str], list[str
     if not status.configured:
         return _degraded(
             "proxy.enabled is true but iron-proxy is not configured. "
-            "Run `hermes egress setup` to mint tokens and write proxy.yaml.")
+            "Run `ettok egress setup` to mint tokens and write proxy.yaml.")
     if not (status.pid and status.listening):
         return _degraded(
             f"iron-proxy is enabled but not running on port {status.tunnel_port}. "
-            "Start it with `hermes egress start`.")
+            "Start it with `ettok egress start`.")
     if status.ca_cert_path is None or not status.ca_cert_path.exists():
         # Configured a moment ago but the trust anchor vanished: proxy env vars
         # without the CA would make every TLS handshake fail.
         return _degraded(
             f"iron-proxy CA cert vanished from {status.ca_cert_path}. "
-            "Re-run `hermes egress setup` to regenerate it.")
+            "Re-run `ettok egress setup` to regenerate it.")
     # Empty/corrupt mappings look like an upstream outage from inside the
     # sandbox (every request 403s); refuse rather than ship a broken sandbox.
     mappings = ip.load_mappings()
     if not mappings:
         return _degraded(
             "iron-proxy is configured but mappings.json is empty or "
-            "corrupt.  Re-run `hermes egress setup` to mint provider "
+            "corrupt.  Re-run `ettok egress setup` to mint provider "
             "tokens before starting a sandbox.")
 
     volume_args = ["-v", f"{status.ca_cert_path}:{_CONTAINER_CA}:ro"]

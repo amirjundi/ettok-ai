@@ -41,7 +41,7 @@ DEFAULT_EXCLUDES = [
     "__pycache__/", "*.pyc", "*.pyo", ".cache/", ".pytest_cache/", ".mypy_cache/",  # caches
     ".ruff_cache/", "coverage/", ".coverage",
     ".venv/", "venv/", "env/",  # virtualenvs
-    ".git/", ".hg/", ".svn/", ".worktrees/",  # VCS + worktrees (Hermes convention — don't snapshot siblings)
+    ".git/", ".hg/", ".svn/", ".worktrees/",  # VCS + worktrees (Ettok convention — don't snapshot siblings)
     "*.so", "*.dylib", "*.dll", "*.o", "*.a", "*.jar", "*.class", "*.exe", "*.obj",  # compiled binaries
     "*.mp4", "*.mov", "*.mkv", "*.webm", "*.zip", "*.tar", "*.tar.gz", "*.tgz",  # media / large binaries
     "*.7z", "*.rar", "*.iso",
@@ -56,7 +56,7 @@ _MB = 1024 * 1024
 # Inherited GIT_* vars that would redirect the shadow store's git calls.
 _GIT_LEAK_VARS = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_NAMESPACE", "GIT_ALTERNATE_OBJECT_DIRECTORIES")
 # Per-store config: isolated by env vars already, but belt-and-suspenders.
-_STORE_GIT_CONFIG = (("user.email", "hermes@local"), ("user.name", "Hermes Checkpoint"),
+_STORE_GIT_CONFIG = (("user.email", "hermes@local"), ("user.name", "Ettok Checkpoint"),
                      ("commit.gpgsign", "false"), ("tag.gpgSign", "false"), ("gc.auto", "0"))
 _PROJECT_MARKERS = {".git", "pyproject.toml", "package.json", "Cargo.toml", "go.mod", "Makefile", "pom.xml", ".hg", "Gemfile"}
 
@@ -161,7 +161,7 @@ def _hash_file(path: Path) -> Optional[str]:
 
 def _load_ledger(store: Path, dir_hash: str) -> Dict[str, Dict]:
     """Agent-write ledger ``{abs_path: {"sha256", "ts"}}``: hash of every file the last
-    ``write_file``/``patch`` produced, so restores can tell Hermes' writes from later user edits."""
+    ``write_file``/``patch`` produced, so restores can tell Ettok' writes from later user edits."""
     return _read_json_dict(_ledger_path(store, dir_hash)) or {}
 
 
@@ -356,7 +356,7 @@ def _shrink_store_to_cap(store: Path, working_dir: str, cap_bytes: int) -> bool:
 
 def _migrate_legacy_store(base: Path) -> Optional[Path]:
     """Archive pre-v2 per-project shadow repos into ``legacy-<ts>/`` (moved, not deleted —
-    users may want to recover; the archive falls under retention and ``hermes checkpoints
+    users may want to recover; the archive falls under retention and ``ettok checkpoints
     clear-legacy``).  Returns the archive path or None."""
     if not base.exists():
         return None
@@ -376,7 +376,7 @@ def _migrate_legacy_store(base: Path) -> Optional[Path]:
         except OSError as exc:
             logger.warning("Could not archive legacy checkpoint %s: %s", child, exc)
     logger.info("Migrated pre-v2 checkpoint repos to %s. "
-                "Clear with `hermes checkpoints clear-legacy` when safe.", legacy_root)
+                "Clear with `ettok checkpoints clear-legacy` when safe.", legacy_root)
     return legacy_root
 
 
@@ -582,7 +582,7 @@ class CheckpointManager:
     # --- public API ---
 
     def record_agent_write(self, file_path: str) -> None:
-        """Record the content hash of a file Hermes just wrote (agent-write ledger), so safe-mode
+        """Record the content hash of a file Ettok just wrote (agent-write ledger), so safe-mode
         :meth:`restore` can skip files the user hand-edited afterwards.  Never raises."""
         if not self.enabled:
             return
@@ -597,9 +597,9 @@ class CheckpointManager:
             logger.debug("record_agent_write failed for %s: %s", file_path, exc)
 
     def safe_restore_plan(self, working_dir: str, commit_hash: str) -> Dict:
-        """Classify files changed since ``commit_hash``: ``restore`` = still matching what Hermes
+        """Classify files changed since ``commit_hash``: ``restore`` = still matching what Ettok
         last wrote (or deleted since); ``skipped`` = user-edited afterwards or never written by
-        Hermes.  ``ledger_empty`` => no ledger, callers fall back to a full restore."""
+        Ettok.  ``ledger_empty`` => no ledger, callers fall back to a full restore."""
         p, err = _locate(working_dir, commit_hash)
         if err:
             return err
@@ -716,7 +716,7 @@ class CheckpointManager:
     def restore(self, working_dir: str, commit_hash: str, file_path: str = None,
                 safe: bool = False) -> Dict:
         """Restore files to a checkpoint state.  ``safe=True`` (full-directory only) leaves files
-        the user hand-edited after Hermes' last write untouched (agent-write ledger); the result
+        the user hand-edited after Ettok' last write untouched (agent-write ledger); the result
         then gains ``skipped_user_edits``, ``skipped_oversize`` (size cap kept them out of every
         checkpoint) and, only when a delete failed, ``failed_deletes``."""
         p, err = _locate(working_dir, commit_hash, file_path)
@@ -769,7 +769,7 @@ class CheckpointManager:
     def _apply_safe_restore_deletes(self, p: _ProjectRefs, commit_hash: str,
                                     restore_paths: List[str]) -> _SafeRestoreTargets:
         """Split ledger-approved paths into checkout targets and delete the rest.  A path absent
-        from the checkpoint is Hermes-created (delete to restore) — unless ``max_file_size_mb`` kept
+        from the checkpoint is Ettok-created (delete to restore) — unless ``max_file_size_mb`` kept
         it out of every checkpoint: no prior copy exists and the ledger can't prove it agent-created
         (hashes, not create-vs-modify), so leaving it costs a stale file, deleting costs the file."""
         targets = _SafeRestoreTargets()

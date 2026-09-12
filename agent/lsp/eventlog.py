@@ -84,7 +84,7 @@ def log_server_unavailable(server_id: str, binary_or_pkg: str) -> None:
     _emit_once(
         _announced_unavailable, (server_id, binary_or_pkg), server_id, logging.WARNING,
         f"server unavailable: {binary_or_pkg} not found "
-        "(install via `hermes lsp install <id>` or set lsp.servers.<id>.command)",
+        "(install via `ettok lsp install <id>` or set lsp.servers.<id>.command)",
         f"server still unavailable: {binary_or_pkg}",
     )
 

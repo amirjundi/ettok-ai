@@ -1,4 +1,4 @@
-"""``hermes whatsapp`` subcommand parser."""
+"""``ettok whatsapp`` subcommand parser."""
 
 from __future__ import annotations
 
@@ -19,6 +19,6 @@ def build_whatsapp_cloud_parser(subparsers, *, cmd_whatsapp_cloud: Callable) -> 
         "whatsapp-cloud", help="Set up WhatsApp Business Cloud API integration",
         description="Configure the official Meta WhatsApp Business Cloud API "
             "adapter (Business account required, public webhook URL "
-            "required). Distinct from `hermes whatsapp` which sets up "
+            "required). Distinct from `ettok whatsapp` which sets up "
             "the Baileys bridge for personal accounts.")
     whatsapp_cloud_parser.set_defaults(func=cmd_whatsapp_cloud)

@@ -1,4 +1,4 @@
-"""Shared leaf helpers for the ``hermes update`` modules (no Hermes imports; no cycle)."""
+"""Shared leaf helpers for the ``ettok update`` modules (no Ettok imports; no cycle)."""
 
 import logging
 from contextlib import contextmanager

@@ -1,4 +1,4 @@
-"""Client for uploading ``hermes debug share`` bundles to Nous-internal S3.
+"""Client for uploading ``ettok debug share`` bundles to Nous-internal S3.
 1. POST {NAS_BASE}/api/diagnostics/upload-url → {uploadUrl, viewUrl, id, ...}; the body carries ``sizeBytes``,
    which NAS signs into the presigned URL's ``ContentLength``, so the PUT must send exactly that many bytes.
 2. PUT <uploadUrl> (gzipped bundle, Content-Type application/gzip). NAS is stateless — no confirm step."""

@@ -67,7 +67,7 @@ def warp_osc777(event: str, detail: str, session_id: str = "") -> str:
 
 def notify(context: str, *, prompt: bool, session_id: str = "", detail: str = "") -> None:
     """Emit OSC 9 (plus Warp OSC 777 when supported) for a blocking prompt or turn end."""
-    seq = osc9(f"Hermes: {context}")
+    seq = osc9(f"Ettok: {context}")
     if warp_supported():
         event = "permission_request" if prompt else "stop"
         seq += warp_osc777(event, detail or context, session_id)

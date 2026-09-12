@@ -108,7 +108,7 @@ def _delegation_model_not_found_notice(results) -> "list[str] | None":
         f'"{model}" was rejected by provider "{provider}" '
         "(HTTP 400: not a valid model ID).",
         "Every task in this batch failed for this reason before doing any work.",
-        "Check Settings → Advanced → Subagent Model (or: hermes config get delegation.model)."]
+        "Check Settings → Advanced → Subagent Model (or: ettok config get delegation.model)."]
     with suppress(Exception):
         from hermes_cli.fallback_config import get_fallback_chain
         if not get_fallback_chain(config):
@@ -335,7 +335,7 @@ _REASON_STATUS = {"lost": "marked lost because the process backend disappeared",
 def _completion_status(evt: dict) -> str:
     reason = evt.get("completion_reason") or "exited"
     if reason == "killed":
-        return f"terminated by {evt.get('termination_source') or 'Hermes'}"
+        return f"terminated by {evt.get('termination_source') or 'Ettok'}"
     return _REASON_STATUS.get(reason) or ("completed normally" if evt.get("exit_code", "?") == 0 else "exited")
 
 

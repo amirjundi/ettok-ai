@@ -35,7 +35,7 @@ def codex_cloudflare_headers(access_token: str, *, base_url: str = CODEX_AUX_BAS
     """Identity and account headers for chatgpt.com/backend-api/codex.
 
     OpenAI requires third-party harnesses to identify themselves: the official
-    endpoint gets Hermes' originator and version, custom endpoints keep the
+    endpoint gets Ettok' originator and version, custom endpoints keep the
     codex_cli_rs compatibility identity. ``ChatGPT-Account-ID`` comes from the
     OAuth JWT's ``chatgpt_account_id`` claim; a malformed token drops the header
     rather than raising, so it surfaces as a 401 instead of a crash at client
@@ -45,7 +45,7 @@ def codex_cloudflare_headers(access_token: str, *, base_url: str = CODEX_AUX_BAS
         from hermes_cli import __version__
         headers = {"User-Agent": f"HermesAgent/{__version__}", "originator": "hermes-agent"}
     else:
-        headers = {"User-Agent": "codex_cli_rs/0.0.0 (Hermes Agent)", "originator": "codex_cli_rs"}
+        headers = {"User-Agent": "codex_cli_rs/0.0.0 (Ettok AI)", "originator": "codex_cli_rs"}
     if not isinstance(access_token, str) or not access_token.strip():
         return headers
     try:

@@ -127,7 +127,7 @@ def _serve_plugin_skill(
     from hermes_cli.plugins import _get_disabled_plugins, get_plugin_manager
     from tools import skills_tool as _st
     if namespace in _get_disabled_plugins():
-        return _fail(f"Plugin '{namespace}' is disabled. Re-enable with: hermes plugins enable {namespace}")
+        return _fail(f"Plugin '{namespace}' is disabled. Re-enable with: ettok plugins enable {namespace}")
     qualified_name = f"{namespace}:{bare}"
     try:
         content = _read_skill_text(skill_md)

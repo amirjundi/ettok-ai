@@ -38,7 +38,7 @@ class BrowserProvider(ProviderBase):
     def is_available(self) -> bool:
         """True when this provider can service calls. Cheap check only (env var, token readable, dep
         importable) — must NOT make network calls; runs at tool-registration time and on every
-        ``hermes tools`` paint."""
+        ``ettok tools`` paint."""
 
     @abc.abstractmethod
     def create_session(self, task_id: str) -> Dict[str, object]:

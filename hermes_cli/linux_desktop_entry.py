@@ -93,7 +93,7 @@ def _running_interpreter_fallback() -> str:
 
 
 def resolve_exec_command(project_root: Optional[Path] = None) -> str:
-    """Build the absolute ``Exec=`` command line for ``hermes desktop``.
+    """Build the absolute ``Exec=`` command line for ``ettok desktop``.
 
     Prefer the real ``hermes`` launcher; fall back to ``<python> -m hermes_cli.main desktop``.
     """
@@ -392,7 +392,7 @@ def render_desktop_entry(exec_command: str, icon: str) -> str:
     return (
         "[Desktop Entry]\n"
         "Type=Application\n"
-        "Name=Hermes\n"
+        "Name=Ettok\n"
         "GenericName=Hermes Desktop\n"
         "Comment=Launch Hermes Desktop\n"
         f"Exec={exec_command}\n"
@@ -400,7 +400,7 @@ def render_desktop_entry(exec_command: str, icon: str) -> str:
         "Terminal=false\n"
         "Categories=Utility;\n"
         "StartupNotify=true\n"
-        "StartupWMClass=Hermes\n"
+        "StartupWMClass=Ettok\n"
     )
 
 

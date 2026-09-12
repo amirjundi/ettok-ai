@@ -1,4 +1,4 @@
-"""Helpers shared by the Bitwarden and 1Password ``hermes secrets`` CLIs.
+"""Helpers shared by the Bitwarden and 1Password ``ettok secrets`` CLIs.
 
 Import-light on purpose: ``hermes_cli.secrets_cli`` must stay free of the Bitwarden backend
 (``cryptography``) at import time, so nothing here touches a secret-source backend.
@@ -60,7 +60,7 @@ def require_enabled(console: Console, cfg: dict, product: str, command: str) -> 
     if cfg.get("enabled"):
         return True
     console.print(f"[yellow]{product} integration is disabled.  Run "
-                  f"`hermes secrets {command} setup` first.[/yellow]")
+                  f"`ettok secrets {command} setup` first.[/yellow]")
     return False
 
 
@@ -147,7 +147,7 @@ def rotate_token(
     os.environ[token_env] = token
     clear_caches()
     console.print(f"[green]✓[/green] stored in {env_path()} as {token_env}.  "
-                  "Takes effect on the next Hermes invocation.")
+                  "Takes effect on the next Ettok invocation.")
     if disabled_note:
         console.print(disabled_note)
     return 0

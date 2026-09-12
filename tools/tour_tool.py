@@ -82,7 +82,7 @@ TOUR_SCHEMA = {
     # See #95681.
     "description": (
         "Guided tour in the desktop GUI: dim the screen, highlight an "
-        "element, attach a titled popover. Surfaces: 'app' (Hermes itself) "
+        "element, attach a titled popover. Surfaces: 'app' (Ettok itself) "
         "or 'preview' (the page in the preview pane). ALWAYS call "
         "action='targets' first — prefer targets marked stable:true (their "
         "selectors survive re-renders); re-scan if one stops matching. Then "

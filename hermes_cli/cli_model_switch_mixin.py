@@ -448,7 +448,7 @@ class CLIModelSwitchMixin:
         if warning is None:
             return True
         choices = [
-            ("once", "Switch anyway", "Use this model for the current Hermes session."),
+            ("once", "Switch anyway", "Use this model for the current Ettok session."),
             ("cancel", "Cancel", "Keep the current model.")]
         raw = self._prompt_text_input_modal(
             title=f"!!! {warning.title} !!!", detail=warning.message, choices=choices, timeout=120)
@@ -628,7 +628,7 @@ class CLIModelSwitchMixin:
                 self._close_model_picker()
                 return
             provider_data = providers[selected]
-            # Curated list (same as `hermes model` / gateway pickers); live catalog only when
+            # Curated list (same as `ettok model` / gateway pickers); live catalog only when
             # it is empty (user-defined endpoints).
             model_list = provider_data.get("models", [])
             if not model_list:
@@ -755,7 +755,7 @@ class CLIModelSwitchMixin:
 
         Usage:
             /codex-runtime                       — show current state
-            /codex-runtime auto                  — Hermes default (chat_completions)
+            /codex-runtime auto                  — Ettok default (chat_completions)
             /codex-runtime codex_app_server      — hand turns to codex subprocess
             /codex-runtime on / off              — synonyms for the above
         """

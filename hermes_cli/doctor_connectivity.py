@@ -1,4 +1,4 @@
-"""API connectivity probes for ``hermes doctor`` (split out of ``doctor.py``).
+"""API connectivity probes for ``ettok doctor`` (split out of ``doctor.py``).
 
 Every probe is a pure function: one HTTP/SDK call returning a ``ProbeResult`` with the row(s) to
 print and issue strings to append. No printing inside workers — the caller prints in submission order.
@@ -123,7 +123,7 @@ _OPENROUTER_STATUS = {
     401: ("(invalid API key)", "Check OPENROUTER_API_KEY in .env"),
     402: ("(out of credits — payment required)",
           "OpenRouter account has insufficient credits. "
-          "Fix: run 'hermes config set model.provider <provider>' "
+          "Fix: run 'ettok config set model.provider <provider>' "
           "to switch providers, or fund your OpenRouter account "
           "at https://openrouter.ai/settings/credits"),
     429: ("(rate limited)", "OpenRouter rate limit hit — consider switching to a different provider or waiting"),

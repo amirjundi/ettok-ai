@@ -1,5 +1,5 @@
-"""Unified self-relaunch for Hermes CLI: preserves inherited flags (--tui, --dev, --profile, --model…)
-across process replacement so ``hermes sessions browse`` / post-setup relaunch keep the user's mode."""
+"""Unified self-relaunch for Ettok CLI: preserves inherited flags (--tui, --dev, --profile, --model…)
+across process replacement so ``ettok sessions browse`` / post-setup relaunch keep the user's mode."""
 
 import os
 import shutil
@@ -59,7 +59,7 @@ def _extract_inherited_flags(argv: Sequence[str]) -> list[str]:
 
 
 def resolve_hermes_bin() -> Optional[str]:
-    """Hermes entry point: ``sys.argv[0]`` if a real executable, else ``which hermes``, else ``None``
+    """Ettok entry point: ``sys.argv[0]`` if a real executable, else ``which hermes``, else ``None``
     (caller falls back to ``python -m hermes_cli.main``)."""
     argv0 = sys.argv[0]
     _is_windows = sys.platform == "win32"

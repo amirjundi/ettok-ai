@@ -1,7 +1,7 @@
 """Explicit RFC 8628 MCP login, sharing SDK discovery, client auth and token storage.
 
 The SDK still owns runtime requests and refresh. Device authorization is only
-started by `hermes mcp login/reauth`, never a background reconnect.
+started by `ettok mcp login/reauth`, never a background reconnect.
 """
 from __future__ import annotations
 

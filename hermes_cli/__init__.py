@@ -1,4 +1,4 @@
-"""Hermes CLI - Unified command-line interface for Hermes Agent."""
+"""Ettok CLI - Unified command-line interface for Ettok AI."""
 
 import os
 import sys
@@ -12,7 +12,7 @@ def _ensure_utf8():
 
     The CLI prints box-drawing characters and the ⚕ glyph in the setup wizard, doctor, and status
     banners; under a non-UTF-8 codec that raises before the command can even start (e.g.
-    `hermes setup` on a fresh Pi).
+    `ettok setup` on a fresh Pi).
     """
     repaired = False
     for stream_name in ("stdout", "stderr"):

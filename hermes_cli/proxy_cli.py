@@ -1,4 +1,4 @@
-"""CLI handlers for ``hermes egress ...``."""
+"""CLI handlers for ``ettok egress ...``."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from hermes_cli.config import load_config, load_env, save_config
 
 def register_cli(parent_parser: argparse.ArgumentParser) -> None:
     """Attach the egress subcommand tree to a parent parser."""
-    # dest='egress_command' keeps this tree disjoint from the inbound OAuth ``hermes proxy``
+    # dest='egress_command' keeps this tree disjoint from the inbound OAuth ``ettok proxy``
     # subparser (dest='proxy_command') so a grep-and-refactor on one never hits the other.
     sub = parent_parser.add_subparsers(dest="egress_command")
     # (name, help, handler, [(flag, add_argument kwargs), ...]) — declaration order is the
@@ -47,7 +47,7 @@ def register_cli(parent_parser: argparse.ArgumentParser) -> None:
                 "writing the new config/tokens (non-interactive default on a tty is to ask)."))),
             ("--no-restart", dict(dest="restart", action="store_false", help=(
                 "Do not restart a running daemon after setup; you'll need to run "
-                "`hermes egress restart` yourself for changes to take effect."))),
+                "`ettok egress restart` yourself for changes to take effect."))),
         ]),
         ("start", "Start the managed iron-proxy", cmd_start, []),
         ("stop", "Stop the managed iron-proxy", cmd_stop, []),
@@ -107,13 +107,13 @@ def cmd_setup(args: argparse.Namespace) -> int:
     console.print()
     console.print("[green]✓ iron-proxy is configured.[/green]  Sandboxes will route outbound traffic through it.")
     console.print(
-        "  Start:   [cyan]hermes egress start[/cyan]\n"
-        "  Restart: [cyan]hermes egress restart[/cyan]  (after any re-setup)\n"
-        "  Reload:  [cyan]hermes egress reload[/cyan]   (apply ruleset edits "
+        "  Start:   [cyan]ettok egress start[/cyan]\n"
+        "  Restart: [cyan]ettok egress restart[/cyan]  (after any re-setup)\n"
+        "  Reload:  [cyan]ettok egress reload[/cyan]   (apply ruleset edits "
         "in-place, no restart)\n"
-        "  Status:  [cyan]hermes egress status[/cyan]\n"
-        "  Stop:    [cyan]hermes egress stop[/cyan]\n"
-        "  Disable: [cyan]hermes egress disable[/cyan]"
+        "  Status:  [cyan]ettok egress status[/cyan]\n"
+        "  Stop:    [cyan]ettok egress stop[/cyan]\n"
+        "  Disable: [cyan]ettok egress disable[/cyan]"
     )
     return 0
 
@@ -316,7 +316,7 @@ def _setup_restart_daemon(console: Console, args: argparse.Namespace, proxy_cfg:
             new_status = ip.start_proxy(install_if_missing=bool(proxy_cfg.get("auto_install", True)))
         except Exception as exc:  # noqa: BLE001 — user-facing funnel
             console.print(f"  [yellow]⚠ could not start iron-proxy with the new config: {exc}[/yellow]")
-            console.print("  Run [cyan]hermes egress start[/cyan] manually before launching new Docker sandboxes.")
+            console.print("  Run [cyan]ettok egress start[/cyan] manually before launching new Docker sandboxes.")
         else:
             listening = "listening" if new_status.listening else "not yet listening"
             verb = "restarted" if was_running else "started"
@@ -327,7 +327,7 @@ def _setup_restart_daemon(console: Console, args: argparse.Namespace, proxy_cfg:
     elif was_running:
         console.print(
             "  [yellow]⚠ stopped the running iron-proxy; config or tokens "
-            "changed.  Run [cyan]hermes egress restart[/cyan] (or "
+            "changed.  Run [cyan]ettok egress restart[/cyan] (or "
             "[cyan]start[/cyan]) before launching new Docker sandboxes.[/yellow]"
         )
 
@@ -337,7 +337,7 @@ def cmd_start(args: argparse.Namespace) -> int:
     cfg = load_config()
     proxy_cfg = cfg.get("proxy") or {}
     if not proxy_cfg.get("enabled"):
-        console.print("[yellow]proxy.enabled is false — run `hermes egress setup` first.[/yellow]")
+        console.print("[yellow]proxy.enabled is false — run `ettok egress setup` first.[/yellow]")
         return 1
     # ``credential_source: bitwarden`` refreshes upstream secrets from BSM at startup — that is
     # the rotation guarantee distinguishing it from ``env``.
@@ -358,7 +358,7 @@ def cmd_start(args: argparse.Namespace) -> int:
                 console,
                 "proxy.credential_source is 'bitwarden' but secrets.bitwarden is disabled or missing.",
                 "Re-enable it (`secrets.bitwarden.enabled: true`), switch "
-                "back to env credentials with `hermes egress setup "
+                "back to env credentials with `ettok egress setup "
                 "--no-bitwarden`, or set `proxy.allow_env_fallback: true` to opt into the host-env fallback.",
             )
     # Pass the allow_env_fallback opt-in through to start_proxy: when set the daemon falls back
@@ -376,14 +376,14 @@ def cmd_start(args: argparse.Namespace) -> int:
                 console,
                 f"credential_source=bitwarden but {bw_access_env} is not set in the environment.",
                 "Either export the access token, or run "
-                "`hermes egress setup --no-bitwarden` to switch back to env-based credentials.",
+                "`ettok egress setup --no-bitwarden` to switch back to env-based credentials.",
             )
         if not (bw_cfg or {}).get("project_id"):
             return _refuse(
                 console,
                 "credential_source=bitwarden but secrets.bitwarden.project_id is empty.",
-                "Run `hermes secrets bitwarden setup` to configure the "
-                "project, or switch back via `hermes egress setup --no-bitwarden`.",
+                "Run `ettok secrets bitwarden setup` to configure the "
+                "project, or switch back via `ettok egress setup --no-bitwarden`.",
             )
     try:
         status = ip.start_proxy(
@@ -424,7 +424,7 @@ def cmd_restart(args: argparse.Namespace) -> int:
 def cmd_reload(args: argparse.Namespace) -> int:
     """Hot-reload the ruleset via the management API (no restart, no dropped connections).
 
-    New upstream SECRETS still need ``hermes egress restart``: the daemon reads credentials from
+    New upstream SECRETS still need ``ettok egress restart``: the daemon reads credentials from
     its own environment at spawn time and a reload does not re-populate that env.
     """
     console = Console()
@@ -436,7 +436,7 @@ def cmd_reload(args: argparse.Namespace) -> int:
     console.print("[green]✓[/green] iron-proxy ruleset reloaded in-place (no restart, connections preserved)")
     console.print(
         "[dim]Note: new upstream secrets (rotated keys, new providers) "
-        "still need `hermes egress restart` — the daemon reads real "
+        "still need `ettok egress restart` — the daemon reads real "
         "credentials from its environment at spawn time.[/dim]"
     )
     return 0
@@ -465,9 +465,9 @@ def format_status_text(*, show_tokens: bool = False) -> str:
         for name in uncovered:
             lines.append(f"  - {name}")
     if bool(proxy_cfg.get("enabled")) and not status.configured:
-        lines.extend(["", "Next: run `hermes egress setup` to mint tokens and write proxy.yaml."])
+        lines.extend(["", "Next: run `ettok egress setup` to mint tokens and write proxy.yaml."])
     elif bool(proxy_cfg.get("enabled")) and not (status.pid and status.listening):
-        lines.extend(["", "Next: run `hermes egress start` before launching Docker sandboxes."])
+        lines.extend(["", "Next: run `ettok egress start` before launching Docker sandboxes."])
     return "\n".join(lines)
 
 
@@ -516,7 +516,7 @@ def cmd_disable(args: argparse.Namespace) -> int:
     # spuriously on a stale pidfile from a crashed run.
     if ip.get_status().pid is not None:
         console.print(
-            "  iron-proxy is still running — stop it with [cyan]hermes egress stop[/cyan] if you want it down too."
+            "  iron-proxy is still running — stop it with [cyan]ettok egress stop[/cyan] if you want it down too."
         )
     return 0
 
@@ -525,7 +525,7 @@ def cmd_config(args: argparse.Namespace) -> int:
     console = Console()
     status = ip.get_status()
     if status.config_path is None:
-        console.print("[yellow](no config generated — run `hermes egress setup`)[/yellow]")
+        console.print("[yellow](no config generated — run `ettok egress setup`)[/yellow]")
         return 1
     console.print(str(status.config_path))
     return 0
@@ -539,7 +539,7 @@ def _bitwarden_env_names(console: Console) -> Optional[List[str]]:
     bw_cfg = (cfg.get("secrets") or {}).get("bitwarden") or {}
     if not bw_cfg.get("enabled"):
         console.print("  [red]✗ --from-bitwarden requested but secrets.bitwarden.enabled is false.[/red]")
-        console.print("  Run `hermes secrets bitwarden setup` first, or omit --from-bitwarden.")
+        console.print("  Run `ettok secrets bitwarden setup` first, or omit --from-bitwarden.")
         return None
     try:
         from agent.secret_sources import bitwarden as bw

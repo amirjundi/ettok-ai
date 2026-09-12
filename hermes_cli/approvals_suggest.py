@@ -1,6 +1,6 @@
-"""``hermes approvals suggest`` — mine approval history into allowlist proposals.
+"""``ettok approvals suggest`` — mine approval history into allowlist proposals.
 
-Hermes has no dedicated approval-decision ledger: ``always`` answers land in ``command_allowlist``
+Ettok has no dedicated approval-decision ledger: ``always`` answers land in ``command_allowlist``
 (config.yaml) via :func:`tools.approval.save_permanent_allowlist`, while ``once``/``session``
 approvals are in-memory only. So this module mines *implied approvals*: a command that matches a
 dangerous-command class (the same :func:`tools.approval.detect_dangerous_command` classifier that
@@ -296,13 +296,13 @@ def _render_text(proposals: list[Proposal], days: int) -> None:
             print(f"       e.g. {ex}")
     print(
         "\nNothing has been changed. Apply selected entries with:\n"
-        "  hermes approvals suggest --apply 1,3\n"
+        "  ettok approvals suggest --apply 1,3\n"
         "Entries are merged into command_allowlist in ~/.hermes/config.yaml."
     )
 
 
 def suggest_command(args) -> int:
-    """Entry point for ``hermes approvals suggest``."""
+    """Entry point for ``ettok approvals suggest``."""
     db_path = Path(args.db) if getattr(args, "db", None) else default_db_path()
     days = getattr(args, "days", 90)
     if not db_path.exists():
@@ -355,7 +355,7 @@ def suggest_command(args) -> int:
 
 
 def approvals_command(args) -> int:
-    """Dispatch ``hermes approvals <subcommand>``."""
+    """Dispatch ``ettok approvals <subcommand>``."""
     sub = getattr(args, "approvals_command", None)
     if sub == "suggest":
         return suggest_command(args)
@@ -363,7 +363,7 @@ def approvals_command(args) -> int:
         from hermes_cli.approvals_test import approvals_test_command
         return approvals_test_command(args)
     print(
-        "usage: hermes approvals <subcommand>\n"
+        "usage: ettok approvals <subcommand>\n"
         "\n"
         "subcommands:\n"
         "  suggest    Mine past approval decisions into a proposed\n"
@@ -371,6 +371,6 @@ def approvals_command(args) -> int:
         "  test       Dry-run the approval verdict for a command without\n"
         "             executing it (exit 0 allow / 2 ask / 3 deny)\n"
         "\n"
-        "Run `hermes approvals <subcommand> -h` for details."
+        "Run `ettok approvals <subcommand> -h` for details."
     )
     return 1

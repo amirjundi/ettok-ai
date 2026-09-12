@@ -1,4 +1,4 @@
-"""``hermes claw`` subcommand parser."""
+"""``ettok claw`` subcommand parser."""
 
 from __future__ import annotations
 
@@ -11,12 +11,12 @@ def build_claw_parser(subparsers, *, cmd_claw: Callable) -> None:
     """Attach the ``claw`` subcommand to ``subparsers``."""
     claw_parser = subparsers.add_parser(
         "claw", help="OpenClaw migration tools",
-        description="Migrate settings, memories, skills, and API keys from OpenClaw to Hermes")
+        description="Migrate settings, memories, skills, and API keys from OpenClaw to Ettok")
     claw_subparsers = claw_parser.add_subparsers(dest="claw_action")
 
     # claw migrate
     claw_migrate = claw_subparsers.add_parser(
-        "migrate", help="Migrate from OpenClaw to Hermes",
+        "migrate", help="Migrate from OpenClaw to Ettok",
         description="Import settings, memories, skills, and API keys from an OpenClaw installation. "
         "Always shows a preview before making changes.")
     claw_migrate.add_argument("--source", help="Path to OpenClaw directory (default: ~/.openclaw)")
@@ -38,7 +38,7 @@ def build_claw_parser(subparsers, *, cmd_claw: Callable) -> None:
         "--no-backup", action="store_true",
         help="Skip the pre-migration zip snapshot of ~/.hermes/ (by default a "
         "single restore-point archive is written to ~/.hermes/backups/ "
-        "before apply; restorable with 'hermes import').")
+        "before apply; restorable with 'ettok import').")
     claw_migrate.add_argument(
         "--workspace-target", help="Absolute path to copy workspace instructions into")
     claw_migrate.add_argument(

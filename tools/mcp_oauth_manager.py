@@ -174,7 +174,7 @@ class HermesMCPOAuthProvider(HermesProviderMixin, *_SDK_BASES):
         is dead server-side: delete ``client.json`` (+ stale metadata) so the SDK re-runs DCR next flow.
         Conservative: acts ONLY on 400/401 at the discovered ``token_endpoint`` (the only request carrying our
         ``client_id``) with ``invalid_client`` in the body; pre-registered clients are never poisoned; any failure
-        is swallowed. The browser-side "Redirect URI Mismatch" case has no HTTP signal (``hermes mcp reauth``).
+        is swallowed. The browser-side "Redirect URI Mismatch" case has no HTTP signal (``ettok mcp reauth``).
 
         See #36767.
         """
@@ -185,7 +185,7 @@ class HermesMCPOAuthProvider(HermesProviderMixin, *_SDK_BASES):
             storage = self._hermes_storage()
             # A rejected CIMD URL would loop if re-presented (the server already fetched and refused
             # it): drop it so the retry takes DCR, and mark it on disk so the next process doesn't walk
-            # back into the same refusal (`hermes mcp login` clears the marker).
+            # back into the same refusal (`ettok mcp login` clears the marker).
             cimd_url = getattr(self.context, "client_metadata_url", None)
             if cimd_url and getattr(self.context.client_info, "client_id", None) == cimd_url:
                 logger.warning("MCP OAuth '%s': authorization server rejected our Client ID Metadata Document (%s) "
@@ -312,13 +312,13 @@ class MCPOAuthManager:
         if get_dashboard_oauth_flow() is None and not _is_interactive() and not storage.has_cached_tokens():
             raise OAuthNonInteractiveError(
                 f"MCP OAuth for '{server_name}': non-interactive environment and no cached tokens found. "
-                f"Run `hermes mcp login {server_name}` interactively first to complete initial authorization.")
+                f"Run `ettok mcp login {server_name}` interactively first to complete initial authorization.")
         return _HERMES_PROVIDER_CLS(
             server_name=server_name, preregistered=bool(cfg.get("client_id")), server_url=entry.server_url,
             **build_provider_kwargs(cfg, storage, ssh_proxy_hint=False))
 
     def remove(self, server_name: str, *, hermes_home: str | Path | None = None) -> _ProviderEntry | None:
-        """Evict the provider from cache AND delete tokens from disk (``hermes mcp remove`` / forced re-auth)."""
+        """Evict the provider from cache AND delete tokens from disk (``ettok mcp remove`` / forced re-auth)."""
         entry = self.evict(server_name, hermes_home=hermes_home)
         from tools.mcp_oauth import remove_oauth_tokens
         remove_oauth_tokens(server_name, hermes_home=hermes_home)

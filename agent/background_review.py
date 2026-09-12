@@ -432,17 +432,17 @@ _SKILL_REVIEW_PROMPT = (
     "If you notice two existing skills that overlap, note it in your reply — the background "
     "curator handles consolidation at scale.\n\n"
     "Protected skills (DO NOT edit these):\n"
-    "  • Bundled skills (shipped with Hermes, e.g. 'hermes-agent').\n"
-    "  • Hub-installed skills (installed via 'hermes skills install').\n"
+    "  • Bundled skills (shipped with Ettok, e.g. 'hermes-agent').\n"
+    "  • Hub-installed skills (installed via 'ettok skills install').\n"
     "  • Skills in skills.external_dirs (externally owned).\n"
-    "  • PINNED skills (marked via 'hermes curator pin'). You are an autonomous no-user-present "
+    "  • PINNED skills (marked via 'ettok curator pin'). You are an autonomous no-user-present "
     "actor, so pin blocks your writes too — content updates included. Only the user, in a "
     "foreground session, can change a pinned skill.\n"
     "  • USER-OWNED skills — anything not curator-managed. A skill the user hand-wrote, installed "
     "by URL, or asked a foreground agent to create is theirs, not yours; your writes to it WILL be "
     "refused. This includes skills that were loaded or consulted this session: being in play does "
     "not make one yours to edit. If such a skill is wrong or outdated, say so in your reply and "
-    "recommend 'hermes curator adopt <name>' — do not try to patch it.\n"
+    "recommend 'ettok curator adopt <name>' — do not try to patch it.\n"
     "If the only skills that need updating are protected, say\n"
     "'Nothing to save.' and stop.\n\n"
     "Do NOT capture" + _DO_NOT_CAPTURE_BLOCK +
@@ -499,16 +499,16 @@ _COMBINED_REVIEW_PROMPT = (
     "If you notice overlapping existing skills, mention it — the background curator handles "
     "consolidation.\n\n"
     "Protected skills (DO NOT edit these):\n"
-    "  • Bundled skills (shipped with Hermes, e.g. 'hermes-agent').\n"
-    "  • Hub-installed skills (installed via 'hermes skills install').\n"
+    "  • Bundled skills (shipped with Ettok, e.g. 'hermes-agent').\n"
+    "  • Hub-installed skills (installed via 'ettok skills install').\n"
     "  • Skills in skills.external_dirs (externally owned).\n"
-    "  • PINNED skills (marked via 'hermes curator pin'). Pin blocks autonomous writes entirely — "
+    "  • PINNED skills (marked via 'ettok curator pin'). Pin blocks autonomous writes entirely — "
     "content updates included — because no user is present to consent. Only a foreground session "
     "can change one.\n"
     "  • USER-OWNED skills — anything not curator-managed (hand-written, URL-installed, or created "
     "by a foreground agent at the user's request). Your writes to these WILL be refused, including "
     "to skills loaded or consulted this session. If one is wrong, say so in your reply and "
-    "recommend 'hermes curator adopt <name>' instead.\n"
+    "recommend 'ettok curator adopt <name>' instead.\n"
     "If the only skills that need updating are protected, say\n"
     "'Nothing to save.' and stop.\n\n"
     "Do NOT capture as skills" + _DO_NOT_CAPTURE_BLOCK +
@@ -1101,12 +1101,12 @@ def _run_review_in_thread(
         finish_background_review_run(agent, review_run)
         return
     _set_thread_approval_callback(_bg_review_auto_deny)
-    # A client that can't carry Hermes tool calls back would spawn a fork that cannot write
+    # A client that can't carry Ettok tool calls back would spawn a fork that cannot write
     # anything. Checked BEFORE the thread-scoped silence so the warning is not swallowed; cheap
     # check first so the normal path never resolves the runtime twice.
     if not _parent_can_emit_tool_calls(agent) and not _resolve_review_runtime(agent, task_cfg).get("routed"):
         logger.warning(
-            "Background review skipped: provider %r cannot emit Hermes tool calls, "
+            "Background review skipped: provider %r cannot emit Ettok tool calls, "
             "so the review fork could not write memories or skills. Set "
             "auxiliary.background_review.{provider,model} to route the review to a normal model.",
             getattr(agent, "provider", "?"),

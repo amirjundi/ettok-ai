@@ -1,4 +1,4 @@
-"""``hermes approvals`` subcommand parser."""
+"""``ettok approvals`` subcommand parser."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ def build_approvals_parser(subparsers, *, cmd_approvals: Callable) -> None:
     approvals_parser = subparsers.add_parser(
         "approvals", help="Approval-prompt tools (mine history into allowlist proposals)",
         description="Tools for the dangerous-command approval system. "
-            "`hermes approvals suggest` mines past approval decisions from "
+            "`ettok approvals suggest` mines past approval decisions from "
             "the session database and proposes command_allowlist entries so "
             "repeatedly-approved commands stop prompting.")
     approvals_subparsers = approvals_parser.add_subparsers(
@@ -52,7 +52,7 @@ def build_approvals_parser(subparsers, *, cmd_approvals: Callable) -> None:
             "executing the command, prompting anyone, or persisting anything. "
             "Exit codes: 0 allow, 2 ask-approval, 3 deny (hardline or user "
             "deny rule). Tip: use `--` before the command so its own flags "
-            "aren't parsed: hermes approvals test -- rm -rf /tmp/x")
+            "aren't parsed: ettok approvals test -- rm -rf /tmp/x")
     test_parser.add_argument(
         "--env-type", dest="env_type", default="local",
         help="Terminal backend type to evaluate against (default: local; "

@@ -194,7 +194,7 @@ class _KanbanDispatcher:
                     "SQLite database; pausing dispatch for this board until "
                     "the file changes, the gateway restarts, or the "
                     "quarantine timer expires. Move or restore the file, "
-                    "then run `hermes kanban init` if you need a fresh board.",
+                    "then run `ettok kanban init` if you need a fresh board.",
                     slug, fingerprint[0],
                 )
                 return None

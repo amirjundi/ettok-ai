@@ -1,8 +1,8 @@
 """Oneshot (-z) mode: send a prompt, get the final content block, exit.
 
-Toolsets = explicit --toolsets, else the user's "cli" toolsets from `hermes tools`. Rules /
+Toolsets = explicit --toolsets, else the user's "cli" toolsets from `ettok tools`. Rules /
 memory / AGENTS.md / preloaded skills = same as a normal chat turn. Approvals are auto-bypassed
-(HERMES_YOLO_MODE=1). Model/provider mirror `hermes chat`: both optional; only --model → auto-detect
+(HERMES_YOLO_MODE=1). Model/provider mirror `ettok chat`: both optional; only --model → auto-detect
 the provider; only --provider → error (ambiguous).
 """
 
@@ -61,7 +61,7 @@ def _build_preloaded_skills_prompt(skills: object = None) -> str | None:
             raise ValueError(f"Unknown skill(s): {missing_display}")
         logging.warning(
             "Unknown skill(s) requested, skipping: %s. Continuing with: %s. "
-            "List available skills with `hermes skills list`.",
+            "List available skills with `ettok skills list`.",
             missing_display,
             ", ".join(loaded_skills),
         )

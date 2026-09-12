@@ -1,6 +1,6 @@
 """Serve-start bootstrap for the Nous free tier: the ONE place a free-tier identity is created.
 
-Every Hermes process that may need the free tier runs this once at boot (``hermes serve`` on a
+Every Ettok process that may need the free tier runs this once at boot (``ettok serve`` on a
 daemon thread beside the other background boots; the CLI first-run guard synchronously). It
 inventories credentials cheap-first, creates the identity only when the launch gate is open
 (:func:`hermes_cli.anon_auth.guest_enabled`), resolves which provider carries inference, records
@@ -151,7 +151,7 @@ def _broadcast(record: SetupRecord) -> None:
 
 
 def start_background_bootstrap() -> threading.Thread:
-    """``hermes serve`` entry: run on a daemon thread so a slow portal never delays the socket."""
+    """``ettok serve`` entry: run on a daemon thread so a slow portal never delays the socket."""
     thread = threading.Thread(target=run_bootstrap, daemon=True, name="free-tier-bootstrap")
     thread.start()
     return thread

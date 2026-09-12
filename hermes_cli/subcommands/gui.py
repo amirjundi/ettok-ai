@@ -1,4 +1,4 @@
-"""``hermes gui`` subcommand parser."""
+"""``ettok gui`` subcommand parser."""
 
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ def build_gui_parser(subparsers, *, cmd_gui: Callable) -> None:
             "rebuilds with a certificate-anchored identity. Idempotent — safe "
             "to re-run after updates.")
     gui_parser.add_argument(
-        "--identity", default="Hermes Local Signing",
-        help="Certificate name to create/use for --setup-tcc-identity (default: Hermes Local Signing)",
+        "--identity", default="Ettok Local Signing",
+        help="Certificate name to create/use for --setup-tcc-identity (default: Ettok Local Signing)",
     )
     gui_parser.set_defaults(func=cmd_gui)

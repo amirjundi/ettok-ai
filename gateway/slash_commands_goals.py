@@ -153,7 +153,7 @@ class GatewayGoalCommandsMixin:
         return (
             f"♥ Heartbeat set (every {format_interval(state.interval_seconds)}): {state.prompt}\n"
             "Fires as a normal turn whenever this session is idle and the interval has "
-            "elapsed. Lives while the gateway runs — use `hermes cron` for durable schedules."
+            "elapsed. Lives while the gateway runs — use `ettok cron` for durable schedules."
         )
 
     def _idle_cached_agent_or_error(self, event: MessageEvent, verb: str):

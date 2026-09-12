@@ -136,7 +136,7 @@ def _validate_moa(req: _Request) -> dict[str, Any]:
         cfg = normalize_moa_config(load_config().get("moa") or {})
         if req.requested in cfg["presets"]:
             return _accept()
-        return _reject(f"MoA preset `{req.requested}` was not found. Run `hermes moa list`.")
+        return _reject(f"MoA preset `{req.requested}` was not found. Run `ettok moa list`.")
     except Exception as exc:
         return _reject(f"Could not read MoA presets: {exc}")
 
@@ -232,7 +232,7 @@ def _validate_ollama_native(req: _Request) -> Optional[dict[str, Any]]:
     if models is None:
         return _soft_accept(
             f"Note: could not reach this Ollama endpoint's `/api/tags` model listing to validate `{req.requested}`. "
-            "Hermes will save the model name, but local Ollama model discovery could not verify it."
+            "Ettok will save the model name, but local Ollama model discovery could not verify it."
         )
     match = _match_in_catalog(req.lookup, models, auto_correct=False, suggest_label="Similar local Ollama models")
     if match.exact:
@@ -270,7 +270,7 @@ def _validate_custom(req: _Request) -> dict[str, Any]:
 
     message = (
         f"Note: could not reach this custom endpoint's model listing at `{probe.get('probed_url')}`. "
-        f"Hermes will still save `{req.requested}`, but the endpoint should expose `/models` for verification."
+        f"Ettok will still save `{req.requested}`, but the endpoint should expose `/models` for verification."
     )
     if anthropic_style:
         message += ("\n  Many Anthropic-compatible proxies do not implement the Models API (GET /v1/models).  "
@@ -311,7 +311,7 @@ def _validate_static_catalog(req: _Request) -> Optional[dict[str, Any]]:
         from agent.model_metadata import CODEX_CONTEXT_VARIANT_SUFFIX, is_codex_context_variant
 
         # Ineligible ``-900k`` aliases must be rejected BEFORE the hidden-slug soft-accept:
-        # the suffix is a Hermes picker convention, so an unknown `*-900k` can never be a real
+        # the suffix is a Ettok picker convention, so an unknown `*-900k` can never be a real
         # hidden provider slug — soft-accepting one silently runs at 272K on a different model.
         if req.lookup.strip().lower().endswith(CODEX_CONTEXT_VARIANT_SUFFIX) and req.lookup not in set(catalog):
             if is_codex_context_variant(req.lookup):
@@ -360,7 +360,7 @@ def _validate_minimax(req: _Request) -> Optional[dict[str, Any]]:
     return match.verdict(req) or _soft_accept(
         f"Note: `{req.requested}` was not found in the MiniMax catalog."
         f"{match.suggestion_text}"
-        "\n  MiniMax does not expose a /models endpoint, so Hermes cannot verify the model name."
+        "\n  MiniMax does not expose a /models endpoint, so Ettok cannot verify the model name."
         "\n  The model may still work if it exists on the server."
     )
 
@@ -457,7 +457,7 @@ def _validate_live_listing(req: _Request) -> Optional[dict[str, Any]]:
         return _accept_with_note(f"Note: `{req.requested}` was not found in the live /v1/models listing "
                                  "but exists in the curated catalog — accepted.")
     # Nous: the Portal's recommended-models feed can list a model before the curated list or the
-    # docs-hosted manifest catches up; `hermes chat` already accepts those at model-list build
+    # docs-hosted manifest catches up; `ettok chat` already accepts those at model-list build
     # time, so mirror that source of truth for per-message /model validation.
     if req.normalized == "nous" and req.lookup.lower() in _nous_portal_recommended_names():
         return _accept_with_note(f"Note: `{req.requested}` was not found in the live /v1/models listing "

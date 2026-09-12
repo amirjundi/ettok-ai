@@ -26,7 +26,7 @@ class StatusOutputMixin:
 
     def _vprint(self, *args, force: bool = False, **kwargs):
         """Verbose print — suppressed while tokens are streaming (allowed during tool execution) and after
-        the main response; ``force=True`` bypasses both. ``suppress_status_output`` (``hermes chat -q``) wins."""
+        the main response; ``force=True`` bypasses both. ``suppress_status_output`` (``ettok chat -q``) wins."""
         if getattr(self, "suppress_status_output", False):
             return
         if force or not (getattr(self, "_mute_post_response", False) or (self._has_stream_consumers() and not self._executing_tools)):
@@ -46,7 +46,7 @@ class StatusOutputMixin:
         """True when quiet-mode tool summaries should print directly (CLI, no callback owns rendering);
         ``suppress_status_output`` always wins so ``[tool]``/``[done]`` never land in captured stdout.
 
-        ``suppress_status_output`` (the strict machine-readable mode used by ``hermes chat -Q``) always
+        ``suppress_status_output`` (the strict machine-readable mode used by ``ettok chat -Q``) always
         wins: those flows neutralize the rendering callbacks, and without this gate the "no callback owns
         rendering" fallback would print ``[tool]``/``[done]`` spinner lines into the captured stdout it
         exists to keep clean (#93220).

@@ -1,4 +1,4 @@
-"""Prompt-size diagnostic: ``hermes prompt-size``.
+"""Prompt-size diagnostic: ``ettok prompt-size``.
 
 Builds a real inspection agent (so the numbers match what ships on the wire) but never makes a
 network call: dummy credentials force ``AIAgent.__init__`` down the direct-construction path, then
@@ -229,7 +229,7 @@ def render_breakdown(data: Dict[str, Any]) -> str:
 
 
 def cmd_prompt_size(args: Any) -> None:
-    """Entry point for ``hermes prompt-size``."""
+    """Entry point for ``ettok prompt-size``."""
     try:
         data = compute_prompt_breakdown(getattr(args, "platform", "cli") or "cli")
     except Exception as e:

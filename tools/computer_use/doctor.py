@@ -1,4 +1,4 @@
-"""`hermes computer-use doctor` — thin client for cua-driver's `health_report` MCP tool. cua-driver owns the health
+"""`ettok computer-use doctor` — thin client for cua-driver's `health_report` MCP tool. cua-driver owns the health
 model; we drive the stdio JSON-RPC handshake, call `health_report` and render the stable ``schema_version="1"``
 payload. cua-driver 0.10.x marks `health_report` risk-unclassified (isError=true, structuredContent
 ``{"exit_code": 1}``) — we detect that and synthesize a composite report from working probes (check_permissions,
@@ -74,7 +74,7 @@ def _cli_doctor_snippet(binary: str, timeout: float = 8.0) -> Optional[str]:
     return None if isinstance(cp, BaseException) else (_combined_output(cp) or None)
 
 def _build_identity(binary: str, report: Report) -> Report:
-    """Hermes-side identity block comparing resolved binary vs health_report."""
+    """Ettok-side identity block comparing resolved binary vs health_report."""
     def token(text: str) -> str:  # dotted version-ish token out of a free-form string
         m = text and re.search(r"(\d+\.\d+(?:\.\d+)?(?:[-+][\w.]+)?)", text)
         return m.group(1) if m else text.strip().lower()
@@ -332,7 +332,7 @@ def run_doctor(driver_cmd: Optional[str] = None, *, include: Sequence[str] = (),
     from tools.computer_use.cua_backend_driver import resolve_cua_driver_cmd
     binary = resolve_cua_driver_cmd(driver_cmd)
     if not binary:
-        print(f"cua-driver: not installed (looked for {driver_cmd or 'cua-driver (PATH and canonical install paths)'!r}).\n  Run: hermes computer-use install")
+        print(f"cua-driver: not installed (looked for {driver_cmd or 'cua-driver (PATH and canonical install paths)'!r}).\n  Run: ettok computer-use install")
         return 2
     try:  # prefer real health_report; on denial/non-schema, synthesize via probes
         try:

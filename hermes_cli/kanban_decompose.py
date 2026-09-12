@@ -1,6 +1,6 @@
 """Kanban decomposer — fan a triage task out into a graph of child tasks.
 
-Invoked by ``hermes kanban decompose [task_id | --all]`` and the gateway
+Invoked by ``ettok kanban decompose [task_id | --all]`` and the gateway
 dispatcher's auto-decompose path. Reads the profile roster (with
 descriptions), asks the auxiliary LLM for a task graph in JSON, then
 atomically creates the children, links them under the root, and flips the
@@ -34,7 +34,7 @@ from hermes_cli.kanban_specify import _profile_author as _specify_author
 logger = logging.getLogger(__name__)
 
 
-_SYSTEM_PROMPT = """You are the Kanban decomposer for the Hermes Agent board.
+_SYSTEM_PROMPT = """You are the Kanban decomposer for the Ettok AI board.
 
 A user dropped a rough idea into the Triage column. Your job is to break it
 into a small graph of concrete child tasks and route each one to the best-

@@ -1,4 +1,4 @@
-"""``hermes plugins validate`` — admission checks for a plugin directory.
+"""``ettok plugins validate`` — admission checks for a plugin directory.
 
 This is the command the plugin-catalog admission CI (and the
 ``.github/actions/plugin-validate`` composite action) runs against a

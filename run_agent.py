@@ -10,7 +10,7 @@
 try:
     import hermes_bootstrap  # noqa: F401
 except ModuleNotFoundError:
-    pass  # partial `hermes update` — only skips the Windows UTF-8 stdio setup
+    pass  # partial `ettok update` — only skips the Windows UTF-8 stdio setup
 
 import json
 import logging

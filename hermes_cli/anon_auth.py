@@ -16,7 +16,7 @@ token acquisition (re-exchange the ``anon_`` credential; there is no refresh tok
 
 Users are never shown the words guest / anonymous / account for this state: surfaces say
 "Nous · free tier". Two user-facing verbs reach the same flow, both keeping the identity's
-connectors: ``hermes auth upgrade`` in a terminal and ``/login`` inside a chat.
+connectors: ``ettok auth upgrade`` in a terminal and ``/login`` inside a chat.
 
 Lifecycle lives in ONE primitive, :func:`ensure_portal_identity`: adopt what the shared store already
 holds, else mint under the shared-store lock. It is the only minter; nothing else calls
@@ -52,10 +52,10 @@ GUEST_ONBOARDING_ENV = "HERMES_GUEST_ONBOARDING"
 GUEST_MINT_TIMEOUT_SECONDS = 5.0
 # Copy shared by every surface that names the free tier (R-USR-1): never guest / anonymous / account.
 FREE_TIER_LABEL = "Nous · free tier"
-UPGRADE_HINT = "Run `hermes auth upgrade` to sign in with a Nous account, or /login inside a chat."
+UPGRADE_HINT = "Run `ettok auth upgrade` to sign in with a Nous account, or /login inside a chat."
 FREE_TIER_NOT_SIGNED_IN = (
     "You're not signed in. Free inference and connectors are always on. "
-    "Run `hermes auth` to sign in with a Nous account.")
+    "Run `ettok auth` to sign in with a Nous account.")
 
 
 class AnonCredentialDead(AuthError):
@@ -290,7 +290,7 @@ _mint_failed = False
 def _reconcile_and_provision(*, timeout_seconds: float, carries_inference: bool = True) -> Optional[Dict[str, Any]]:
     """The lifecycle body, run under profile lock THEN shared lock (the documented order).
 
-    1. The shared store is the identity of record for this Hermes root. If it holds an identity
+    1. The shared store is the identity of record for this Ettok root. If it holds an identity
        that differs from the profile's, the profile adopts it (a stale guest never outlives a
        sibling profile's sign-in, and never overwrites it). An adopted free-tier identity claims
        ``active_provider`` under the same rule as a mint; an adopted ACCOUNT always does (the user
@@ -429,14 +429,14 @@ _WELCOME_ROUTE_REFUSALS = (
 )
 _WELCOME_ROUTE_COPY = {
     "anon_on_paid_host": "The Nous free tier must use its own inference host ({host}); "
-                         "Hermes is pointed at the paid one. Restart Hermes to re-read the route, "
+                         "Ettok is pointed at the paid one. Restart Ettok to re-read the route, "
                          "or unset NOUS_INFERENCE_BASE_URL if you set it.",
     "named_on_welcome_host": "This Nous account must use the Nous Portal inference host, "
                              "not the free tier's. Run /model and pick the Nous row again.",
     "tier_disabled": "The Nous free tier is switched off right now. {signin}",
 }
 _SIGNIN_CHAT = "Sign in with a Nous account for the full catalog: /login."
-_SIGNIN_TERMINAL = "Sign in with a Nous account for the full catalog: `hermes auth upgrade`."
+_SIGNIN_TERMINAL = "Sign in with a Nous account for the full catalog: `ettok auth upgrade`."
 
 
 def parse_welcome_refusal(body: Any) -> Optional[Dict[str, Any]]:
@@ -540,7 +540,7 @@ def apply_model_switch(agent: Any) -> Optional[str]:
 
     Runs once per recorded header, between calls. The conversation keeps its history; only the id
     the next request carries changes, so a promoted account stops relying on the gateway's reverse
-    map. The config write is the same one a sign-in completion uses, so ``hermes model`` and the
+    map. The config write is the same one a sign-in completion uses, so ``ettok model`` and the
     gateway's config re-read agree with the live session.
     """
     pending = getattr(agent, "_nous_pending_model_switch", None)
@@ -615,7 +615,7 @@ def mark_guest_notice_shown() -> bool:
     return True
 
 
-# --- ``hermes auth upgrade``: sign the guest into a real Nous account, keeping its connectors ---------
+# --- ``ettok auth upgrade``: sign the guest into a real Nous account, keeping its connectors ---------
 #
 # Wire: the normal device-code flow, with a promotion intent registered on NAS BETWEEN the code
 # request and the token poll (``POST /api/anonymous/promotion-intent {token, user_code, device_code}``).
@@ -749,7 +749,7 @@ def settle_after_upgrade(account_state: Dict[str, Any]) -> Dict[str, Any]:
     same pick as ``GET /api/model/recommended-default``), through the same config write a plain Nous
     login uses. A config on the user's own model and host is left alone.
 
-    Every sign-in completion (CLI ``hermes auth upgrade``, the desktop poller) calls this once, after
+    Every sign-in completion (CLI ``ettok auth upgrade``, the desktop poller) calls this once, after
     ``persist_nous_credentials``. Returns ``{"model": str, "changed": bool}``: ``model`` is the default
     the config now carries (``""`` when it carries none); ``changed`` says whether this call wrote it.
     Never raises: a failed pick or write is logged and reported as ``changed: False`` so the sign-in
@@ -780,7 +780,7 @@ def settle_after_upgrade(account_state: Dict[str, Any]) -> Dict[str, Any]:
         # One write: host and default move together, so a failure leaves the config as it was
         # rather than the account host paired with the welcome model. No eligible recommendation
         # (Portal unreachable, or the plan and org policy admit nothing) clears the default in that
-        # same write; the runtime's silent default applies until the user picks one with `hermes model`.
+        # same write; the runtime's silent default applies until the user picks one with `ettok model`.
         _update_config_for_provider(
             "nous", str(account_state.get("inference_base_url") or ""),
             default_model=model if on_welcome_model else None,

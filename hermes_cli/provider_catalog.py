@@ -1,6 +1,6 @@
 """Unified provider catalog — one source of truth for the provider universe.
 
-The provider list shown by ``hermes model`` (CLI/TUI) and the desktop Settings → Providers tabs
+The provider list shown by ``ettok model`` (CLI/TUI) and the desktop Settings → Providers tabs
 (Accounts + API keys) **must be the same set**; providers added after those lists were written
 silently went missing from the GUI. ``auth_type`` / ``api_key_env_vars`` / ``base_url_env_var``
 come from :data:`hermes_cli.auth.PROVIDER_REGISTRY` (credential truth); ``display_name`` /
@@ -36,7 +36,7 @@ class ProviderDescriptor:
     api_key_env_vars: tuple[str, ...]  # credential env vars (may be empty)
     base_url_env_var: str          # base-URL override env var (may be "")
     signup_url: str                # signup / console URL (may be "")
-    order: int                     # CANONICAL_PROVIDERS index — mirrors `hermes model`
+    order: int                     # CANONICAL_PROVIDERS index — mirrors `ettok model`
     keyless: bool = False          # served anonymously — no credential exists to configure
 
 
@@ -65,7 +65,7 @@ def _safe_import(module: str, attr: str, default):
 
 
 def provider_catalog() -> list[ProviderDescriptor]:
-    """One descriptor per provider in the ``hermes model`` universe (:data:`CANONICAL_PROVIDERS`,
+    """One descriptor per provider in the ``ettok model`` universe (:data:`CANONICAL_PROVIDERS`,
     auto-extended by provider plugins). Auth/env from ``PROVIDER_REGISTRY``; display metadata from
     ``ProviderProfile`` with canonical/env fallbacks so profile-less providers still resolve."""
     from hermes_cli.models import CANONICAL_PROVIDERS

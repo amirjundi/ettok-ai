@@ -4,7 +4,7 @@ No control channel exists into a running gateway, so begin/cancel-drain writes
 (or removes) ``{HERMES_HOME}/.drain_request.json`` and a gateway watcher reacts;
 an ACTIVE marker means ``gateway_state -> "draining"``.  Two lenient staleness
 signals (either suffices): epoch mismatch (HERMES_HOME is a durable volume on
-Hermes Cloud, so a marker survives the restart a drain-gated action ends in and
+Ettok Cloud, so a marker survives the restart a drain-gated action ends in and
 would park the fresh gateway in ``draining`` forever) and expiry (same-epoch
 orphan past :data:`DRAIN_REQUEST_MAX_AGE_SECONDS`; re-writing refreshes it).
 Reading never raises: a malformed file reads as ``{}`` — still drain-active

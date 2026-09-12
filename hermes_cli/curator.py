@@ -1,4 +1,4 @@
-"""CLI subcommand: `hermes curator <subcommand>`."""
+"""CLI subcommand: `ettok curator <subcommand>`."""
 
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ def _print_unmanaged_summary() -> None:
     print(f"\nunmanaged (no provenance marker): {len(unmanaged)} total")
     print(f"  pre-dates marker    {legacy}")
     print(f"  foreground-created  {foreground}")
-    print("  never auto-staled or archived — `hermes curator adopt <name>` hands one over")
+    print("  never auto-staled or archived — `ettok curator adopt <name>` hands one over")
 
 
 def _print_curator_config(curator) -> None:
@@ -175,14 +175,14 @@ def _cmd_run(args) -> int:
             f"archived={auto.get('archived', 0)} "
             f"reactivated={auto.get('reactivated', 0)}")
     if not synchronous:
-        print("llm pass running in background — check `hermes curator status` later")
+        print("llm pass running in background — check `ettok curator status` later")
     if dry:
         print(
             "dry-run: no changes applied. Read the report with "
-            "`hermes curator status` and run `hermes curator run` (no flag) to apply."
+            "`ettok curator status` and run `ettok curator run` (no flag) to apply."
             if synchronous else
             "dry-run: no changes applied. When the report lands, read it with "
-            "`hermes curator status` and run `hermes curator run` (no flag) to apply.")
+            "`ettok curator status` and run `ettok curator run` (no flag) to apply.")
     return 0
 
 
@@ -201,11 +201,11 @@ _PIN_MESSAGES = {
     True: (
         "cannot pin (only agent-created skills participate in curation)",
         "could not pin '{skill}' — the skill is not curation-eligible (protected built-in or "
-        "external). `hermes curator list-unmanaged` shows which skills the curator tracks.",
+        "external). `ettok curator list-unmanaged` shows which skills the curator tracks.",
         # Unmanaged skills are never auto-transitioned, so the pin is recorded but only
         # becomes protective once the skill is adopted — say so and point at `adopt`.
         "pinned '{skill}' (recorded; this skill is unmanaged — auto-transitions never consider "
-        "it. Run `hermes curator adopt {skill}` to put it under curator management)",
+        "it. Run `ettok curator adopt {skill}` to put it under curator management)",
         "pinned '{skill}' (will bypass auto-transitions)"),
     False: (
         "there's nothing to unpin (curator only tracks agent-created skills)",
@@ -250,8 +250,8 @@ def _cmd_list_unmanaged(args) -> int:
         print(
             f"  {r['name']:44s} activity={r.get('activity_count', 0):4d}  "
             f"last_activity={_fmt_ts(r.get('last_activity_at')):14s}  ({why})")
-    print("\nadopt one with `hermes curator adopt <name>`, "
-          "or all with `hermes curator adopt --all-unmanaged`")
+    print("\nadopt one with `ettok curator adopt <name>`, "
+          "or all with `ettok curator adopt --all-unmanaged`")
     return 0
 
 
@@ -317,7 +317,7 @@ def _cmd_archive(args) -> int:
     if skill_usage.get_record(args.skill).get("pinned"):
         print(
             f"curator: '{args.skill}' is pinned — unpin first with "
-            f"`hermes curator unpin {args.skill}`")
+            f"`ettok curator unpin {args.skill}`")
         return 1
     return _as_user(skill_usage.archive_skill, args.skill)
 
@@ -402,8 +402,8 @@ def _cmd_ledger(args) -> int:
             f"{r.get('actor', '?'):<8} {r.get('action', '?'):<12} "
             f"{r.get('skill', '?')}{extra}")
     print(
-        "\nRoll back a single mutation with `hermes curator rollback <id>`; "
-        "whole-tree snapshots remain available via `hermes curator rollback --list`.")
+        "\nRoll back a single mutation with `ettok curator rollback <id>`; "
+        "whole-tree snapshots remain available via `ettok curator rollback --list`.")
     return 0
 
 
@@ -472,7 +472,7 @@ def _rollback_ledger_entry(args, entry_id: str) -> int:
     if entry is None:
         print(
             f"curator: no ledger entry '{entry_id}'. "
-            "See `hermes curator ledger` for entry ids, or use "
+            "See `ettok curator ledger` for entry ids, or use "
             "`--id <snapshot>` for whole-tree snapshot rollback.")
         return 1
     print(f"Rollback target: ledger entry {entry_id}")
@@ -503,7 +503,7 @@ def _cmd_rollback(args) -> int:
         if not curator_backup.list_backups():
             print(
                 "curator: no snapshots exist yet. Take one with "
-                "`hermes curator backup` or wait for the next curator run.")
+                "`ettok curator backup` or wait for the next curator run.")
         else:
             print(
                 f"curator: no snapshot matching "
@@ -657,11 +657,11 @@ _SUBCOMMANDS = (
     (
         "rollback",
         "Restore ~/.hermes/skills/ from a curator snapshot, or a single "
-        "mutation by ledger entry id (see `hermes curator ledger`)",
+        "mutation by ledger entry id (see `ettok curator ledger`)",
         _cmd_rollback,
         _arg("entry_id", nargs="?", default=None,
              help="Ledger entry id for single-mutation rollback (from "
-                  "`hermes curator ledger`). Omit for whole-tree snapshot rollback."),
+                  "`ettok curator ledger`). Omit for whole-tree snapshot rollback."),
         _arg("--list", **_STORE_TRUE, help="List available snapshots and exit without restoring"),
         _arg("--id", dest="backup_id", default=None,
              help="Snapshot id to restore (see `--list`); default: newest"),

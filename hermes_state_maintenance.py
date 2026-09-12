@@ -348,7 +348,7 @@ class SessionMaintenanceMixin:
         except Exception as exc:
             logger.warning("FTS optimize before VACUUM failed: %s", exc)
         with self._lock:
-            # PASSIVE, not TRUNCATE: a manual `hermes sessions vacuum` runs in a transient CLI
+            # PASSIVE, not TRUNCATE: a manual `ettok sessions vacuum` runs in a transient CLI
             # process; a TRUNCATE reset here would race a live gateway writer.
             self._try_checkpoint("PASSIVE", "WAL checkpoint (PASSIVE) before VACUUM failed: %s")
             self._conn.execute("VACUUM")

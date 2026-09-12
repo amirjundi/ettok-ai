@@ -33,7 +33,7 @@ def parse_bang_command(text: str) -> str:
     """The shell command inside a bang submission (``""`` when bare).
 
     ``!  ls -la`` -> ``ls -la``; ``!!`` -> ``!`` — a literal second bang belongs to the user's shell
-    (history expansion), not to Hermes.
+    (history expansion), not to Ettok.
     """
     return text.strip()[1:].strip() if is_bang_command(text) else ""
 
@@ -87,7 +87,7 @@ def check_bang_approval(command: str) -> dict:
 
 
 def _bang_env() -> dict:
-    """Environment for a bang command with Hermes-managed secrets filtered.
+    """Environment for a bang command with Ettok-managed secrets filtered.
 
     The CLI process holds every provider API key; a user-typed command may still run a third-party
     script, so reuse the sanitizer ``quick_commands`` and the local terminal backend use.
@@ -132,7 +132,7 @@ def run_bang_command(command: str, *, cwd: Optional[str] = None, timeout: int = 
         emit(f"!: command timed out after {timeout}s")
         return 124
     except KeyboardInterrupt:
-        # Ctrl+C interrupts the command, not the Hermes session.
+        # Ctrl+C interrupts the command, not the Ettok session.
         proc.kill()
         emit("!: interrupted")
         return 130

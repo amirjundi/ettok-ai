@@ -1,7 +1,7 @@
 """Session heartbeats — recurring re-entry prompts for the current session.
 
 Session-scoped and in-process (CLI or gateway must be running); durable cross-process scheduling stays
-``hermes cron``. Invariants (mirrors goals.py): injection is a plain user message — no system-prompt
+``ettok cron``. Invariants (mirrors goals.py): injection is a plain user message — no system-prompt
 mutation or toolset swap, so prompt caching stays intact — and a real user message always wins:
 heartbeats only fire into an idle session with an empty input queue."""
 

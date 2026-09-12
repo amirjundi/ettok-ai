@@ -289,7 +289,7 @@ def _accepted_response(run_id: str, status: str, gateway_session_key, *, replaye
     """202 admission response; replays are flagged via ``Idempotency-Replayed``."""
     headers = {"Idempotency-Replayed": "true"} if replayed else {}
     if gateway_session_key:
-        headers["X-Hermes-Session-Key"] = gateway_session_key
+        headers["X-Ettok-Session-Key"] = gateway_session_key
     return web.json_response(
         {"run_id": run_id, "status": status, "replayed": replayed}, status=202, headers=headers)
 
@@ -445,7 +445,7 @@ async def _handle_runs(self, request: "web.Request", *, _api_server) -> "web.Res
         return limited
     run_id = f"run_{uuid.uuid4().hex}"
     self._run_owners[run_id] = self._run_idempotency_scope(request)
-    # Same precedence as /v1/responses: body session_id > response chain > X-Hermes-Session-Key
+    # Same precedence as /v1/responses: body session_id > response chain > X-Ettok-Session-Key
     # conversation > run_id (which would otherwise re-key every affinity surface per run).
     # An explicit or chained session owns its routing key and is never rebound to the header.
     _declared_selected = not session_id and bool(gateway_session_key)
@@ -458,7 +458,7 @@ async def _handle_runs(self, request: "web.Request", *, _api_server) -> "web.Res
         selected_session_id = await _resolve_live_session_id(self, str(selected_session_id))
     session_id = selected_session_id or run_id
     # History loads for the session the request actually selected — including one resolved from
-    # a declared X-Hermes-Session-Key, whose persisted delivery rows must reach the next
+    # a declared X-Ettok-Session-Key, whose persisted delivery rows must reach the next
     # same-key run's context (#98619).  previous_response_id continuations keep their
     # ResponseStore snapshot as history (they cannot consume a SessionDB delivery row and are
     # accordingly denied wake capability in _run_agent_sync); the fresh run_id fallback has
@@ -533,7 +533,7 @@ def _run_agent_sync(self, run: _RunLaunch, agent, approval_notify, *, _api_serve
                 browser_control_transport_family=run.browser_control_transport_family,
                 # #98619 audited opt-in: the /v1/runs session id is wake-capable only when its
                 # own continuation path reloads session history — an explicit body/chained
-                # session id or a declared X-Hermes-Session-Key conversation (both load
+                # session id or a declared X-Ettok-Session-Key conversation (both load
                 # SessionDB in _handle_runs), or the run_id fallback the client can post back
                 # as body.session_id.  A previous_response_id continuation consumes its
                 # ResponseStore snapshot instead and can never see a SessionDB delivery row,

@@ -1,12 +1,12 @@
-"""``hermes vault`` — manage the local encrypted autofill vault.
+"""``ettok vault`` — manage the local encrypted autofill vault.
 
 Subcommands:
-- ``hermes vault add``   interactive wizard; the password is read via
+- ``ettok vault add``   interactive wizard; the password is read via
   getpass (never echoed, never accepted as argv). The login identifier is
   visible metadata and prompted normally.
-- ``hermes vault list``  metadata — labels, kinds, identifiers, origins,
+- ``ettok vault list``  metadata — labels, kinds, identifiers, origins,
   handles. Passwords are never shown.
-- ``hermes vault rm``    remove an item by handle/id.
+- ``ettok vault rm``    remove an item by handle/id.
 
 The vault backs the password-blind browser autofill tools
 (``browser_vault_list`` / ``browser_vault_fill``): the agent sees handles
@@ -111,7 +111,7 @@ def _cmd_add(args) -> None:
 
 def _cmd_list(args) -> None:
     """Local items always; external managers only for the lifetime of this CLI process (a
-    `hermes vault list` unlock does not carry into a chat session — unlock there when asked)."""
+    `ettok vault list` unlock does not carry into a chat session — unlock there when asked)."""
     from agent.vault_backends import enabled_backends
 
     c = _console()
@@ -122,7 +122,7 @@ def _cmd_list(args) -> None:
             continue
         rows.extend((backend.display_name, meta) for meta in backend.list_items())
     if not rows and not locked:
-        c.print("[dim]Vault is empty. Add an item with `hermes vault add`.[/]")
+        c.print("[dim]Vault is empty. Add an item with `ettok vault add`.[/]")
         return
     if rows:
         from rich.table import Table
@@ -165,7 +165,7 @@ def _cmd_sources(args) -> None:
         if name in enabled:
             status = "[green]detected[/] · the agent asks you to unlock it when it needs a login"
         elif is_installed(name):
-            status = "[dim]turned off[/] (`hermes vault sources --enable {name}` to use it)".format(name=name)
+            status = "[dim]turned off[/] (`ettok vault sources --enable {name}` to use it)".format(name=name)
         else:
             status = "[dim]not installed[/]"
         c.print(f"  {cls.display_name:<10} {status}")
@@ -183,7 +183,7 @@ def _cmd_rm(args) -> None:
 
 
 def register_cli(subparser) -> None:
-    """Build the ``hermes vault`` argparse tree (called from main.py)."""
+    """Build the ``ettok vault`` argparse tree (called from main.py)."""
     subs = subparser.add_subparsers(dest="vault_action")
 
     p_add = subs.add_parser(
@@ -200,7 +200,7 @@ def register_cli(subparser) -> None:
     p_list.set_defaults(_vault_handler=_cmd_list)
 
     p_rm = subs.add_parser("rm", help="Remove a vault item by handle")
-    p_rm.add_argument("handle", help="Item handle (see `hermes vault list`)")
+    p_rm.add_argument("handle", help="Item handle (see `ettok vault list`)")
     p_rm.set_defaults(_vault_handler=_cmd_rm)
 
     p_src = subs.add_parser("sources", help="Show detected password managers (1Password, Bitwarden); they are on automatically")

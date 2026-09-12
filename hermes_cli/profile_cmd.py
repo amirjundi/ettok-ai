@@ -1,4 +1,4 @@
-"""``hermes profile`` command — one handler per action, dispatched by ``PROFILE_ACTIONS``.
+"""``ettok profile`` command — one handler per action, dispatched by ``PROFILE_ACTIONS``.
 
 Imports from ``hermes_cli.profiles`` stay lazy (inside each handler) so tests can monkeypatch
 the module attributes.
@@ -94,7 +94,7 @@ def _render_distribution_plan(plan) -> None:
 
 
 def _profile_status(args):
-    """Bare ``hermes profile`` — show current profile status."""
+    """Bare ``ettok profile`` — show current profile status."""
     from hermes_constants import display_hermes_home
     from hermes_cli.profiles import format_profile_label, get_active_profile_name, list_profiles
     profile_name = get_active_profile_name()
@@ -191,7 +191,7 @@ def _profile_create(args):
         collision = check_alias_collision(name)
         if collision:
             print(f"\n⚠ Cannot create alias '{name}' — {collision}")
-            print(f"  Choose a custom alias:  hermes profile alias {name} --name <custom>")
+            print(f"  Choose a custom alias:  ettok profile alias {name} --name <custom>")
             print(f"  Or access via flag:     hermes -p {name} chat")
         else:
             wrapper_path = create_wrapper_script(name)
@@ -325,7 +325,7 @@ def _profile_show(args):
         print(f"Distribution: {dist_name}@{dist_version or '?'}")
         if dist_source:
             print(f"Installed from: {dist_source}")
-        print(f"  (run `hermes profile info {name}` for full manifest)")
+        print(f"  (run `ettok profile info {name}` for full manifest)")
     if alias_name:
         print(f"Alias:   {alias_name} → hermes -p {name}  ({_wrapper_path(alias_name)})")
     print()
@@ -441,7 +441,7 @@ def _profile_update(args):
         if current is None:
             _die(
                 f"Error: Profile '{canon}' is not a distribution (no distribution.yaml). "
-                "Only profiles installed via `hermes profile install` can be updated."
+                "Only profiles installed via `ettok profile install` can be updated."
             )
         force_config = getattr(args, "force_config", False)
         if not getattr(args, "yes", False):
@@ -501,7 +501,7 @@ def _profile_info(args):
     print()
 
 
-# Order mirrors the original if/elif chain; None = bare ``hermes profile``.
+# Order mirrors the original if/elif chain; None = bare ``ettok profile``.
 PROFILE_ACTIONS = {
     None: _profile_status,
     'list': _profile_list,

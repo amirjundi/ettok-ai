@@ -1,4 +1,4 @@
-"""Git plumbing for ``hermes update``: fork/upstream sync, trampoline-git detection, lockfile/EOL churn cleanup, orphan rescue refs, parked-branch assessment, fetch-failure classification.
+"""Git plumbing for ``ettok update``: fork/upstream sync, trampoline-git detection, lockfile/EOL churn cleanup, orphan rescue refs, parked-branch assessment, fetch-failure classification.
 
 Split out of ``update_cmd.py``, which re-imports every name so ``hermes_cli.update_cmd.<name>``
 still resolves/monkeypatches. Origin helpers are imported lazily per function (no cycle;
@@ -148,7 +148,7 @@ def _print_parked_branch_skip_warning(git_cmd: list[str], cwd: Path, current_bra
     print(
         f"\n  To resolve, inspect the branch and switch back yourself:\n"
         f"    git -C {cwd} status\n"
-        f"    git -C {cwd} checkout {target_branch} && hermes update\n"
+        f"    git -C {cwd} checkout {target_branch} && ettok update\n"
         f"  (commit or stash your work on the branch first if you want to keep it)\n{_BAR}"
     )
 
@@ -238,7 +238,7 @@ def _offer_upstream_remote(git_cmd: list[str], cwd: Path, *, assume_yes: bool, i
     ``--yes`` means "don't block", not "mutate my remotes", so a non-interactive skip is NOT persisted."""
     from hermes_cli.update_cmd import _add_upstream_remote, _mark_skip_upstream_prompt
     print(
-        "\nℹ Your fork is not tracking the official Hermes repository.\n"
+        "\nℹ Your fork is not tracking the official Ettok repository.\n"
         "  This means you may miss updates from NousResearch/hermes-agent.\n"
     )
     if assume_yes or (input_fn is None and not (sys.stdin.isatty() and sys.stdout.isatty())):
@@ -379,8 +379,8 @@ def _portable_git_candidates() -> list:
     """PortableGit candidates: shared root first (where the managed tree actually lives, not the
     profile-scoped HERMES_HOME), then profile home as a fallback for custom layouts.
 
-    The Hermes-managed PortableGit tree lives under the SHARED root (``<root>/git/...``), not the
-    profile-scoped HERMES_HOME (``<root>/profiles/<name>``), so a profile-scoped ``hermes update`` must look
+    The Ettok-managed PortableGit tree lives under the SHARED root (``<root>/git/...``), not the
+    profile-scoped HERMES_HOME (``<root>/profiles/<name>``), so a profile-scoped ``ettok update`` must look
     there (monerostar review, #87876).
     """
     from hermes_cli.update_cmd import get_default_hermes_root, get_hermes_home
@@ -442,14 +442,14 @@ def _normalize_managed_eol(git_cmd, repo_root):
     """Take a managed checkout off ``core.autocrlf=true`` without leaving it dirty.
 
     Git for Windows sets ``autocrlf=true`` system-wide, turning LF files CRLF and breaking ``git checkout``
-    on update; install.ps1 pins ``false`` but older checkouts never got it and only ``hermes update`` can
+    on update; install.ps1 pins ``false`` but older checkouts never got it and only ``ettok update`` can
     fix them. Pin and cleanup are one operation: under ``autocrlf=true`` a CRLF tree reads clean, so pinning
     alone would expose every file as modified (whole-tree autostash). Pin only after the tree verifies clean
     under it; a checkout we can't fully normalize is left as-is. Only ``true`` rewrites LF->CRLF
     (unset/false/input leave the tree alone). Best-effort.
 
     Checkouts created before that landed never got the pin and cannot receive it — the bootstrap installer
-    reuses its build-pinned ``install.ps1`` forever — so ``hermes update``, which ships with the checkout
+    reuses its build-pinned ``install.ps1`` forever — so ``ettok update``, which ships with the checkout
     itself, is the only path left that can fix them. See #67730.
     """
     from hermes_cli.update_cmd import _git_run

@@ -235,7 +235,7 @@ def _refresh_spotify_oauth_state(state: Dict[str, Any], *, timeout_seconds: floa
     refresh_token = _clean(state.get("refresh_token"))
     if not refresh_token:
         raise _spotify_err(
-            "Spotify refresh token missing. Run `hermes auth spotify` again.",
+            "Spotify refresh token missing. Run `ettok auth spotify` again.",
             "spotify_refresh_token_missing", relogin=True,
         )
 
@@ -247,7 +247,7 @@ def _refresh_spotify_oauth_state(state: Dict[str, Any], *, timeout_seconds: floa
         timeout_seconds=timeout_seconds, what="token refresh", failed_code="spotify_refresh_failed",
         invalid_code="spotify_refresh_invalid",
         invalid_message="Spotify refresh response did not include an access_token.",
-        failed_suffix=" Run `hermes auth spotify` again.", relogin_required=True,
+        failed_suffix=" Run `ettok auth spotify` again.", relogin_required=True,
     )
 
     return _spotify_token_payload_to_state(
@@ -268,7 +268,7 @@ def resolve_spotify_runtime_credentials(
         state = _load_provider_state(auth_store, "spotify")
         if not state:
             raise _spotify_err(
-                "Spotify is not authenticated. Run `hermes auth spotify` first.", "spotify_auth_missing", relogin=True,
+                "Spotify is not authenticated. Run `ettok auth spotify` first.", "spotify_auth_missing", relogin=True,
             )
 
         should_refresh = bool(force_refresh)
@@ -292,7 +292,7 @@ def resolve_spotify_runtime_credentials(
     access_token = _clean(state.get("access_token"))
     if not access_token:
         raise _spotify_err(
-            "Spotify access token missing. Run `hermes auth spotify` again.",
+            "Spotify access token missing. Run `ettok auth spotify` again.",
             "spotify_access_token_missing", relogin=True,
         )
 
@@ -402,7 +402,7 @@ def login_spotify_command(args) -> None:
     print(
         f"Starting Spotify PKCE login...\nClient ID: {client_id}\nRedirect URI: {redirect_uri}\n"
         "Make sure this redirect URI is allow-listed in your Spotify app settings.\n\n"
-        f"Open this URL to authorize Hermes:\n{authorize_url}\n\nFull setup guide: {SPOTIFY_DOCS_URL}\n"
+        f"Open this URL to authorize Ettok:\n{authorize_url}\n\nFull setup guide: {SPOTIFY_DOCS_URL}\n"
     )
 
     _print_loopback_ssh_hint(redirect_uri, docs_url=SPOTIFY_DOCS_URL)

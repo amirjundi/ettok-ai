@@ -311,7 +311,7 @@ class TrajectoryCompressor:
             from agent.auxiliary_client import resolve_provider_client
             client, _ = resolve_provider_client(provider, model=self.config.summarization_model)
             if client is None:
-                raise RuntimeError(f"Provider '{provider}' is not configured. Check your API key or run: hermes setup")
+                raise RuntimeError(f"Provider '{provider}' is not configured. Check your API key or run: ettok setup")
             self.client = self.async_client = None  # Not used directly
         else:
             # Custom endpoint — use config's raw base_url + api_key_env

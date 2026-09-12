@@ -44,7 +44,7 @@ MAX_REQUEST_BYTES = 10_000_000
 
 def _require_aiohttp() -> None:
     if not AIOHTTP_AVAILABLE:
-        raise RuntimeError("aiohttp is required for `hermes proxy`. Run `hermes setup` to install it.")
+        raise RuntimeError("aiohttp is required for `ettok proxy`. Run `ettok setup` to install it.")
 
 
 def _json_error(status: int, message: str, code: str = "proxy_error") -> "web.Response":

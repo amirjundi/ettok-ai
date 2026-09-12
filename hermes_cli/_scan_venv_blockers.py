@@ -163,10 +163,10 @@ def _is_pausable_gateway(cmdline: str) -> bool:
 
 
 def _is_updater_owned_backend(pid: int, cmdline: str) -> bool:
-    """True when *pid* is a Hermes backend the CLI updater can stop (positive ledger identity).
+    """True when *pid* is a Ettok backend the CLI updater can stop (positive ledger identity).
 
     The gateway exemption above keeps ``gateway run`` holders out of the blocker list because the updater's
-    own pause machinery stops and resumes them. ``hermes serve`` / ``hermes dashboard`` backends had no such
+    own pause machinery stops and resumes them. ``ettok serve`` / ``ettok dashboard`` backends had no such
     deferral, so a leaked serve child (or a Desktop-owned backend the teardown lost track of) dead-ended the
     hand-off with ``venv-blocked`` — or, worse, survived the hand-off and made the shim quarantine fail with
     ``os error 32`` (#98336) — even though the updater downstream owns exactly this case with its ledger

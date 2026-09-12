@@ -31,7 +31,7 @@ def lightpanda_engine_status() -> Tuple[bool, str]:
 
     ``(False, "")`` when the engine isn't lightpanda; else the reason names the setting shadowing
     it or the driver running it. Mirrors ``_should_inject_engine`` / ``_resolve_backend_cdp``
-    precedence with config-only gates (no network I/O) for ``/browser status`` / ``hermes doctor``.
+    precedence with config-only gates (no network I/O) for ``/browser status`` / ``ettok doctor``.
     """
     _bt = _origin()
     if not _using_lightpanda_engine():
@@ -62,7 +62,7 @@ def lightpanda_engine_status() -> Tuple[bool, str]:
             return False, "Browser Use cloud (BROWSER_USE_API_KEY) is selected"
     except Exception as e:
         _bt.logger.debug("legacy Browser Use cloud check failed: %s", e)
-    return True, "Browser Use mode: Hermes spawns `lightpanda serve` per session"
+    return True, "Browser Use mode: Ettok spawns `lightpanda serve` per session"
 
 
 def _lightpanda_fallback_reason(engine: str, command: str, result: Dict[str, Any]) -> Optional[str]:

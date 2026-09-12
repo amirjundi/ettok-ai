@@ -39,7 +39,7 @@ def test_posix_console_script():
 
 def test_upstream_names_still_match():
     # A partially-migrated install still has to be reaped.
-    assert matches('hermes dashboard --port 9119')
+    assert matches('ettok dashboard --port 9119')
     assert matches('python -m hermes_cli.main dashboard --port 9119')
 
 

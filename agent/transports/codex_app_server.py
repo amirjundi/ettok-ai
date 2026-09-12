@@ -47,11 +47,11 @@ class CodexAppServerClient:
         extra_args: Optional[list[str]] = None, env: Optional[dict[str, str]] = None,
     ) -> None:
         self._codex_bin = codex_bin
-        # codex needs LLM provider creds but must not receive Tier-1 Hermes secrets (gateway/GitHub/infra tokens).
+        # codex needs LLM provider creds but must not receive Tier-1 Ettok secrets (gateway/GitHub/infra tokens).
         # codex app-server is a model-driving CLI executor: it runs a model-chosen agentic loop that
         # executes shell commands, so it legitimately needs LLM provider credentials
         # (inherit_credentials=True) to authenticate against the model endpoint. But the previous
-        # `os.environ.copy()` also handed it every Tier-1 Hermes secret — gateway bot tokens, GitHub auth,
+        # `os.environ.copy()` also handed it every Tier-1 Ettok secret — gateway bot tokens, GitHub auth,
         # Modal/Daytona infra tokens, the dashboard session token, AUXILIARY_* side-LLM keys,
         # GATEWAY_RELAY_* auth — none of which a coding subprocess has any use for. Route through the
         # centralized helper so Tier-1 + dynamic-internal secrets are always stripped while provider creds
@@ -67,7 +67,7 @@ class CodexAppServerClient:
             DELEGATED_CHILD_ENV_MARKER, KANBAN_ENV_KEYS,
             delegated_child_subprocess_env, is_dispatcher_owned_worker_context,
         )
-        # Native shell children remain unowned. Only Hermes' managed MCP tool
+        # Native shell children remain unowned. Only Ettok' managed MCP tool
         # endpoint acts for this worker; grant it scope via its existing per-server
         # environment, never by granting the whole executor process ownership.
         owned_task = os.environ.get("HERMES_KANBAN_TASK") and is_dispatcher_owned_worker_context()
@@ -116,7 +116,7 @@ class CodexAppServerClient:
         self._stderr_reader.start()
 
     def initialize(
-        self, client_name: str = "hermes", client_title: str = "Hermes Agent",
+        self, client_name: str = "hermes", client_title: str = "Ettok AI",
         client_version: str = "0.1", capabilities: Optional[dict] = None, timeout: float = 10.0,
     ) -> dict:
         """Send ``initialize`` + ``initialized``; return the server's InitializeResponse."""

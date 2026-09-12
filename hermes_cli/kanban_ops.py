@@ -1,4 +1,4 @@
-"""Dispatcher and maintenance verbs for ``hermes kanban``: ``dispatch``,
+"""Dispatcher and maintenance verbs for ``ettok kanban``: ``dispatch``,
 ``daemon`` (deprecated standalone loop), ``tail``/``watch`` event streaming,
 ``gc`` and ``repair``.
 """
@@ -140,8 +140,8 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
 
 
 _DAEMON_DEPRECATED = (
-    "hermes kanban daemon: DEPRECATED — the dispatcher now runs\ninside the gateway. To use "
-    "kanban:\n\n    hermes gateway start       # starts the gateway + embedded dispatcher\n\nReady "
+    "ettok kanban daemon: DEPRECATED — the dispatcher now runs\ninside the gateway. To use "
+    "kanban:\n\n    ettok gateway start       # starts the gateway + embedded dispatcher\n\nReady "
     "tasks will be picked up on the next dispatcher tick\n(default: every 60 seconds). Configure "
     "via config.yaml:\n\n    kanban:\n      dispatch_in_gateway: true      # default\n      "
     "dispatch_interval_seconds: 60\n      failure_limit: 2              # consecutive non-success "
@@ -209,7 +209,7 @@ def _cmd_daemon(args: argparse.Namespace) -> int:
                     f"[{_fmt_ts(now)}] WARN dispatcher stuck: ready queue non-empty for "
                     f"{health_state['bad_ticks']} consecutive ticks but 0 workers spawned "
                     f"successfully. Check profile health (venv, PATH, credentials) and `hermes "
-                    f"kanban list --status ready` / `hermes kanban list --status blocked` for "
+                    f"kanban list --status ready` / `ettok kanban list --status blocked` for "
                     f"recent spawn_failed tasks.",
                     file=sys.stderr, flush=True,
                 )

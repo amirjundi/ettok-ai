@@ -1,4 +1,4 @@
-"""Language Server Protocol (LSP) integration for Hermes Agent.
+"""Language Server Protocol (LSP) integration for Ettok AI.
 
 Real language servers (pyright, gopls, ...) run as subprocesses and their
 ``publishDiagnostics`` feed the post-write lint delta filter of ``write_file`` /
@@ -30,7 +30,7 @@ def get_service() -> Optional[LSPService]:
     """Return the lazily created process-wide LSP service singleton, or None when disabled.
 
     Also registers an :mod:`atexit` hook so a clean exit tears down spawned servers:
-    without it every ``hermes chat`` exit leaks pyright processes for a few seconds
+    without it every ``ettok chat`` exit leaks pyright processes for a few seconds
     while their stdout buffers drain.  (SIGKILL/os._exit skip atexit — fine, the
     kernel reaps the stateless servers with their parent.)
     """

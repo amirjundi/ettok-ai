@@ -1,4 +1,4 @@
-"""``hermes worktree`` — audit (``list``) and reclaim (``prune [--dry-run] [--trees-only |
+"""``ettok worktree`` — audit (``list``) and reclaim (``prune [--dry-run] [--trees-only |
 --branches-only]``) accumulated git worktrees/branches."""
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ def _list(worktree_gc, repo_root: str, args) -> int:
         print(f"{r.name[:32]:32} {r.age_days:>5.1f}d {_fmt_size(r.size_mb):>6} {r.verdict:13} {r.reason}")
     print(
         f"\n{len(records)} tree(s), {_fmt_size(total_mb)} total — "
-        f"{_fmt_size(reapable_mb)} reclaimable now via `hermes worktree prune`.")
+        f"{_fmt_size(reapable_mb)} reclaimable now via `ettok worktree prune`.")
     deletable = [b for b in worktree_gc.audit_branches(repo_root) if b.verdict == "delete"]
     if deletable:
         print(f"{len(deletable)} local branch(es) fully merged/patch-equivalent upstream would also be deleted.")

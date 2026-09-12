@@ -6,7 +6,7 @@ tool round-trips through the gateway's blocking-prompt bridge (the one ``clarify
 tui_gateway emits ``mcp.setup.request``, the renderer walks the user through the existing
 REST flows (catalog install, enable, OAuth) and answers with ``mcp.setup.respond``. Lives in
 the ``desktop_ui`` toolset, which the GUI gateway enables only for desktop-sourced sessions;
-elsewhere the agent falls back to ``hermes mcp install <name>`` in the terminal.
+elsewhere the agent falls back to ``ettok mcp install <name>`` in the terminal.
 """
 
 import json
@@ -28,8 +28,8 @@ def setup_mcp_tool(server: str = "", action: str = "install", reason: str = "", 
         # initializes (_run_stdio/_run_http call _reset_server_error).
         return tool_error(
             "setup_mcp is only available in the Hermes desktop app. Use the "
-            "terminal instead: `hermes mcp install <name>` for catalog entries, "
-            "`hermes mcp login <name>` for OAuth.")
+            "terminal instead: `ettok mcp install <name>` for catalog entries, "
+            "`ettok mcp login <name>` for OAuth.")
 
     name = (server or "").strip()
     if not name:
@@ -69,7 +69,7 @@ SETUP_MCP_SCHEMA = {
         "user acts. Use when they ask to add an MCP or a task clearly needs "
         "a missing one. Never hand-edit mcp_servers config for them — always "
         "use this tool. Never re-ask after a decline — on declined/"
-        "unanswered, continue without it. Catalog names: `hermes mcp "
+        "unanswered, continue without it. Catalog names: `ettok mcp "
         "catalog` in the terminal."
     ),
     "parameters": {

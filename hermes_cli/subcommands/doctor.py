@@ -1,4 +1,4 @@
-"""``hermes doctor`` subcommand parser."""
+"""``ettok doctor`` subcommand parser."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ def build_doctor_parser(subparsers, *, cmd_doctor: Callable) -> None:
     """Attach the ``doctor`` subcommand to ``subparsers``."""
     doctor_parser = subparsers.add_parser(
         "doctor", help="Check configuration and dependencies",
-        description="Diagnose issues with Hermes Agent setup")
+        description="Diagnose issues with Ettok AI setup")
     doctor_parser.add_argument(
         "--fix", action="store_true", help="Attempt to fix issues automatically")
     doctor_parser.add_argument(

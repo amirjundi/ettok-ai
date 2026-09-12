@@ -47,13 +47,13 @@ def _record_bytecode_fingerprint() -> None:
 def _sweep_stale_bytecode_if_checkout_changed() -> None:
     """Clear ``__pycache__`` at launch when the checkout fingerprint changed since the last sweep.
 
-    Update-time clears can't close the stale-bytecode class: ``hermes update`` runs
+    Update-time clears can't close the stale-bytecode class: ``ettok update`` runs
     the PRE-pull updater code and manual pulls never run it. Cheap file reads, no
     git subprocess. Never raises.
 
     The stale-bytecode bug class (issues #6207, #60242; Dhruv's WhatsApp ``cannot import name
     'parse_model_flags_detailed'`` report) has one shared shape: the checkout's ``.py`` files change (git
-    pull inside ``hermes update``, a manual ``git pull``, a ZIP update, a file-sync restore) while
+    pull inside ``ettok update``, a manual ``git pull``, a ZIP update, a file-sync restore) while
     ``__pycache__`` retains bytecode from the previous revision, and a later process trusts the stale
     ``.pyc`` instead of the fresh source.
     """
@@ -167,7 +167,7 @@ def _write_build_stamp(stamp_file: Path, label: str, current_hash: Callable[[], 
 def _web_ui_build_needed(web_dir: Path) -> bool:
     """True if the web UI dist is missing or its source content changed.
 
-    Content hash, NOT mtime: ``git checkout`` / ``hermes update`` rewrite source
+    Content hash, NOT mtime: ``git checkout`` / ``ettok update`` rewrite source
     mtimes without changing content, which made an mtime check unreliable in
     both directions.
     """
@@ -434,7 +434,7 @@ def _web_npm_install_context(web_dir: Path) -> tuple[Path, tuple[str, ...]]:
 
     ``--workspace web`` keeps desktop (Electron + node-pty) out of a web build; no
     args when ``web/`` has its own lockfile. From the root this must name the SAME
-    closure as ``hermes update``'s ``_update_node_dependencies()`` (ui-tui + web +
+    closure as ``ettok update``'s ``_update_node_dependencies()`` (ui-tui + web +
     root): ``npm ci`` wipes node_modules first, so a narrower closure silently
     prunes what update just installed. ui-tui is named only when present.
     """
@@ -446,7 +446,7 @@ def _web_npm_install_context(web_dir: Path) -> tuple[Path, tuple[str, ...]]:
     # with its Electron + node-pty deps) is never resolved here. Without --workspace the root package.json's
     # apps/* glob would pull in desktop on every web build. See #38772. When web/ has its own
     # package-lock.json, _workspace_root() returns web_dir itself and --workspace would fail. See #42973.
-    # When running from the workspace root, this must name the SAME closure as `hermes update`'s
+    # When running from the workspace root, this must name the SAME closure as `ettok update`'s
     # _update_node_dependencies() (ui-tui + web + --include-workspace-root): the helper prefers `npm ci`,
     # which deletes node_modules before reifying the requested tree, so a narrower closure here silently
     # prunes everything the update step just installed (root devDependencies and the ui-tui workspace) while

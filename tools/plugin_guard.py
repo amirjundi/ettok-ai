@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plugin Guard — ``skills_guard`` engine applied to ``hermes plugins install``/``update``.
+"""Plugin Guard — ``skills_guard`` engine applied to ``ettok plugins install``/``update``.
 
 Plugins run in-process but are *expected* to read their own env keys, call provider APIs
 and spawn subprocesses, so: full pattern set on docs/config files (where prompt-injection

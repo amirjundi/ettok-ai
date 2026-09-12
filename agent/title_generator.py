@@ -78,7 +78,7 @@ _CONTROL_WRAPPERS = tuple(
                 "local-command-stdout", "task-notification", "system-reminder", "ide_opened_file", "ide_selection")
 )
 
-# Hermes' own machine-authored openers: a compaction handoff or resumed session must not be titled after them.
+# Ettok' own machine-authored openers: a compaction handoff or resumed session must not be titled after them.
 _MACHINE_PREFIXES = (
     "[CONTEXT COMPACTION", LEGACY_SUMMARY_PREFIX, "[Runtime note:", "[System note:", "[SYSTEM]",
     # tui_gateway.server._MODEL_SWITCH_MARKER_PREFIX (keep in sync); persisted as role="user" because
@@ -360,7 +360,7 @@ def auto_title_session(
     """Generate and store the model title (daemon-thread target); skips sessions already carrying an
     ``llm``/``user`` title (a ``derived`` one is expected — upgrading it is the point). Never lets an
     exception escape (the threading excepthook would spray a traceback into the terminal); the canonical
-    trigger is the post-``hermes update`` window where lazy imports read NEW source against OLD modules."""
+    trigger is the post-``ettok update`` window where lazy imports read NEW source against OLD modules."""
     try:
         if not session_db or not session_id or _has_upgraded_title(session_db, session_id):
             return
@@ -392,13 +392,13 @@ def auto_title_session(
             _notify_title(title_callback, persisted, source, "Auto-title")
     except Exception as e:
         # WARNING so operators see it in agent.log; names the likely cause.
-        logger.warning("Auto-title failed (harmless; if this started after an update, restart the running Hermes process): %s", e)
+        logger.warning("Auto-title failed (harmless; if this started after an update, restart the running Ettok process): %s", e)
         logger.debug("Auto-title traceback", exc_info=True)
         _report_failure(failure_callback, e, "Auto-title")
 
 
 def _is_real_user_turn(message: Any) -> bool:
-    """A question a person actually asked (Hermes persists machinery under ``role="user"``)."""
+    """A question a person actually asked (Ettok persists machinery under ``role="user"``)."""
     if not isinstance(message, dict) or message.get("role") != "user":
         return False
     content = message.get("content")

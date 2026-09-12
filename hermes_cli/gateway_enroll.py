@@ -1,4 +1,4 @@
-"""``hermes gateway enroll`` — enroll a self-hosted gateway with a relay connector.
+"""``ettok gateway enroll`` — enroll a self-hosted gateway with a relay connector.
 
 Managed/hosted installs do NOT self-enroll: the orchestrator mints the secret and stamps it into the
 container env, so this refuses to run under ``is_managed()`` (mirrors ``dashboard register``).
@@ -82,7 +82,7 @@ def _post_enroll(
         if exc.code == 401:
             message = (
                 "Connector rejected the caller identity (401). Your Nous Portal "
-                "token could not be verified — try `hermes auth add nous` and retry."
+                "token could not be verified — try `ettok auth add nous` and retry."
             )
         elif exc.code == 403:
             message = detail or "Enrollment token invalid, expired, already used, or tenant mismatch (403)."
@@ -114,7 +114,7 @@ def cmd_gateway_enroll(args) -> None:
     # to write there anyway.
     if is_managed():
         _fail(
-            "✗ `hermes gateway enroll` is not available in a managed/hosted install.\n"
+            "✗ `ettok gateway enroll` is not available in a managed/hosted install.\n"
             "  The relay gateway secret is provisioned by the hosting platform."
         )
 
@@ -147,7 +147,7 @@ def cmd_gateway_enroll(args) -> None:
         if getattr(exc, "relogin_required", False):
             _fail(
                 "✗ You're not logged into Nous Portal.",
-                "  Run `hermes setup` (or `hermes auth add nous`) first, then retry.",
+                "  Run `ettok setup` (or `ettok auth add nous`) first, then retry.",
             )
         _fail(f"✗ Could not resolve a Nous Portal access token: {exc}")
     except Exception as exc:

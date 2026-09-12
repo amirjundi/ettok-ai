@@ -199,7 +199,7 @@ RETIRED_GENERATION_DIR_SUFFIX = ".retired-wal-"
 RETIRED_GENERATION_MANIFEST = "manifest.json"
 RETIRED_GENERATION_MANIFEST_VERSION = 1
 # Up to this size the main image is copied whole, so the artifact is a self-contained state.db + -wal
-# pair that `hermes sessions recover --source <dir>/state.db` can open. Above it only the 100-byte
+# pair that `ettok sessions recover --source <dir>/state.db` can open. Above it only the 100-byte
 # header is kept (the manifest says so): unlike the WAL inode, the main file survives process exit at
 # its path, and a multi-GB copy inside a shutdown path is a worse failure than a header-only artifact.
 RETIRED_GENERATION_MAIN_IMAGE_MAX_BYTES = 512 * 1024 * 1024
@@ -354,7 +354,7 @@ def capture_retired_wal_generation(
                 suffix: list(ident) for suffix, ident in _stat_sqlite_sidecar_identity(db_path).items()},
             "note": ("Frames in the captured WAL were committed by the retired generation. Whether they "
                      "belong on top of the main file now at the path is an operator decision; inspect "
-                     "the copied image with `hermes sessions recover --inspect-only` first."),
+                     "the copied image with `ettok sessions recover --inspect-only` first."),
         }
         shm_identity = tuple(sidecar_identity.get("-shm") or ())
         shm_fd = _own_descriptor_for_identity(shm_identity) if shm_identity else None

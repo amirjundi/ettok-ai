@@ -302,7 +302,7 @@ class CLISessionMixin:
             ctx_label = None
 
         lines = [
-            "Hermes CLI Status", "", f"Session ID: {self.session_id}", f"Path: {display_hermes_home()}",
+            "Ettok CLI Status", "", f"Session ID: {self.session_id}", f"Path: {display_hermes_home()}",
         ]
         if title:
             lines.append(f"Title: {title}")
@@ -429,7 +429,7 @@ class CLISessionMixin:
                 _cli_visible_print(f"    {preview}{suffix}")
                 continue
 
-            _cli_visible_print(f"\n  [Hermes #{visible_index}]{_ts_suffix(msg)}")
+            _cli_visible_print(f"\n  [Ettok #{visible_index}]{_ts_suffix(msg)}")
             n_calls = len(msg.get("tool_calls") or [])
             if not content_text:
                 suffix = ""

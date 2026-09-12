@@ -1,4 +1,4 @@
-"""``hermes verify`` — detect a project's run recipe and smoke-test it."""
+"""``ettok verify`` — detect a project's run recipe and smoke-test it."""
 
 from __future__ import annotations
 
@@ -97,7 +97,7 @@ def _record_evidence(root: Path, recipe, result, *, partial: bool) -> None:
             root=root,
             session_id=os.environ.get("HERMES_SESSION_ID"),
             ok=result.ok,
-            command="hermes verify",
+            command="ettok verify",
             scope="targeted" if partial else "full",
             output="\n".join(tails),
         )

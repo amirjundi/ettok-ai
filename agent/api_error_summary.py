@@ -137,7 +137,7 @@ class ApiErrorSummaryMixin:
             seen.add(id(current))
             if any(marker in str(current).lower() for marker in _NETWORK_RESOLUTION_MARKERS):
                 return (
-                    "Hermes can't reach the model provider. You may be offline. "
+                    "Ettok can't reach the model provider. You may be offline. "
                     "Check your internet connection and try again."
                 )
             current = current.__cause__ or current.__context__

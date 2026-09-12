@@ -314,3 +314,54 @@ def test_wizard_leaves_an_explicit_backend_alone(monkeypatch):
     monkeypatch.setattr(hermes_cli, 'config', FakeConfig)
     assert setup_wizard._apply_toolsets() is True
     assert saved['browser']['backend'] == 'browser_use'
+
+
+def test_wizard_sets_the_ettok_look(monkeypatch):
+    """The terminal and the browser should look like one product.
+
+    `mono` is the monochrome CLI skin and, separately, the dashboard theme of the
+    same name -- two different settings that have to be set together or the
+    terminal keeps the upstream product's gold while the dashboard goes grey.
+    """
+    from plugins.ettok import setup_wizard
+
+    saved = {}
+
+    class FakeConfig:
+        @staticmethod
+        def load_config():
+            return {}
+
+        @staticmethod
+        def save_config(cfg):
+            saved.update(cfg)
+
+    import hermes_cli
+    monkeypatch.setattr(hermes_cli, 'config', FakeConfig)
+    assert setup_wizard._apply_toolsets() is True
+    assert saved['display']['skin'] == 'mono'
+    assert saved['dashboard']['theme'] == 'mono'
+    assert saved['dashboard']['font'] == 'instrument-sans'
+
+
+def test_wizard_respects_a_chosen_look(monkeypatch):
+    from plugins.ettok import setup_wizard
+
+    saved = {}
+
+    class FakeConfig:
+        @staticmethod
+        def load_config():
+            return {'display': {'skin': 'charizard'},
+                    'dashboard': {'theme': 'slate', 'font': 'inter'}}
+
+        @staticmethod
+        def save_config(cfg):
+            saved.update(cfg)
+
+    import hermes_cli
+    monkeypatch.setattr(hermes_cli, 'config', FakeConfig)
+    assert setup_wizard._apply_toolsets() is True
+    assert saved['display']['skin'] == 'charizard'
+    assert saved['dashboard']['theme'] == 'slate'
+    assert saved['dashboard']['font'] == 'inter'

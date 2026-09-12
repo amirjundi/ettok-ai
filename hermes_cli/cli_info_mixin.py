@@ -178,7 +178,7 @@ class CLIInfoMixin:
                 f"[yellow]⚠️  Context length is only {ctx_len:,} tokens — "
                 f"this is likely too low for agent use with tools.[/]")
             self._console_print(
-                f"[dim]   Hermes needs at least {MINIMUM_CONTEXT_LENGTH:,} tokens. Tool schemas + system prompt use a large fixed prefix.[/]"
+                f"[dim]   Ettok needs at least {MINIMUM_CONTEXT_LENGTH:,} tokens. Tool schemas + system prompt use a large fixed prefix.[/]"
             )
             base_url = getattr(self, "base_url", "") or ""
             from urllib.parse import urlparse as _urlparse
@@ -198,15 +198,15 @@ class CLIInfoMixin:
         if is_nous_hermes_non_agentic(getattr(self, "model", "") or ""):
             self._console_print()
             self._console_print(
-                "[bold yellow]⚠  Nous Research Hermes 3 & 4 models are NOT agentic and are not "
-                "designed for use with Hermes Agent.[/]")
+                "[bold yellow]⚠  Nous Research Ettok 3 & 4 models are NOT agentic and are not "
+                "designed for use with Ettok AI.[/]")
             self._console_print(
                 "[dim]   They lack tool-calling capabilities required for agent workflows. "
                 "Consider using an agentic model (Claude, GPT, Gemini, DeepSeek, etc.).[/]")
             self._console_print("[dim]   Switch with: /model sonnet  or  /model gpt5[/]")
 
         # Project-local skills one-liner: trusted → count; untrusted-with-skills → point at
-        # `hermes skills trust`. Never raises.
+        # `ettok skills trust`. Never raises.
         try:
             from agent.skill_utils import (
                 get_project_skills_dirs, get_untrusted_project_skills_root, iter_skill_index_files)
@@ -221,7 +221,7 @@ class CLIInfoMixin:
                     _root, _n = _untrusted
                     self._console_print(
                         f"[yellow]◆ {_n} project skill(s) found in {_root} but not "
-                        f"loaded — run `hermes skills trust` to enable them.[/]")
+                        f"loaded — run `ettok skills trust` to enable them.[/]")
         except Exception:
             logger.debug("project skills banner notice failed", exc_info=True)
 
@@ -611,7 +611,7 @@ class CLIInfoMixin:
         """`/usage reset [--force]` — redeem one banked Codex reset credit."""
         if str(self._agent_or_self("provider") or "").strip().lower() != "openai-codex":
             print("  Banked usage resets are only available on the openai-codex provider.")
-            print("  Switch with `/model` or `hermes auth` first.")
+            print("  Switch with `/model` or `ettok auth` first.")
             return
         from agent.account_usage import redeem_codex_reset_credit
 

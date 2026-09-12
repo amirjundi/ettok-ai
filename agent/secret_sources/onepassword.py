@@ -3,7 +3,7 @@
 Users map env-var names to ``op://vault/item/field`` references in
 ``secrets.onepassword.env``; each is resolved with one ``op read -- <ref>``
 call using whatever auth the user's ``op`` already has (``OP_SERVICE_ACCOUNT_TOKEN``
-headless, ``OP_SESSION_*`` interactive) — Hermes never authenticates on the
+headless, ``OP_SESSION_*`` interactive) — Ettok never authenticates on the
 user's behalf, and failures never block startup. Complete pulls are cached
 in-process and under ``<hermes_home>/cache/op_cache.json`` (values only; auth
 material is fingerprinted, never stored).
@@ -220,7 +220,7 @@ def apply_onepassword_secrets(
     override_existing: bool = True, cache_ttl_seconds: float = 300, home_path: Optional[Path] = None,
 ) -> FetchResult:
     """Resolve configured ``op://`` references and set them on ``os.environ``
-    (``hermes secrets onepassword sync --apply``). Never raises. Refs already
+    (``ettok secrets onepassword sync --apply``). Never raises. Refs already
     satisfied by the env (when ``override_existing`` is false) and the token var
     are skipped *before* fetching, so ``op`` never runs for a discarded value."""
     result = FetchResult()
@@ -278,7 +278,7 @@ class OnePasswordSource(SecretSource):
     # override_existing defaults True: an explicit VAR→op:// binding is the
     # strongest user intent; a stale .env line must not silently defeat it.
     override_existing_default = True
-    _AUTH_HINT = ("Run `hermes secrets onepassword token` to paste a fresh service-account token "
+    _AUTH_HINT = ("Run `ettok secrets onepassword token` to paste a fresh service-account token "
                   "({token_env}), or `op signin` for an interactive session.")
     remediation_hints = {ErrorKind.AUTH_FAILED: _AUTH_HINT, ErrorKind.AUTH_EXPIRED: _AUTH_HINT,
                          ErrorKind.BINARY_MISSING: _MISSING_BINARY_HINT}

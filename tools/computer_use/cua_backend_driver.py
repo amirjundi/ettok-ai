@@ -59,8 +59,8 @@ def _has_path_separator(value: str) -> bool:
     return os.sep in value or (os.altsep is not None and os.altsep in value)
 
 def _wsl_windows_path_to_posix(path: str) -> str:
-    """Translate a Windows absolute manifest command to its DrvFS ``/mnt/<drive>/...`` form when Hermes runs in WSL
-    (a Windows cua-driver manifest can report ``C:\\...`` while Hermes spawns via POSIX). Non-Windows paths and
+    """Translate a Windows absolute manifest command to its DrvFS ``/mnt/<drive>/...`` form when Ettok runs in WSL
+    (a Windows cua-driver manifest can report ``C:\\...`` while Ettok spawns via POSIX). Non-Windows paths and
     non-WSL hosts are returned unchanged."""
     if not re.match(r"^[A-Za-z]:[\\/]", path):
         return path
@@ -104,9 +104,9 @@ def cua_driver_binary_available() -> bool:
 def cua_driver_install_hint() -> str:
     installer = (f"  irm {_UPSTREAM_SCRIPTS}/install.ps1 | iex" if sys.platform == "win32"
                  else f'  /bin/bash -c "$(curl -fsSL {_UPSTREAM_SCRIPTS}/install.sh)"')
-    return ("cua-driver is not installed. Install with one of:\n  hermes computer-use install\n"
+    return ("cua-driver is not installed. Install with one of:\n  ettok computer-use install\n"
             f"Or run the upstream installer directly:\n{installer}\n"
-            "Or run `hermes tools` and enable the Computer Use toolset to install it automatically.")
+            "Or run `ettok tools` and enable the Computer Use toolset to install it automatically.")
 
 def _mcp_args_with_overlay_flag(args: List[str], driver_cmd: str = _CUA_DRIVER_DEFAULT_CMD) -> List[str]:
     """Return *args* with ``--no-overlay`` appended when configured and supported."""
@@ -132,7 +132,7 @@ def _resolve_mcp_invocation(driver_cmd: str, *, timeout: float = 6.0) -> Tuple[s
     Surface 8 of NousResearch/hermes-agent#47072: instead of hardcoding ``["mcp"]`` we ask the driver itself
     via ``cua-driver manifest`` (trycua/cua#1961). The manifest carries a stable ``mcp_invocation`` pointer
     with both ``command`` and ``args``, so a future cua-driver that renames or relocates the subcommand
-    keeps working without a Hermes patch.
+    keeps working without a Ettok patch.
     When ``computer_use.no_overlay`` is enabled (or auto-detected — macOS, headless/WSL2/X11 Linux),
     ``--no-overlay`` is appended to suppress the cursor overlay rendering loop that can consume CPU
     indefinitely when idle (#28152, #47032). Older drivers that don't recognise the flag will reject it;
@@ -160,7 +160,7 @@ def _manifest_contract_reason(manifest: Optional[Dict[str, Any]]) -> str:
     if not match:
         return "driver manifest does not report a semantic version"
     if tuple(int(part) for part in match.groups()) < _CUA_DRIVER_RUNTIME_CONTRACT_MIN:
-        return "Hermes computer use requires cua-driver 0.20.0 or newer"
+        return "Ettok computer use requires cua-driver 0.20.0 or newer"
     if not _valid_mcp_args(manifest.get("mcp_invocation")):
         return "driver manifest does not provide an MCP launch command"
     advertised: Dict[str, set[str]] = {
@@ -174,7 +174,7 @@ def _manifest_contract_reason(manifest: Optional[Dict[str, Any]]) -> str:
     return "driver manifest is missing: " + ", ".join(missing) if missing else ""
 
 def cua_driver_runtime_contract_status(binary: Optional[str] = None) -> Dict[str, Any]:
-    """Report whether a local driver can host Hermes' 0.20 integration."""
+    """Report whether a local driver can host Ettok' 0.20 integration."""
     resolved = binary or resolve_cua_driver_cmd()
     version: Optional[str] = None
     reason = "cua-driver is not installed"
@@ -212,4 +212,4 @@ def cua_driver_update_nudge() -> Optional[str]:
     if not state or not state.get("update_available"):
         return None
     return (f"cua-driver {state.get('latest_version') or '?'} is available "
-            f"(you have {state.get('current_version') or '?'}); update with `hermes computer-use install --upgrade`.")
+            f"(you have {state.get('current_version') or '?'}); update with `ettok computer-use install --upgrade`.")

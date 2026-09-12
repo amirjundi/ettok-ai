@@ -1,4 +1,4 @@
-"""Markdown/QMD export helpers for Hermes sessions.
+"""Markdown/QMD export helpers for Ettok sessions.
 
 Filesystem-only: formats already-exported SessionDB dicts and writes them to user-selected export
 directories. Must not mutate state.db or call delete/prune/archive APIs.
@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-EXPORTER_VERSION = "hermes sessions export (md/qmd) v1"
+EXPORTER_VERSION = "ettok sessions export (md/qmd) v1"
 _SHA_LINE_RE = re.compile(r"- SHA256 of exported body: `([0-9a-f]{64})`")
 _SHA_PLACEHOLDER = "__SHA256_PLACEHOLDER__"
 _VERIFICATION_HEADING = "## Export verification"

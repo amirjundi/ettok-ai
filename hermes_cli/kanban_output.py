@@ -1,4 +1,4 @@
-"""Text / ``--json`` output helpers shared by the ``hermes kanban`` CLI modules."""
+"""Text / ``--json`` output helpers shared by the ``ettok kanban`` CLI modules."""
 
 from __future__ import annotations
 

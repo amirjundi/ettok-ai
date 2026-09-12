@@ -16,7 +16,7 @@ UPGRADE_ALREADY_SIGNED_IN = "Already signed in."
 UPGRADE_DO_NOT_SHARE = "Do not share this code."
 UPGRADE_TIMED_OUT = "Sign-in timed out; run the command again."
 UPGRADE_NOT_COMPLETED = "Sign-in did not complete; run the command again."
-UPGRADE_UNAVAILABLE = "The free tier is not available right now; run `hermes auth add nous` to sign in."
+UPGRADE_UNAVAILABLE = "The free tier is not available right now; run `ettok auth add nous` to sign in."
 UPGRADE_REASON_COPY = {
     "user_declined": "Sign-in was rejected in the browser.",
     "superseded": "A newer sign-in code replaced this one.",
@@ -26,7 +26,7 @@ UPGRADE_REASON_COPY = {
 }
 _RETIRED_REASONS = frozenset({"account_retired", "account_not_anonymous"})
 
-UPGRADE_NO_DEFAULT_TERMINAL = "No default model is set yet; run `hermes model` to pick one."
+UPGRADE_NO_DEFAULT_TERMINAL = "No default model is set yet; run `ettok model` to pick one."
 UPGRADE_NO_DEFAULT_CHAT = "No default model is set yet; run /model to pick one."
 UPGRADE_WAITING = "Waiting for sign-in..."
 UPGRADE_WAITING_UP_TO = "Waiting for sign-in, up to {minutes}."
@@ -34,9 +34,9 @@ UPGRADE_CANCELLED = "\nSign-in cancelled."
 UPGRADE_UNAVAILABLE_CHAT = "The free tier is not available right now. Try /login again in a moment."
 LOGIN_COMMAND = "/login"
 LOGIN_STARTING = "Starting sign-in..."
-LOGIN_DM_ONLY = "Sign in from a direct message with Hermes."
-LOGIN_BUSY_ELSEWHERE = "Another sign-in is already running on this Hermes. Try again in a few minutes."
-LOGIN_NOT_ALLOWED = "Only an operator of this Hermes can sign it in."
+LOGIN_DM_ONLY = "Sign in from a direct message with Ettok."
+LOGIN_BUSY_ELSEWHERE = "Another sign-in is already running on this Ettok. Try again in a few minutes."
+LOGIN_NOT_ALLOWED = "Only an operator of this Ettok can sign it in."
 FREE_TIER_RATE_LIMIT_CHAT = (
     "Nous free tier rate limit active \u2014 resets in {reset}. "
     "Sign in with a Nous account for higher limits: /login.")

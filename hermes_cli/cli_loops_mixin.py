@@ -223,7 +223,7 @@ class CLILoopsMixin:
     def _cmd_plugins(self, cmd_original: str):
         from hermes_constants import display_hermes_home
         try:
-            # Discover from disk (bundled + user) like `hermes plugins list`, so
+            # Discover from disk (bundled + user) like `ettok plugins list`, so
             # installed-but-not-enabled plugins show up; the plugin manager only knows
             # *loaded* plugins and made fresh installs look like "nothing installed".
             from hermes_cli.plugins_cmd import (
@@ -233,15 +233,15 @@ class CLILoopsMixin:
             disabled = _get_disabled_set()
 
             # `/plugins` is a quick glance: user plugins only, bundled ones summarized
-            # on one line (full catalog behind `hermes plugins list`).
+            # on one line (full catalog behind `ettok plugins list`).
             user_entries = [e for e in entries if e[3] != "bundled"]
             bundled_count = len(entries) - len(user_entries)
             if not user_entries:
                 print("No user plugins installed.")
-                print("  Install one: hermes plugins install owner/repo")
+                print("  Install one: ettok plugins install owner/repo")
                 print(f"  Or drop a plugin directory into {display_hermes_home()}/plugins/")
                 if bundled_count:
-                    print(f"  ({bundled_count} bundled plugins available — see: hermes plugins list)")
+                    print(f"  ({bundled_count} bundled plugins available — see: ettok plugins list)")
                 return
             try:  # loaded-plugin details (tools/hooks/commands counts, errors) by name
                 from hermes_cli.plugins import get_plugin_manager
@@ -260,8 +260,8 @@ class CLILoopsMixin:
                 error = f" — {info['error']}" if info.get("error") else ""
                 print(f"  {glyph} {name}{ver}{label}{detail}{error}")
             if bundled_count:
-                print(f"  (+{bundled_count} bundled — see: hermes plugins list)")
-            print("  Enable/disable: hermes plugins enable/disable <name>")
+                print(f"  (+{bundled_count} bundled — see: ettok plugins list)")
+            print("  Enable/disable: ettok plugins enable/disable <name>")
         except Exception as e:
             print(f"Plugin system error: {e}")
 

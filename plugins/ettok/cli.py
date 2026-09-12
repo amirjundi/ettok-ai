@@ -80,7 +80,7 @@ def _load_config(args=None):
 def _env_path() -> Path:
     """Where the agent key is written.
 
-    `.env` under the Hermes home, alongside every other credential this runtime
+    `.env` under the Ettok home, alongside every other credential this runtime
     holds -- not plugin storage, which a plugin update deletes.
     """
     from hermes_constants import get_hermes_home
@@ -334,7 +334,7 @@ def _schedule(args) -> int:
     )
     job_id = job.get('id') if isinstance(job, dict) else job
     print(f'Scheduled "{name}" every {getattr(args, "every", "6h")} (job {job_id}).')
-    print('It survives restarts. `hermes cron list` to inspect, '
+    print('It survives restarts. `ettok cron list` to inspect, '
           f'`ettok schedule --remove --name {name}` to stop.')
     return 0
 

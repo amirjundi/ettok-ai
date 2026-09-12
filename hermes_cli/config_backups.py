@@ -5,7 +5,7 @@ snapshot, model migrations) goes through :func:`backup_config`. Copies live in
 ``<HERMES_HOME>/backups/config/`` — ``backups/`` is already excluded from full backups, so they
 never nest — as ``config.yaml.<reason>.<YYYYMMDD-HHMMSS>``. A copy identical to the newest one
 for the same reason is skipped, and only the newest ``keep`` per reason survive, so repeated
-``hermes setup`` runs or a gateway restarting against broken YAML cannot litter the home dir.
+``ettok setup`` runs or a gateway restarting against broken YAML cannot litter the home dir.
 """
 
 from __future__ import annotations

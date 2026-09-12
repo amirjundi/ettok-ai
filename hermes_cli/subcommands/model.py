@@ -1,4 +1,4 @@
-"""``hermes model`` subcommand parser."""
+"""``ettok model`` subcommand parser."""
 
 from __future__ import annotations
 

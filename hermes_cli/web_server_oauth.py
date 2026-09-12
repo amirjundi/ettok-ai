@@ -41,7 +41,7 @@ def _token_status(source: str, source_label: str, creds: Dict[str, Any]) -> Dict
 
 
 def _anthropic_oauth_status() -> Dict[str, Any]:
-    """Status for the "Anthropic API Key" card: Hermes-managed PKCE file first, then the
+    """Status for the "Anthropic API Key" card: Ettok-managed PKCE file first, then the
     registry-ordered env vars (process env — where Bitwarden-sourced secrets land — then .env).
 
     Claude Code's ``~/.claude/.credentials.json`` is deliberately NOT read here; it has its own
@@ -87,7 +87,7 @@ def _claude_code_only_status() -> Dict[str, Any]:
 
 def _copilot_acp_status() -> Dict[str, Any]:
     """Status for copilot-acp. ``logged_in`` only on positive evidence (env token or known on-disk
-    store); the CLI may hold its session in an OS keychain Hermes can't read, so the unverified
+    store); the CLI may hold its session in an OS keychain Ettok can't read, so the unverified
     state reads "managed by the Copilot CLI" — never signed out."""
     try:
         from hermes_cli.auth import get_external_process_provider_status
@@ -136,21 +136,21 @@ def _external_process_cli_command(provider_id: str, default: str) -> str:
 # ``flow``: ``device_code`` = show code + URL + poll; ``external`` = delegated to a terminal/CLI.
 _OAUTH_PROVIDER_CATALOG: tuple[Dict[str, Any], ...] = (
     # status_fn None → dispatched via auth.get_<provider>_auth_status.
-    {"id": "nous", "name": "Nous Portal", "flow": "device_code", "cli_command": "hermes auth add nous",
+    {"id": "nous", "name": "Nous Portal", "flow": "device_code", "cli_command": "ettok auth add nous",
      "docs_url": "https://portal.nousresearch.com", "status_fn": None},
     {"id": "openai-codex", "name": "ChatGPT or Codex Subscription", "flow": "device_code",
-     "cli_command": "hermes auth add openai-codex", "docs_url": "https://platform.openai.com/docs",
+     "cli_command": "ettok auth add openai-codex", "docs_url": "https://platform.openai.com/docs",
      "status_fn": None},
     {"id": "qwen-oauth", "name": "Qwen (via Qwen CLI)", "flow": "external",
-     "cli_command": "hermes auth add qwen-oauth", "docs_url": "https://github.com/QwenLM/qwen-code",
+     "cli_command": "ettok auth add qwen-oauth", "docs_url": "https://github.com/QwenLM/qwen-code",
      "status_fn": None},
     # Structurally device-code (verification URI + user code + token polling) with a PKCE
     # code-binding extension that doesn't change the operator UX.
     {"id": "minimax-oauth", "name": "MiniMax (OAuth)", "flow": "device_code",
-     "cli_command": "hermes auth add minimax-oauth", "docs_url": "https://www.minimax.io", "status_fn": None},
+     "cli_command": "ettok auth add minimax-oauth", "docs_url": "https://www.minimax.io", "status_fn": None},
     # Device code works in remote shells/containers without a reachable 127.0.0.1 callback.
     {"id": "xai-oauth", "name": "xAI Grok OAuth (SuperGrok / Premium+)", "flow": "device_code",
-     "cli_command": "hermes auth add xai-oauth",
+     "cli_command": "ettok auth add xai-oauth",
      "docs_url": "https://hermes-agent.nousresearch.com/docs/guides/xai-grok-oauth", "status_fn": None},
     # `copilot login` is the non-interactive subcommand; `copilot /login` is not valid
     # (slash-commands only exist inside an interactive session).
@@ -159,8 +159,8 @@ _OAUTH_PROVIDER_CATALOG: tuple[Dict[str, Any], ...] = (
     # Anthropic / Claude entries sit at the bottom. Deliberately flow == "external": an
     # in-dashboard Connect button would let a scriptable HTTP endpoint mint Claude Pro/Max
     # subscription tokens outside Anthropic's own client, against its OAuth usage policies.
-    # Login works via the terminal (`hermes auth add anthropic`) or a plain API key.
-    {"id": "anthropic", "name": "Anthropic API Key", "flow": "external", "cli_command": "hermes auth add anthropic",
+    # Login works via the terminal (`ettok auth add anthropic`) or a plain API key.
+    {"id": "anthropic", "name": "Anthropic API Key", "flow": "external", "cli_command": "ettok auth add anthropic",
      "docs_url": "https://docs.claude.com/en/api/getting-started", "status_fn": _anthropic_oauth_status},
     {"id": "claude-code", "name": "Anthropic OAuth: Required Extra Usage Credits to Use Subscription",
      "flow": "external", "cli_command": "claude setup-token",
@@ -357,7 +357,7 @@ def _nous_plain_poller(session_id: str, sess: Dict[str, Any]) -> None:
 def _minimax_poller(session_id: str, sess: Dict[str, Any]) -> None:
     """MiniMax poller: PKCE-style ``code_verifier`` + ``user_code`` instead of Nous's
     ``device_code``. Builds the same auth_state as the CLI's ``_minimax_oauth_login`` and persists
-    via ``_minimax_save_auth_state`` so the system ends up as after ``hermes auth add minimax-oauth``.
+    via ``_minimax_save_auth_state`` so the system ends up as after ``ettok auth add minimax-oauth``.
     Region is fixed to "global" here; cn-region operators use the CLI's ``--region cn``."""
     from hermes_cli.web_server_profiles import _profile_scope
     from hermes_cli.auth import (
@@ -424,7 +424,7 @@ def _xai_device_poller(session_id: str, sess: Dict[str, Any]) -> None:
             tokens, discovery=discovery, auth_mode="oauth_device_code", set_active=False,
             last_refresh=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         )
-        # Mirror `hermes auth add xai-oauth`: first credential may become active; never overwrite.
+        # Mirror `ettok auth add xai-oauth`: first credential may become active; never overwrite.
         mark_provider_active_if_unset("xai-oauth")
         # The singleton write is the source of truth (the pool load seeds it as the canonical
         # ``device_code`` entry). Do NOT add a parallel ``manual:dashboard_*`` pool entry — it

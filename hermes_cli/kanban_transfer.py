@@ -1,6 +1,6 @@
 """Kanban board export / import — move a whole board between machines.
 
-Backs ``hermes kanban export|import``, the ``/boards/{slug}/export`` and
+Backs ``ettok kanban export|import``, the ``/boards/{slug}/export`` and
 ``/boards/import`` REST endpoints, and the desktop board switcher. Archive
 layout (``<slug>.tar.gz``, one top-level dir named for the source slug):
 ``manifest.json`` (format/version/provenance/counts), ``board.json`` (display
@@ -202,21 +202,21 @@ def _available_slug(preferred: str) -> str:
 def _read_manifest(root: Path) -> dict[str, Any]:
     path = root / "manifest.json"
     if not path.exists():
-        raise ValueError("archive is not a Hermes kanban board export (no manifest.json)")
+        raise ValueError("archive is not a Ettok kanban board export (no manifest.json)")
     try:
         manifest = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"archive manifest is not valid JSON: {exc}") from exc
     if not isinstance(manifest, dict) or manifest.get("format") != ARCHIVE_FORMAT:
         raise ValueError(
-            "archive is not a Hermes kanban board export "
+            "archive is not a Ettok kanban board export "
             f"(format={manifest.get('format') if isinstance(manifest, dict) else None!r})"
         )
     version = manifest.get("format_version")
     if not isinstance(version, int) or version > ARCHIVE_FORMAT_VERSION:
         raise ValueError(
-            f"archive format version {version!r} is newer than this Hermes "
-            f"understands (max {ARCHIVE_FORMAT_VERSION}) — update Hermes and retry"
+            f"archive format version {version!r} is newer than this Ettok "
+            f"understands (max {ARCHIVE_FORMAT_VERSION}) — update Ettok and retry"
         )
     return manifest
 

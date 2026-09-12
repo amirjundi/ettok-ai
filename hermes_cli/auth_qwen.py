@@ -138,7 +138,7 @@ def get_qwen_auth_status() -> Dict[str, Any]:
     from hermes_cli.auth import _qwen_cli_auth_path, resolve_qwen_runtime_credentials
     auth_path = _qwen_cli_auth_path()
     try:
-        # Refresh-validate: otherwise stale CLI tokens read as "logged in" and break `hermes model`.
+        # Refresh-validate: otherwise stale CLI tokens read as "logged in" and break `ettok model`.
         creds = resolve_qwen_runtime_credentials(refresh_if_expiring=True)
         return {
             "logged_in": True, "auth_file": str(auth_path), "source": creds.get("source"),

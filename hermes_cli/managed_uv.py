@@ -1,6 +1,6 @@
-"""Hermes-managed uv and Python runtime repair.
+"""Ettok-managed uv and Python runtime repair.
 
-The Python backing the install is shared by every Hermes profile because the checkout's ``venv``
+The Python backing the install is shared by every Ettok profile because the checkout's ``venv``
 is shared. Runtime repair therefore uses an install-scoped store under
 ``<checkout>/.hermes-runtime/python``. A vulnerable interpreter is never reinstalled in place.
 """
@@ -60,7 +60,7 @@ def managed_python_install_dir(project_root: Path | None = None) -> Path:
 def managed_python_env(
     project_root: Path | None = None, *, install_dir: Path | None = None,
     base_env: dict[str, str] | None = None) -> dict[str, str]:
-    """Return a sanitized environment for Hermes-private uv Python commands."""
+    """Return a sanitized environment for Ettok-private uv Python commands."""
     target = (
         Path(install_dir) if install_dir is not None else managed_python_install_dir(project_root))
     env = dict(os.environ if base_env is None else base_env)
@@ -138,8 +138,8 @@ def _report_runtime_repair_failure(repair: RuntimeRepairResult) -> None:
     if repair.backup_venv is None:
         print("  ℹ Managed Python runtime was not replaced; "
               f"the existing venv is unchanged ({repair.detail}).")
-        print("    Sessions stay protected meanwhile: Hermes keeps databases "
-              "out of WAL mode on this SQLite build. The next `hermes update` "
+        print("    Sessions stay protected meanwhile: Ettok keeps databases "
+              "out of WAL mode on this SQLite build. The next `ettok update` "
               "will retry.")
         return
     print(f"  ✗ Managed Python runtime cutover needs manual recovery: {repair.detail}")
@@ -234,7 +234,7 @@ def _uv_self_update_stamp() -> Path:
 def _uv_self_update_is_fresh(now: float | None = None) -> bool:
     """True when ``uv self update`` ran recently enough to skip.
 
-    uv releases roughly weekly while many users run ``hermes update`` daily; a blocking network
+    uv releases roughly weekly while many users run ``ettok update`` daily; a blocking network
     self-update on every run is waste and, offline, an unbounded hang risk.
     """
     try:
@@ -420,7 +420,7 @@ def _attempt_install_generation(
     try:
         python.resolve().relative_to(generation.resolve())
     except (OSError, ValueError):
-        return reject("uv resolved Python outside the Hermes generation: %s", python)
+        return reject("uv resolved Python outside the Ettok generation: %s", python)
     # Sign before the candidate is probed or promoted so each immutable generation does not look
     # like a new TCC principal on macOS. Non-fatal: the SQLite repair proceeds regardless.
     _macos_sign_managed_python(python)
@@ -522,7 +522,7 @@ def _install_safe_python_generation(
     if result is not None:
         return result
     # All patches on the current minor line are vulnerable or rejected. Fall forward to the next
-    # supported minor (e.g. 3.11 → 3.12) so the user isn't stuck on every `hermes update`. The
+    # supported minor (e.g. 3.11 → 3.12) so the user isn't stuck on every `ettok update`. The
     # requires-python window (>=3.11,<3.14) and the import smoke-test gate compatibility.
     # See #76106.
     cur_major, cur_minor = current.python_version[:2]
@@ -721,7 +721,7 @@ def _windows_runtime_holders() -> tuple[bool, str]:
         return True, f"could not verify Windows venv holders: {exc}"
     if holders:
         pids = ", ".join(str(item[0]) for item in holders[:6])
-        return True, f"other Hermes processes still hold the venv (PID {pids})"
+        return True, f"other Ettok processes still hold the venv (PID {pids})"
     return False, ""
 
 
@@ -729,7 +729,7 @@ def _windows_runtime_self_lock(live: Path) -> tuple[bool, str]:
     """Detect the one holder the generic scan is blind to: THIS process.
 
     ``_detect_venv_python_processes`` excludes the calling process and its ancestors on purpose
-    (``hermes update`` itself runs from the venv python), which is correct for the dependency-sync
+    (``ettok update`` itself runs from the venv python), which is correct for the dependency-sync
     path where only a *loaded* ``.pyd`` image blocks the rewrite and a fresh child dodges it.
 
     For the whole-venv park rename that exemption is fatal: Windows keeps the image of any executable a
@@ -871,13 +871,13 @@ def _repair_windows_preflight(
         for line in (
             f"  ⚠ SQLite runtime repair deferred: {self_detail}.",
             # See #93032.
-            "    Retrying `hermes update` from inside this venv cannot help: "
+            "    Retrying `ettok update` from inside this venv cannot help: "
             "the mapped executable is released only when this process exits.",
             "    To complete the repair, run the updater from an interpreter "
             "that lives outside this venv, e.g.:",
             f"      cd {root}",
             "      <system Python> -m hermes_cli.main update",
-            "    Sessions stay protected meanwhile: Hermes keeps databases "
+            "    Sessions stay protected meanwhile: Ettok keeps databases "
             "out of WAL mode on this SQLite build."):
             print(line)
         return _result("skipped", current, self_detail)
@@ -896,7 +896,7 @@ def _repair_under_lock(
     if not current.wal_reset_vulnerable:
         return _result("safe", current, sqlite_after=current.sqlite_version_string)
     print(
-        "  ⚠ Hermes venv links SQLite "
+        "  ⚠ Ettok venv links SQLite "
         f"{current.sqlite_version_string}, which has the WAL-reset bug.")
     provisioned = _install_safe_python_generation(uv_bin, project_root=root, current=current)
     # Likely a stale managed-uv catalog: python-build-standalone re-releases the same patch

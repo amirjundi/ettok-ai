@@ -1,4 +1,4 @@
-"""First-party Hermes observability integrations."""
+"""First-party Ettok observability integrations."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def observe_lifecycle(hook_name: str, **kwargs: Any) -> None:
-    """Dispatch a Hermes lifecycle event to built-in observability features."""
+    """Dispatch a Ettok lifecycle event to built-in observability features."""
     from . import relay_shared_metrics
 
     try:

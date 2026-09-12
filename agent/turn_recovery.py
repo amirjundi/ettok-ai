@@ -267,7 +267,7 @@ def _print_nous_401_diagnostics(agent: Any, api_error: Exception) -> None:
     _plines(
         agent,
         "   Troubleshooting:",
-        "     • Re-authenticate: hermes auth add nous",
+        "     • Re-authenticate: ettok auth add nous",
         "     • Check credits / billing: https://portal.nousresearch.com",
         f"     • Verify stored credentials: {display_hermes_home()}/auth.json",
         "     • Switch providers temporarily: /model <model> --provider openrouter",
@@ -286,7 +286,7 @@ def _print_anthropic_401_diagnostics(agent: Any, key: Any) -> None:
         _plines(
             agent,
             "   Auth method: Microsoft Entra ID (httpx event hook)",
-            "   Run `hermes doctor` for credential-chain diagnostics, or",
+            "   Run `ettok doctor` for credential-chain diagnostics, or",
             "   `az login` if your developer session expired.",
         )
     else:
@@ -300,12 +300,12 @@ def _print_anthropic_401_diagnostics(agent: Any, key: Any) -> None:
     _plines(
         agent,
         "   Troubleshooting:",
-        f"     • Check ANTHROPIC_TOKEN in {_dhh}/.env for Hermes-managed OAuth/setup tokens",
+        f"     • Check ANTHROPIC_TOKEN in {_dhh}/.env for Ettok-managed OAuth/setup tokens",
         f"     • Check ANTHROPIC_API_KEY in {_dhh}/.env for API keys or legacy token values",
         "     • For API keys: verify at https://platform.claude.com/settings/keys",
         "     • For Claude Code: run 'claude /login' to refresh, then retry",
-        "     • Legacy cleanup: hermes config set ANTHROPIC_TOKEN \"\"",
-        "     • Clear stale keys: hermes config set ANTHROPIC_API_KEY \"\"",
+        "     • Legacy cleanup: ettok config set ANTHROPIC_TOKEN \"\"",
+        "     • Clear stale keys: ettok config set ANTHROPIC_API_KEY \"\"",
     )
 
 
@@ -612,20 +612,20 @@ def _print_nonretryable_auth_guidance(
                 "   💡 Codex OAuth token was rejected (HTTP 401). Your token may have been",
                 "      refreshed by another client (Codex CLI, VS Code). To fix:",
                 "      1. Run `codex` in your terminal to generate fresh tokens.",
-                "      2. Then run `hermes auth` to re-authenticate.",
+                "      2. Then run `ettok auth` to re-authenticate.",
             )
         elif provider == "xai-oauth":
             _vlines(
                 agent,
                 "   💡 xAI OAuth token was rejected (HTTP 401). To fix:",
-                "      re-authenticate with xAI Grok OAuth (SuperGrok / Premium+) from `hermes model`.",
+                "      re-authenticate with xAI Grok OAuth (SuperGrok / Premium+) from `ettok model`.",
             )
         else:  # nous
             _vlines(
                 agent,
                 "   💡 Nous Portal OAuth token was rejected (HTTP 401). Your token may be",
                 "      expired, revoked, or your account may be out of credits. To fix:",
-                "      1. Re-authenticate: hermes portal",
+                "      1. Re-authenticate: ettok portal",
                 "      2. Check your portal account: https://portal.nousresearch.com",
             )
             # ``:free`` is OpenRouter slug syntax; Nous Portal will reject the model
@@ -641,7 +641,7 @@ def _print_nonretryable_auth_guidance(
     _vlines(
         agent,
         "   💡 Your API key was rejected by the provider. Check:",
-        "      • Is the key valid? Run: hermes setup",
+        "      • Is the key valid? Run: ettok setup",
         f"      • Does your account have access to {model}?",
     )
     if base_url_host_matches(str(base_url), "openrouter.ai"):
@@ -715,7 +715,7 @@ def nonretryable_client_error_result(
             "   💡 The provider's safety filter rejected this specific prompt.",
             "      • Try rephrasing the request, narrowing the context, or splitting into smaller steps.",
             "      • Configure a fallback provider so future blocks route automatically:",
-            "        hermes fallback add   (interactive picker — same as `hermes model`)",
+            "        ettok fallback add   (interactive picker — same as `ettok model`)",
         )
     # TLS certificate failures are environment problems — name the knobs for each cause.
     if classified.reason == FailoverReason.ssl_cert_verification:
@@ -742,7 +742,7 @@ def nonretryable_client_error_result(
     if classified.reason == FailoverReason.content_policy_blocked:
         _policy_response = (
             "⚠️  The model provider's safety filter blocked this request "
-            "(not a Hermes/gateway failure).\n\n"
+            "(not a Ettok/gateway failure).\n\n"
             f"Provider message: {_nonretryable_summary}\n\n"
             f"{_CONTENT_POLICY_RECOVERY_HINT}"
         )
@@ -960,7 +960,7 @@ def log_api_error_attempt(
             _blines(
                 agent,
                 f"   💡 Model '{_model}' is not a valid id for provider {_provider} — it is missing its vendor prefix.",
-                f"      Did you mean '{_suggestion}'?  Re-pick it with `hermes model`.",
+                f"      Did you mean '{_suggestion}'?  Re-pick it with `ettok model`.",
             )
     return error_type, error_msg, _provider, _base, _model
 

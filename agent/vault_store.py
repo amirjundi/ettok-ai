@@ -36,7 +36,7 @@ VAULT_KINDS = ("login", "payment", "address")
 LOGIN_IDENTIFIER_TYPES = ("email", "phone", "username")
 
 # Canonical secret-payload fields per non-login kind. Each maps to the WHATWG autocomplete token the
-# browser fill targets (agent/vault_login_classifier.py); the Desktop Add dialog and `hermes vault add`
+# browser fill targets (agent/vault_login_classifier.py); the Desktop Add dialog and `ettok vault add`
 # both write these names, so the fill never has to guess a user's ad-hoc field naming.
 PAYMENT_FIELDS = {
     "card_number": "cc-number", "cardholder_name": "cc-name", "exp_month": "cc-exp-month",
@@ -214,7 +214,7 @@ class VaultStore:
     @contextmanager
     def _locked(self):
         """Serialize read-modify-write cycles across threads AND processes: the Desktop gateway, a CLI
-        `hermes vault add` and a TUI slash worker all write the same ``vault.json.enc``; two unlocked
+        `ettok vault add` and a TUI slash worker all write the same ``vault.json.enc``; two unlocked
         writers would drop each other's items."""
         with _LOCK:
             self._ensure_dir()

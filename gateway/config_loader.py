@@ -1,7 +1,7 @@
 """config.yaml / gateway.json → ``GatewayConfig.from_dict`` schema (the ``load_gateway_config`` phases).
 
 Precedence for top-level keys: key-presence at the TOP LEVEL of config.yaml wins; the nested
-``gateway.<key>`` form (what ``hermes config set gateway.<key>`` produces) is consulted only when the
+``gateway.<key>`` form (what ``ettok config set gateway.<key>`` produces) is consulted only when the
 top-level key is absent — not merely falsy/mistyped — so a present-but-empty top-level value is never
 silently replaced by the nested one. Both overwrite whatever legacy gateway.json set.
 """
@@ -36,7 +36,7 @@ def load_legacy_gateway_json(home: Path) -> Any:
 
 # --- top-level key bridging ----------------------------------------------------
 #
-# Top-level settings are also accepted nested under ``gateway:`` (what ``hermes config set
+# Top-level settings are also accepted nested under ``gateway:`` (what ``ettok config set
 # gateway.<key>`` produces). This loader builds gw_data FLAT and never forwards the yaml ``gateway:``
 # section, so even keys GatewayConfig.from_dict can fall back on itself (loop_watchdog*,
 # multiplex_profiles, ...) must be bridged here or they are silently ignored on real startup.

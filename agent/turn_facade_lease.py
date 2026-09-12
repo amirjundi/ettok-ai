@@ -263,10 +263,10 @@ def admit_durable_turn_lease(
         nonlocal waited
         waited = True
         agent._emit_status(
-            "⏳ Another Hermes process is using this session; "
+            "⏳ Another Ettok process is using this session; "
             "waiting for it to finish before starting your turn..."
             if elapsed < 1.0 else
-            f"⏳ Still waiting for the other Hermes process on this session ({int(elapsed)}s)..."
+            f"⏳ Still waiting for the other Ettok process on this session ({int(elapsed)}s)..."
         )
 
     if not db.acquire_session_turn_lease(
@@ -308,7 +308,7 @@ def _lease_not_acquired_result(agent, session_id: str, conversation_history) -> 
         logger.info("session turn lease wait aborted by interrupt: %s", session_id)
         result = {
             "final_response": (
-                "Stopped waiting for another Hermes process on this session. "
+                "Stopped waiting for another Ettok process on this session. "
                 "Your message was not processed."
             ),
             **base,
@@ -326,7 +326,7 @@ def _lease_not_acquired_result(agent, session_id: str, conversation_history) -> 
         return result
     # Fail closed like gateway TurnLeaseTimeoutError: surface a resend notice, not a bare TimeoutError.
     timeout_msg = (
-        "⏳ Another Hermes process kept this session busy too long. Your message was not "
+        "⏳ Another Ettok process kept this session busy too long. Your message was not "
         "processed - wait for the other process to finish, then send it again."
     )
     logger.error("session turn lease wait timed out for %s", session_id)

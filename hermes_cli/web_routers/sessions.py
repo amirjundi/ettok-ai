@@ -69,7 +69,7 @@ _PRUNE_ROW_KEYS = ("id", "source", "title", "model", "started_at", "last_active"
 
 
 def _prune_sessions(body: SessionPrune):
-    """Delete ended sessions matching filters (mirrors `hermes sessions prune`)."""
+    """Delete ended sessions matching filters (mirrors `ettok sessions prune`)."""
     from hermes_cli.config import get_hermes_home
     has_window = body.started_before is not None or body.started_after is not None
     if body.older_than_days is not None and body.older_than_days < 1 and not has_window:
@@ -156,7 +156,7 @@ def _resolve_session_id(db, session_id: str) -> Optional[str]:
             detail=(
                 "Session store is corrupt (database disk image is malformed). "
                 "Sessions cannot be read until it is repaired — run "
-                "`hermes doctor` for diagnosis."),
+                "`ettok doctor` for diagnosis."),
         ) from exc
 
 
@@ -456,7 +456,7 @@ async def delete_empty_sessions_endpoint(profile: Optional[str] = None):
 
 @manage_router.get("/api/sessions/stats")
 async def get_session_stats(profile: Optional[str] = None):
-    """Session-store statistics (mirrors `hermes sessions stats`)."""
+    """Session-store statistics (mirrors `ettok sessions stats`)."""
     def _stats(db):
         out = {
             "total": db.session_count(include_archived=True),

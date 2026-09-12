@@ -3,8 +3,8 @@
 Node ids (from ``agent.learning_graph``): skills → the skill name; memories →
 ``memory:<source>:<index>`` (``source`` = ``memory`` for MEMORY.md / ``profile``
 for USER.md; ``index`` = position in the combined card list, MEMORY.md first).
-Shared by CLI ``hermes journey``, the TUI ``/journey`` overlay and the desktop.
-Deleting a skill *archives* it (``hermes curator restore`` recovers it);
+Shared by CLI ``ettok journey``, the TUI ``/journey`` overlay and the desktop.
+Deleting a skill *archives* it (``ettok curator restore`` recovers it);
 deleting a memory rewrites its file.
 """
 
@@ -117,11 +117,11 @@ def _delete_skill(name: str) -> dict[str, Any]:
     # ``_pinned_guard`` (which only blocks deletion) precisely because there is no user in the loop to
     # consent to an edit here.
     if skill_usage.get_record(name).get("pinned"):
-        return {"ok": False, "message": f"'{name}' is pinned — unpin it first (hermes curator unpin {name})"}
+        return {"ok": False, "message": f"'{name}' is pinned — unpin it first (ettok curator unpin {name})"}
     ok, message = skill_usage.archive_skill(name)
     if ok:
         _clear_skill_cache()
-    return {"ok": ok, "message": f"archived '{name}' — restore with: hermes curator restore {name}" if ok else message}
+    return {"ok": ok, "message": f"archived '{name}' — restore with: ettok curator restore {name}" if ok else message}
 
 
 def _delete_memory(node_id: str) -> dict[str, Any]:

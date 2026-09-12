@@ -85,8 +85,8 @@ _SCHEMA_OVERRIDES: Dict[str, Dict[str, Any]] = {
     "proxy.enabled": {
         "type": "boolean",
         "description": (
-            "Docker-only egress credential firewall. Requires `hermes egress setup` "
-            "and `hermes egress start`; Modal/SSH/Daytona are not wired yet."
+            "Docker-only egress credential firewall. Requires `ettok egress setup` "
+            "and `ettok egress start`; Modal/SSH/Daytona are not wired yet."
         ),
         "category": "security",
     },
@@ -132,7 +132,7 @@ _SCHEMA_OVERRIDES: Dict[str, Dict[str, Any]] = {
         "", "minimal", "low", "medium", "high", "xhigh", "max", "ultra",
     ),
     "updates.non_interactive_local_changes": _select(
-        "When the chat app / gateway updates Hermes (no terminal prompt), "
+        "When the chat app / gateway updates Ettok (no terminal prompt), "
         "what to do with uncommitted local source edits. 'stash' keeps them "
         "and re-applies them after the update; 'discard' throws them away. "
         "Terminal updates always ask, regardless of this setting.",
@@ -141,7 +141,7 @@ _SCHEMA_OVERRIDES: Dict[str, Dict[str, Any]] = {
     "updates.refresh_cua_driver": {
         "type": "boolean",
         "description": (
-            "Refresh an already-installed cua-driver during hermes update. "
+            "Refresh an already-installed cua-driver during ettok update. "
             "Disable this on non-admin macOS accounts where /Applications is "
             "not writable."
         ),
@@ -379,7 +379,7 @@ def _normalize_main_model_assignment(provider: str, model: str) -> tuple[str, st
     ``provider: anthropic`` + ``default: anthropic/claude-opus-4.6`` — an aggregator slug on
     the native provider, which 400s. Two repairs at this single chokepoint:
 
-    1. Vendor-name → Hermes-provider: when the provider is not a known provider/alias but the
+    1. Vendor-name → Ettok-provider: when the provider is not a known provider/alias but the
        model is a vendor-prefixed slug, keep the user's CURRENT aggregator if on one, else
        openrouter. User-declared ``providers:``/``custom_providers:`` entries resolve first,
        and durable named-custom slugs (``custom`` / ``custom:<name>``) are excluded —
@@ -513,8 +513,8 @@ _AUX_TASK_SLOTS: Tuple[str, ...] = (
 def _dashboard_code_skew_guard() -> Optional[str]:
     """Return a "restart required" message when this process runs stale code, else None.
 
-    Long-lived dashboard / Desktop-owned ``hermes serve`` processes freeze ``sys.modules``
-    at boot; after ``hermes update`` replaces the checkout, a first-time lazy import can
+    Long-lived dashboard / Desktop-owned ``ettok serve`` processes freeze ``sys.modules``
+    at boot; after ``ettok update`` replaces the checkout, a first-time lazy import can
     resolve a fresh consumer module against a stale cached dependency -> ImportError.
     Mirrors the gateway's ``_model_switch_skew_guard``: refuse the risky call with an
     actionable message. Never a false positive (non-git installs return None).
@@ -537,7 +537,7 @@ def _dashboard_code_skew_guard() -> Optional[str]:
 
 def _dashboard_skew_restart_hint() -> str:
     """Restart advice matching how this process is owned — the same app backs the browser
-    dashboard and Desktop-owned ``hermes serve``; naming a systemd unit would mislead
+    dashboard and Desktop-owned ``ettok serve``; naming a systemd unit would mislead
     macOS/launchd hosts and Desktop SSH backends.
 
     See #97046.
@@ -594,7 +594,7 @@ def _apply_nous_gateway_defaults(cfg: dict) -> list:
 
 def _register_custom_endpoint(base_url: str, api_key: str, model: str) -> None:
     """Register a named ``custom_providers`` entry for a custom/local endpoint (mirrors the
-    ``hermes model`` custom flow) so the picker gets a proper ready row instead of a "needs
+    ``ettok model`` custom flow) so the picker gets a proper ready row instead of a "needs
     setup" dead-end. Dedups by base_url; never blocks the already-persisted assignment."""
     try:
         from hermes_cli.main_provider_setup import _auto_provider_name, _save_custom_provider

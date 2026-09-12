@@ -1,4 +1,4 @@
-"""Interactive picker for ``hermes sessions browse``: curses UI with live search filtering and ``d``
+"""Interactive picker for ``ettok sessions browse``: curses UI with live search filtering and ``d``
 delete-with-confirmation; numbered-list fallback when curses is unavailable (Windows, etc.)."""
 
 from typing import Optional

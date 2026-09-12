@@ -3,7 +3,7 @@
 ``validate_media_delivery_path`` reads ``HERMES_MEDIA_DELIVERY_STRICT`` (gateway.strict),
 ``HERMES_MEDIA_ALLOW_DIRS`` (gateway.media_delivery_allow_dirs) and
 ``HERMES_MEDIA_TRUST_RECENT_FILES`` (gateway.trust_recent_files).  Every delivery
-entrypoint (gateway startup, ``hermes cron run``, ``hermes send``) calls
+entrypoint (gateway startup, ``ettok cron run``, ``ettok send``) calls
 :func:`apply_media_policy_env` first so standalone paths filter under the gateway's
 policy instead of silently dropping attachments in strict/allowlisted deployments.
 An explicitly-set env var WINS over config.yaml, so shell overrides survive.

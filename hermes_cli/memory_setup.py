@@ -1,4 +1,4 @@
-"""hermes memory setup|status — configure memory provider plugins."""
+"""ettok memory setup|status — configure memory provider plugins."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def _provider_pip_dependencies(provider_name: str, declared: list) -> list:
     at setup time that the manifest can't express.
 
     Hindsight's ``local_embedded`` mode installs ``hindsight-all`` (daemon + embedder + client) during
-    ``hermes memory setup`` — if the update-time refresh only reinstalled the declared ``hindsight-client``,
+    ``ettok memory setup`` — if the update-time refresh only reinstalled the declared ``hindsight-client``,
     the embedded daemon would stay broken after a venv rebuild stripped ``hindsight-embed`` (#70636).
     """
     deps = list(declared or [])
@@ -86,11 +86,11 @@ def _install_dependencies(provider_name: str, *, force: bool = False) -> None:
     """Install pip dependencies declared in ``plugin.yaml``.
 
     With ``force`` every declared dependency goes to the installer even if it imports (the resolver
-    no-ops when nothing drifted) — how ``hermes update`` heals a provider after a venv rebuild.
+    no-ops when nothing drifted) — how ``ettok update`` heals a provider after a venv rebuild.
 
     When ``force`` is true, every declared dependency is handed to the installer even if its import
     currently succeeds — the resolver then reinstalls anything missing or version-drifted and no-ops on
-    satisfied ranges. This is how ``hermes update`` heals the active memory provider after a venv
+    satisfied ranges. This is how ``ettok update`` heals the active memory provider after a venv
     rebuild/sync removed or downgraded its bridge packages (#53272, #70636).
     """
     import subprocess
@@ -221,7 +221,7 @@ def cmd_setup_provider(provider_name: str) -> None:
     match = _find_provider(_get_available_providers(), provider_name)
     if not match:
         print(f"\n  Memory provider '{provider_name}' not found.")
-        print("  Run 'hermes memory setup' to see available providers.\n")
+        print("  Run 'ettok memory setup' to see available providers.\n")
         return
     name, _, provider = match
 

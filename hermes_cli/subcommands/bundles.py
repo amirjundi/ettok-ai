@@ -1,4 +1,4 @@
-"""``hermes bundles`` subcommand parser."""
+"""``ettok bundles`` subcommand parser."""
 
 from __future__ import annotations
 

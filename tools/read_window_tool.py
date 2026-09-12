@@ -13,7 +13,7 @@ from tools.registry import registry
 
 
 def read_window_below_tool(callback: Optional[Callable] = None) -> str:
-    """Return the window underneath the Hermes window as a JSON string."""
+    """Return the window underneath the Ettok window as a JSON string."""
     return read_pane(callback, (), (
         "read_window_below is only available in the Hermes desktop app.",
         "",

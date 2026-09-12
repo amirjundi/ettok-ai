@@ -68,7 +68,7 @@ def reset_credential_cache() -> None:
 
 @dataclass(frozen=True)
 class EntraIdentityConfig:
-    """Hermes-managed Entra knobs; everything else (tenant, SP secret, federated token file, authority...) flows
+    """Ettok-managed Entra knobs; everything else (tenant, SP secret, federated token file, authority...) flows
     through azure-identity's standard ``AZURE_*`` env vars. ``exclude_interactive_browser`` keeps probes
     non-interactive (the setup wizard never writes it). Frozen: hashable for ``lru_cache``, picklable for workers."""
 
@@ -93,7 +93,7 @@ class EntraIdentityConfig:
 @functools.lru_cache(maxsize=1)
 def build_credential(config: EntraIdentityConfig) -> Any:
     """Cached ``DefaultAzureCredential``. ``maxsize=1`` is intentional: a process uses one ``model.entra.*``
-    block at a time. Only Hermes knobs are passed as kwargs; the rest comes from ``AZURE_*`` env vars."""
+    block at a time. Only Ettok knobs are passed as kwargs; the rest comes from ``AZURE_*`` env vars."""
     ai = _require_azure_identity()
     # SDK default already excludes the browser; only pass the kwarg when opting in.
     kwargs = {} if config.exclude_interactive_browser else {"exclude_interactive_browser_credential": False}
@@ -267,7 +267,7 @@ def build_bearer_http_client(token_provider: Callable[[], str], **httpx_kwargs: 
             # WARNING so the misconfiguration is visible at default levels.
             logger.warning("Bearer hook: Entra ID token provider returned empty (%s) "
                            "— stripping Authorization headers. Azure will respond 401. "
-                           "Run `hermes doctor` or `az login` to recover.", exc)
+                           "Run `ettok doctor` or `az login` to recover.", exc)
             _strip_auth_headers(request)
             return
         _strip_auth_headers(request)

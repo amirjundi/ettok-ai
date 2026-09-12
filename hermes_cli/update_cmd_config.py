@@ -1,4 +1,4 @@
-"""Post-``hermes update`` config-schema migration for the active profile and every sibling.
+"""Post-``ettok update`` config-schema migration for the active profile and every sibling.
 Names are re-imported by ``update_cmd`` (``hermes_cli.update_cmd.<name>`` resolves/monkeypatches);
 origin helpers are imported lazily."""
 
@@ -53,7 +53,7 @@ def _migrate_sibling_profile_configs() -> list[tuple[str, int, int]]:
     own session. Returns ``[(name, from_version, to_version), ...]``; never raises.
 
     91277 Phase 2 (fleet-wide config migration; #20438/#54926/#79048): the shared checkout serves every
-    profile, but ``hermes update`` historically migrated only the active profile's config — siblings drifted
+    profile, but ``ettok update`` historically migrated only the active profile's config — siblings drifted
     versions until their gateway hit a config the new code couldn't read.
     """
     from hermes_cli.update_cmd import _run_config_check_fresh, _run_migrate_config_fresh
@@ -155,7 +155,7 @@ def _ask_configure_new_options(*, assume_yes: bool, gateway_mode: bool) -> str:
         # Non-UTF-8 locales / embedded terminals can make input() raise this.
         print(
             "  ⚠ Could not read input (encoding issue). Skipping. "
-            "Run 'hermes config migrate' manually to configure.")
+            "Run 'ettok config migrate' manually to configure.")
         return "n"
 
 
@@ -185,7 +185,7 @@ def _check_and_apply_config_migration(
     except Exception as exc:
         logger.debug("Config check during update failed: %s", exc)
         print("  ⚠️  Could not check config version.")
-        print("     Run 'hermes config migrate' to check manually.")
+        print("     Run 'ettok config migrate' to check manually.")
         return
 
     has_new_options = bool(missing_env or missing_config)
@@ -210,7 +210,7 @@ def _check_and_apply_config_migration(
                 print(f"  ⚠️  {_warn}")
         except Exception as _mig_err:
             print(f"  ⚠️  Config format update failed: {_mig_err}")
-            print("     Run 'hermes config migrate' to retry.")
+            print("     Run 'ettok config migrate' to retry.")
     elif needs_migration:
         print()
         # Show WHAT changed, not just a count, for an informed yes/no.
@@ -233,10 +233,10 @@ def _check_and_apply_config_migration(
                 print()
                 print("✓ Configuration updated!")
             if unattended and missing_env:
-                print("  ℹ API keys require manual entry: hermes config migrate")
+                print("  ℹ API keys require manual entry: ettok config migrate")
         else:
             print()
-            print("Skipped. Run 'hermes config migrate' later to configure.")
+            print("Skipped. Run 'ettok config migrate' later to configure.")
     else:
         print("  ✓ Configuration is up to date")
 

@@ -1,6 +1,6 @@
-"""hermes fallback — manage the fallback provider chain (tried in order when the primary fails).
+"""ettok fallback — manage the fallback provider chain (tried in order when the primary fails).
 
-Subcommands: ``list`` (default), ``add`` (same picker as `hermes model`), ``remove``, ``clear``.
+Subcommands: ``list`` (default), ``add`` (same picker as `ettok model`), ``remove``, ``clear``.
 """
 from __future__ import annotations
 
@@ -128,7 +128,7 @@ def cmd_fallback_list(args) -> None:  # noqa: ARG001
     """Print the current fallback chain."""
     config, chain = _load_chain("  No fallback providers configured.")
     if chain is None:
-        print("  Add one with:  hermes fallback add\n")
+        print("  Add one with:  ettok fallback add\n")
         return
     print()
     if primary := _describe_primary(config):
@@ -139,7 +139,7 @@ def cmd_fallback_list(args) -> None:  # noqa: ARG001
 
 
 def cmd_fallback_add(args) -> None:
-    """Launch the same picker as `hermes model`, then append the selection to the chain."""
+    """Launch the same picker as `ettok model`, then append the selection to the chain."""
     from hermes_cli.main import _require_tty, select_provider_and_model
     from hermes_cli.config import load_config, save_config
     _require_tty("fallback add")
@@ -148,7 +148,7 @@ def cmd_fallback_add(args) -> None:
     model_before = copy.deepcopy(load_config().get("model"))
     active_provider_before = _snapshot_auth_active_provider()
     print("\n  Adding a fallback provider.  The picker below is the same one used by\n"
-          "  `hermes model` — select the provider + model you want as a fallback.\n")
+          "  `ettok model` — select the provider + model you want as a fallback.\n")
 
     try:
         select_provider_and_model(args=args)
@@ -191,7 +191,7 @@ def cmd_fallback_add(args) -> None:
     save_config(final_cfg)
     print(f"\n  Added fallback: {_format_entry(new_entry)}")
     print(f"  Chain is now {_entries(len(chain))} long.\n")
-    print("  Run `hermes fallback list` to view, or `hermes fallback remove` to delete.")
+    print("  Run `ettok fallback list` to view, or `ettok fallback remove` to delete.")
 
 
 def cmd_fallback_remove(args) -> None:  # noqa: ARG001
@@ -236,7 +236,7 @@ def cmd_fallback_clear(args) -> None:  # noqa: ARG001
 
 
 def cmd_fallback(args) -> None:
-    """Top-level dispatcher for ``hermes fallback [subcommand]``."""
+    """Top-level dispatcher for ``ettok fallback [subcommand]``."""
     sub = getattr(args, "fallback_command", None)
     handler = _SUBCOMMANDS.get(sub)
     if handler is None:

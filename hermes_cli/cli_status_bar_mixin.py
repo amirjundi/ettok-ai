@@ -621,7 +621,7 @@ class CLIStatusBarMixin:
         self._pet_kitty_image_id = 0
 
     def _pet_resolve_config(self) -> None:
-        """(Re)resolve the active pet from config so ``/pet`` / ``hermes pets`` changes apply
+        """(Re)resolve the active pet from config so ``/pet`` / ``ettok pets`` changes apply
         without a restart (mirrors the TUI's steady poll). Fail-open: any problem disables."""
         try:
             from agent.pet import constants, store
@@ -1084,7 +1084,7 @@ class CLIStatusBarMixin:
                 text = (" · " if width < 76 else " │ ").join(parts)
             return self._right_align_status_title(text, session_title, width)
         except Exception:
-            return f"⚕ {self.model if getattr(self, 'model', None) else 'Hermes'}"
+            return f"⚕ {self.model if getattr(self, 'model', None) else 'Ettok'}"
 
     def _get_status_bar_fragments(self):
         if (

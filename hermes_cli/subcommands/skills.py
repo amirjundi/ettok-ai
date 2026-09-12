@@ -1,4 +1,4 @@
-"""``hermes skills`` subcommand parser."""
+"""``ettok skills`` subcommand parser."""
 
 from __future__ import annotations
 
@@ -94,7 +94,7 @@ def build_skills_parser(subparsers, *, cmd_skills: Callable) -> None:
     skills_reset = skills_subparsers.add_parser("reset",
         help="Reset a bundled skill — clears 'user-modified' tracking so updates work again",
         description="Clear a bundled skill's entry from the sync manifest (~/.hermes/skills/.bundled_manifest) "
-            "so future 'hermes update' runs stop marking it as user-modified. Pass --restore to also "
+            "so future 'ettok update' runs stop marking it as user-modified. Pass --restore to also "
             "replace the current copy with the bundled version.")
     skills_reset.add_argument("name", help="Skill name to reset (e.g. google-workspace)")
     _flag(skills_reset, "--restore",
@@ -102,10 +102,10 @@ def build_skills_parser(subparsers, *, cmd_skills: Callable) -> None:
     add_yes_flag(skills_reset, "Skip confirmation prompt when using --restore")
 
     skills_list_modified = skills_subparsers.add_parser(
-        "list-modified", help="List bundled skills you've edited (which `hermes update` keeps)",
+        "list-modified", help="List bundled skills you've edited (which `ettok update` keeps)",
         description="Show the bundled skills whose local copy differs from the version last "
-            "synced, i.e. the ones `hermes update` reports as user-modified and skips. "
-            "Use `hermes skills diff <name>` to see changes and `hermes skills reset "
+            "synced, i.e. the ones `ettok update` reports as user-modified and skips. "
+            "Use `ettok skills diff <name>` to see changes and `ettok skills reset "
             "<name>` to resume updates.")
     add_json_flag(skills_list_modified, "Output the list as JSON")
 
@@ -113,13 +113,13 @@ def build_skills_parser(subparsers, *, cmd_skills: Callable) -> None:
         "diff", help="Show how your copy of a bundled skill differs from the stock version",
         description="Print a unified diff between your local copy of a bundled skill and the "
             "current bundled (stock) version, so you can confirm what changed before "
-            "running `hermes skills reset`.")
+            "running `ettok skills reset`.")
     skills_diff.add_argument("name", help="Skill name to diff (e.g. google-workspace)")
 
     skills_opt_out = skills_subparsers.add_parser(
         "opt-out", help="Stop bundled skills from being seeded into this profile",
         description="Write the .no-bundled-skills marker so the installer, "
-            "`hermes update`, and any direct sync stop seeding bundled skills "
+            "`ettok update`, and any direct sync stop seeding bundled skills "
             "into the active profile. By default nothing already on disk is "
             "touched. Pass --remove to ALSO delete bundled skills that are "
             "unmodified (user-edited and hub/local skills are never removed).")
@@ -129,7 +129,7 @@ def build_skills_parser(subparsers, *, cmd_skills: Callable) -> None:
     skills_opt_in = skills_subparsers.add_parser(
         "opt-in", help="Re-enable bundled-skill seeding (undo opt-out)",
         description="Remove the .no-bundled-skills marker so bundled skills are seeded "
-            "again on the next `hermes update`. Pass --sync to re-seed now.")
+            "again on the next `ettok update`. Pass --sync to re-seed now.")
     _flag(skills_opt_in, "--sync",
         help="Re-seed bundled skills immediately instead of waiting for update")
 
