@@ -271,6 +271,116 @@ def _gateway_headers() -> dict:
     return {'Authorization': f'Bearer {key}'} if key else {}
 
 
+_autostart_attempted = False
+
+
+def _ensure_chat_backend() -> dict:
+    """Configure the api_server platform and start the gateway if it is not up.
+
+    "The dashboard is running, so the chat should work" is a reasonable thing to
+    expect, and it was not true: the tab needs a second process, configured in a
+    third place, and told you none of that beyond "not running". Two machines and
+    several rounds of the same error later, the honest conclusion is that the
+    setup step was the bug.
+
+    Attempted once per dashboard process. Idempotent: an already-running gateway
+    is left alone, and configuration only fills what is empty, so an operator who
+    chose a port or a key keeps them.
+
+    This is convenience, not supervision. A gateway started here dies with the
+    dashboard, which is why setup also offers `ettok gateway install` -- that is
+    what makes the agent work in the background with no dashboard at all.
+    """
+    global _autostart_attempted
+    if _autostart_attempted:
+        return {'attempted': False, 'reason': 'already attempted this process'}
+    _autostart_attempted = True
+
+    if _gateway_is_up():
+        return {'attempted': False, 'reason': 'gateway already running'}
+
+    configured, detail = _configure_api_server()
+    if not configured:
+        log.warning('ettok: could not configure the chat gateway: %s', detail)
+        return {'attempted': False, 'reason': detail}
+
+    started = _spawn_gateway()
+    log.info('ettok: chat gateway %s', 'started' if started else 'could not be started')
+    return {'attempted': True, 'configured': detail, 'started': started}
+
+
+def _gateway_is_up() -> bool:
+    import httpx
+
+    try:
+        with httpx.Client(timeout=2.0) as client:
+            response = client.get(f'{_gateway_url()}/v1/models', headers=_gateway_headers())
+        # 401 still means something is listening and serving the API; the key is
+        # a separate problem and starting a second gateway would not fix it.
+        return response.status_code < 500
+    except Exception:                                 # noqa: BLE001
+        return False
+
+
+def _configure_api_server() -> tuple:
+    """Enable the platform the chat proxies to, and give it a key."""
+    import secrets
+
+    try:
+        from hermes_cli import config as hermes_config
+        cfg = hermes_config.load_config() or {}
+        gateway_cfg = cfg.setdefault('gateway', {})
+        if not isinstance(gateway_cfg, dict):
+            return False, 'gateway config is not a mapping'
+        platforms = gateway_cfg.setdefault('platforms', {})
+        if not isinstance(platforms, dict):
+            return False, 'gateway.platforms is not a mapping'
+
+        api = platforms.setdefault('api_server', {})
+        api['enabled'] = True
+        api.setdefault('port', 8642)
+        api.setdefault('host', '127.0.0.1')
+        hermes_config.save_config(cfg)
+
+        from plugins.ettok.setup_wizard import _ensure_api_server_key
+        _ensure_api_server_key(secrets.token_urlsafe(32))
+        return True, f'api_server on port {api.get("port")}'
+    except Exception as exc:                          # noqa: BLE001
+        return False, f'{type(exc).__name__}: {exc}'
+
+
+def _spawn_gateway() -> bool:
+    """Start the gateway detached, so it outlives the request that started it.
+
+    Not a supervised service: this dies with the dashboard. `ettok gateway
+    install` is the durable form and setup offers it.
+    """
+    import subprocess
+    import sys
+
+    try:
+        kwargs = {'stdin': subprocess.DEVNULL,
+                  'stdout': subprocess.DEVNULL,
+                  'stderr': subprocess.DEVNULL}
+        if sys.platform == 'win32':
+            # Detached, and without a console window appearing over the user's
+            # browser.
+            kwargs['creationflags'] = (
+                getattr(subprocess, 'DETACHED_PROCESS', 0)
+                | getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+            )
+        else:
+            kwargs['start_new_session'] = True
+
+        subprocess.Popen(
+            [sys.executable, '-m', 'hermes_cli.main', 'gateway', 'run'], **kwargs,
+        )
+        return True
+    except Exception:                                 # noqa: BLE001
+        log.warning('ettok: could not spawn the chat gateway', exc_info=True)
+        return False
+
+
 def _api_server_configured() -> bool:
     """Whether the gateway has an api_server platform to serve at all.
 
@@ -310,6 +420,12 @@ def chat_health() -> dict:
     import httpx
 
     url = _gateway_url()
+
+    # Opening the chat tab is what starts the backend. Doing it here rather than
+    # at plugin load keeps it off the path of operators who never open chat, and
+    # means the page that needs it is the page that asks for it.
+    _ensure_chat_backend()
+
     try:
         with httpx.Client(timeout=3.0) as client:
             response = client.get(f'{url}/v1/models', headers=_gateway_headers())

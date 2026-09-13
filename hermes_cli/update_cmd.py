@@ -372,8 +372,13 @@ def _format_concurrent_instances_message(matches: list[tuple[int, str]], scripts
         f"  Updating now would fail to overwrite {shim} because",
         "  Windows blocks REPLACE on a running executable.",
         "",
-        "  Close Hermes Desktop, exit any open `hermes` REPLs, and",
-        "  stop the gateway (`ettok gateway stop`) before retrying.",
+        "  Close the dashboard if it is open -- clicking Update inside it is",
+        "  the commonest way to reach this, and its own process is the one",
+        "  holding the venv. Then close Ettok Desktop, exit any open `ettok`",
+        "  REPLs, and stop the background services:",
+        "",
+        "      ettok serve --stop",
+        "      ettok gateway stop",
         ""]
     if matches:
         pid_args = " ".join(f"/PID {pid}" for pid, _ in matches)
