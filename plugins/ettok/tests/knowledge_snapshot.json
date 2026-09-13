@@ -937,24 +937,6 @@
       "case_id": null
     },
     {
-      "id": 52,
-      "term": "غجر الفرس",
-      "language": "ar",
-      "category": "slur",
-      "target_group": "Kurdish",
-      "target_group_slug": "kurdish",
-      "severity_weight": 7,
-      "is_regex": false,
-      "is_explicit": true,
-      "never_flag_when": [
-        "news_quotation",
-        "academic",
-        "counter_speech"
-      ],
-      "variants": [],
-      "case_id": null
-    },
-    {
       "id": 53,
       "term": "اثيوبيين",
       "language": "ar",
@@ -1283,96 +1265,6 @@
       "case_id": null
     },
     {
-      "id": 71,
-      "term": "الاكراد المحتلين",
-      "language": "ar",
-      "category": "slur",
-      "target_group": "Kurdish",
-      "target_group_slug": "kurdish",
-      "severity_weight": 7,
-      "is_regex": false,
-      "is_explicit": true,
-      "never_flag_when": [
-        "news_quotation",
-        "academic",
-        "counter_speech"
-      ],
-      "variants": [],
-      "case_id": null
-    },
-    {
-      "id": 72,
-      "term": "المحتلين الكورد",
-      "language": "ar",
-      "category": "slur",
-      "target_group": "Kurdish",
-      "target_group_slug": "kurdish",
-      "severity_weight": 7,
-      "is_regex": false,
-      "is_explicit": true,
-      "never_flag_when": [
-        "news_quotation",
-        "academic",
-        "counter_speech"
-      ],
-      "variants": [],
-      "case_id": null
-    },
-    {
-      "id": 73,
-      "term": "قوم من الجن",
-      "language": "ar",
-      "category": "dehumanization",
-      "target_group": "Kurdish",
-      "target_group_slug": "kurdish",
-      "severity_weight": 7,
-      "is_regex": false,
-      "is_explicit": true,
-      "never_flag_when": [
-        "news_quotation",
-        "academic",
-        "counter_speech"
-      ],
-      "variants": [],
-      "case_id": null
-    },
-    {
-      "id": 74,
-      "term": "الكورد معتدون على الاقليات",
-      "language": "ar",
-      "category": "slur",
-      "target_group": "Kurdish",
-      "target_group_slug": "kurdish",
-      "severity_weight": 5,
-      "is_regex": false,
-      "is_explicit": true,
-      "never_flag_when": [
-        "news_quotation",
-        "academic",
-        "counter_speech"
-      ],
-      "variants": [],
-      "case_id": null
-    },
-    {
-      "id": 75,
-      "term": "العرب عدونا",
-      "language": "ar",
-      "category": "slur",
-      "target_group": "Arab",
-      "target_group_slug": "",
-      "severity_weight": 6,
-      "is_regex": false,
-      "is_explicit": true,
-      "never_flag_when": [
-        "news_quotation",
-        "academic",
-        "counter_speech"
-      ],
-      "variants": [],
-      "case_id": null
-    },
-    {
       "id": 76,
       "term": "عبدة الأصنام",
       "language": "ar",
@@ -1530,10 +1422,7 @@
         "الإيزيديين",
         "اليزيديين",
         "لالش",
-        "ئێزیدیەکان",
-        "كردي",
-        "كوردي",
-        "كردستان"
+        "ئێزیدیەکان"
       ],
       "surface_forms": [
         "انت كردي مو يزيدي",
@@ -1925,27 +1814,6 @@
       "target_groups": [],
       "requires_target_group": true,
       "activation_topics": [
-        "الايزيدية",
-        "الإيزيدية",
-        "ايزيدي",
-        "إيزيدي",
-        "اليزيديين",
-        "الإيزيديين",
-        "الايزيديين",
-        "يزيدي",
-        "ئێزیدی",
-        "ئێزیدیەکان",
-        "سنجار",
-        "شنگال",
-        "شنكال",
-        "لالش",
-        "بعشيقة",
-        "بحزاني",
-        "الشيخان",
-        "سنوني",
-        "كوجو",
-        "ملك طاووس",
-        "مصحفى رش",
         "المسيحيين",
         "المسيحية",
         "مسيحي",
@@ -1972,84 +1840,27 @@
         "ألقوش",
         "القوش",
         "مار بنيامين",
-        "الشبكية",
-        "الشبكيين",
-        "شبكي",
-        "الشبكي",
-        "الشبك في",
-        "ابناء الشبك",
-        "بازوايا",
-        "برطلة",
-        "سهل نينوى",
-        "الكاكائية",
-        "الكاكائيين",
-        "كاكائي",
-        "كاكه يي",
-        "كاكەیی",
-        "اليارسان",
-        "يارسان",
-        "أهل الحق",
-        "اهل الحق",
-        "داقوق",
-        "قرة تبة",
-        "كفري",
-        "الصابئة",
-        "الصابئه",
-        "الصابئيين",
-        "صابئي",
-        "صابئة",
-        "المندائيين",
-        "المندائية",
-        "مندائي",
-        "المندائيون",
-        "المندي",
-        "التركمان",
-        "التركمانية",
-        "التركمانيين",
-        "تركماني",
-        "تورکمان",
-        "تلعفر",
-        "طوزخورماتو",
-        "طوز خورماتو",
-        "آمرلي",
-        "اميرلي",
-        "بشير",
-        "كركوك",
-        "الفيليين",
-        "الفيلية",
-        "الفيليون",
-        "كرد فيلي",
-        "كورد فيلي",
-        "الكرد الفيليين",
-        "الكورد الفيليين",
-        "الأكراد الفيليين",
-        "بدرة",
-        "جصان",
-        "مندلي",
-        "زرباطية",
-        "خانقين",
-        "البهائية",
-        "البهائيين",
-        "البهائيون",
-        "بهائي",
-        "البهائي",
-        "بهاء الله",
-        "الكورد",
-        "الأكراد",
-        "الاكراد",
-        "كوردي",
-        "كردي",
-        "کورد",
-        "كوردستان",
-        "كردستان",
-        "کوردستان",
-        "البيشمركة",
-        "بيشمركة",
-        "اربيل",
-        "أربيل",
-        "هەولێر",
-        "السليمانية",
-        "دهوك"
+        "الايزيدية",
+        "ايزيدي",
+        "سنجار",
+        "شنگال",
+        "لالش",
+        "الإيزيدية",
+        "إيزيدي",
+        "اليزيديين",
+        "الإيزيديين",
+        "الايزيديين",
+        "يزيدي",
+        "ئێزیدی",
+        "ئێزیدیەکان",
+        "شنكال",
+        "بعشيقة",
+        "بحزاني",
+        "الشيخان",
+        "سنوني",
+        "كوجو",
+        "ملك طاووس",
+        "مصحفى رش"
       ],
       "surface_forms": [
         "قنبلة موقوتة"
@@ -2421,18 +2232,6 @@
       "name": "all communities",
       "target_groups": [
         {
-          "slug": "bahai",
-          "name_en": "Baha'i",
-          "topic_markers": [
-            "البهائية",
-            "البهائيين",
-            "البهائيون",
-            "بهائي",
-            "البهائي",
-            "بهاء الله"
-          ]
-        },
-        {
           "slug": "christian-iraqi",
           "name_en": "Iraqi Christians (Assyrian/Chaldean/Syriac)",
           "topic_markers": [
@@ -2462,108 +2261,6 @@
             "ألقوش",
             "القوش",
             "مار بنيامين"
-          ]
-        },
-        {
-          "slug": "faili-kurd",
-          "name_en": "Faili Kurds",
-          "topic_markers": [
-            "الفيليين",
-            "الفيلية",
-            "الفيليون",
-            "كرد فيلي",
-            "كورد فيلي",
-            "الكرد الفيليين",
-            "الكورد الفيليين",
-            "الأكراد الفيليين",
-            "بدرة",
-            "جصان",
-            "مندلي",
-            "زرباطية",
-            "خانقين"
-          ]
-        },
-        {
-          "slug": "kakai",
-          "name_en": "Kaka'i (Yarsan)",
-          "topic_markers": [
-            "الكاكائية",
-            "الكاكائيين",
-            "كاكائي",
-            "كاكه يي",
-            "كاكەیی",
-            "اليارسان",
-            "يارسان",
-            "أهل الحق",
-            "اهل الحق",
-            "داقوق",
-            "قرة تبة",
-            "كفري"
-          ]
-        },
-        {
-          "slug": "kurdish",
-          "name_en": "Kurds",
-          "topic_markers": [
-            "الكورد",
-            "الأكراد",
-            "الاكراد",
-            "كوردي",
-            "كردي",
-            "کورد",
-            "كوردستان",
-            "كردستان",
-            "کوردستان",
-            "البيشمركة",
-            "بيشمركة"
-          ]
-        },
-        {
-          "slug": "sabian-mandaean",
-          "name_en": "Sabian-Mandaean",
-          "topic_markers": [
-            "الصابئة",
-            "الصابئه",
-            "الصابئيين",
-            "صابئي",
-            "صابئة",
-            "المندائيين",
-            "المندائية",
-            "مندائي",
-            "المندائيون",
-            "المندي"
-          ]
-        },
-        {
-          "slug": "shabak",
-          "name_en": "Shabak",
-          "topic_markers": [
-            "الشبكية",
-            "الشبكيين",
-            "شبكي",
-            "الشبكي",
-            "الشبك في",
-            "ابناء الشبك",
-            "بازوايا",
-            "برطلة",
-            "سهل نينوى"
-          ]
-        },
-        {
-          "slug": "turkmen-iraqi",
-          "name_en": "Iraqi Turkmen",
-          "topic_markers": [
-            "التركمان",
-            "التركمانية",
-            "التركمانيين",
-            "تركماني",
-            "تورکمان",
-            "تلعفر",
-            "طوزخورماتو",
-            "طوز خورماتو",
-            "آمرلي",
-            "اميرلي",
-            "بشير"
           ]
         },
         {
@@ -2597,10 +2294,10 @@
     }
   ],
   "counts": {
-    "terms": 81,
+    "terms": 75,
     "tropes": 19,
-    "groups": 9,
-    "gated_groups": 9,
+    "groups": 2,
+    "gated_groups": 2,
     "real_cases": 2
   }
 }
