@@ -309,6 +309,30 @@ def _ensure_chat_backend() -> dict:
     return {'attempted': True, 'configured': detail, 'started': started}
 
 
+def _has_api_server_key() -> bool:
+    """Whether a usable key exists, from the secret scope or straight off disk.
+
+    Read from the file as a fallback because the key may have been written by
+    this very process, after the secret scope cached its answer.
+    """
+    try:
+        from agent.secret_scope import get_secret
+        if (get_secret('API_SERVER_KEY', '') or '').strip():
+            return True
+    except Exception:                                 # noqa: BLE001
+        pass
+    try:
+        from plugins.ettok.cli import _env_path
+        for line in _env_path().read_text(encoding='utf-8').splitlines():
+            if line.startswith('API_SERVER_KEY='):
+                # The startup guard rejects short or placeholder keys, so an
+                # empty or token value here is the same as having none.
+                return len(line.split('=', 1)[1].strip()) >= 16
+    except Exception:                                 # noqa: BLE001
+        pass
+    return False
+
+
 def _gateway_is_up() -> bool:
     import httpx
 
@@ -336,14 +360,22 @@ def _configure_api_server() -> tuple:
         if not isinstance(platforms, dict):
             return False, 'gateway.platforms is not a mapping'
 
+        # Key first, and no enabling at all if it cannot be written. Enabling
+        # the platform without a key is worse than leaving it alone: a missing
+        # key is a non-retryable startup conflict, so the gateway refuses to
+        # start entirely and the cron scheduler and messaging go down with it.
+        # That is exactly what this code did on a machine where the gateway had
+        # been running fine.
+        from plugins.ettok.setup_wizard import _ensure_api_server_key
+        _ensure_api_server_key(secrets.token_urlsafe(32))
+        if not _has_api_server_key():
+            return False, 'no API_SERVER_KEY could be written; leaving the gateway alone'
+
         api = platforms.setdefault('api_server', {})
         api['enabled'] = True
         api.setdefault('port', 8642)
         api.setdefault('host', '127.0.0.1')
         hermes_config.save_config(cfg)
-
-        from plugins.ettok.setup_wizard import _ensure_api_server_key
-        _ensure_api_server_key(secrets.token_urlsafe(32))
         return True, f'api_server on port {api.get("port")}'
     except Exception as exc:                          # noqa: BLE001
         return False, f'{type(exc).__name__}: {exc}'

@@ -455,19 +455,23 @@ def _ensure_chat_gateway() -> tuple:
         if not isinstance(platforms, dict):
             return False, 'gateway.platforms is not a mapping; set it by hand'
 
+        # The key is written BEFORE the platform is enabled, and the platform is
+        # not enabled at all if the key cannot be written. Enabling without a key
+        # is not a partial success: the api_server platform treats a missing key
+        # as a non-retryable startup conflict, so the gateway refuses to start
+        # and takes the cron scheduler and every messaging platform with it. A
+        # gateway that runs without chat is far better than one that will not run.
+        #
+        # Generated rather than asked for: it authenticates the dashboard to a
+        # server on the same machine, and nobody needs to see it or type it.
+        created_key = _ensure_api_server_key(secrets.token_urlsafe(32))
+
         api = platforms.setdefault('api_server', {})
         already = bool(api.get('enabled'))
         api['enabled'] = True
         api.setdefault('port', CHAT_GATEWAY_PORT)
         api.setdefault('host', '127.0.0.1')
         hermes_config.save_config(cfg)
-
-        # The gateway refuses to start without a key and 401s every request that
-        # does not carry one, so a missing key reads to the user as "the chat is
-        # broken" rather than "a key is missing". Generated rather than asked
-        # for: it authenticates the dashboard to a server on the same machine,
-        # and nobody needs to see it or type it.
-        created_key = _ensure_api_server_key(secrets.token_urlsafe(32))
 
         if already and not created_key:
             return True, 'already configured'
@@ -499,7 +503,10 @@ def _ensure_api_server_key(candidate: str) -> bool:
 
     path.parent.mkdir(parents=True, exist_ok=True)
     prefix = '' if (not existing or existing.endswith('\n')) else '\n'
-    with io.open(path, 'a', encoding='utf-8', newline='\n') as handle:
+    # Plain open() rather than io.open(): this module does not import io, and
+    # the NameError that caused was swallowed by the caller's except -- which
+    # left the API server enabled with no key and took the whole gateway down.
+    with open(path, 'a', encoding='utf-8', newline='\n') as handle:
         handle.write(f'{prefix}API_SERVER_KEY={candidate}\n')
     return True
 

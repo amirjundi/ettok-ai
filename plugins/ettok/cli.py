@@ -262,6 +262,21 @@ def _doctor(args) -> int:
                 key = (get_secret('API_SERVER_KEY', '') or '').strip()
             except Exception:                         # noqa: BLE001
                 key = ''
+
+            # Enabled with no key is not a degraded chat -- it is a dead
+            # gateway. The api_server platform treats a missing key as a
+            # non-retryable startup conflict, so the whole gateway exits and
+            # takes the cron scheduler and every messaging platform with it.
+            # Worth its own check because the symptom (nothing runs) looks
+            # nothing like the cause (one missing line in .env).
+            if len(key) < 16:
+                check('dashboard chat key', False,
+                      'api_server is enabled but API_SERVER_KEY is missing or too short')
+                print('        The gateway will refuse to start at all in this state, '
+                      'not just the chat. Run `ettok ettok setup` to write one, or '
+                      'disable api_server in config.yaml to get the gateway back.')
+            else:
+                check('dashboard chat key', True)
             headers = {'Authorization': f'Bearer {key}'} if key else {}
             host = api.get('host', '127.0.0.1')
             try:
