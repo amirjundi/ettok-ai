@@ -114,7 +114,7 @@ def run(args) -> int:
     from .platform.client import PlatformClient, PlatformError
     from .store import schema
 
-    total = 6
+    total = 7
     _say()
     _say('  Ettok AI — hate speech monitoring for minority communities in Iraq')
     _say('  This sets the agent up on this machine. It is safe to run again.')
@@ -231,8 +231,35 @@ def run(args) -> int:
         else:
             _say('  Left as-is. `ettok tools` changes it later.')
 
-    # -- 6. running by itself ----------------------------------------------
-    _step(6, total, 'Run unattended?')
+    # -- 6. the chat tab ----------------------------------------------------
+    _step(6, total, 'Make the dashboard chat work')
+    _say('  The chat tab talks to an API server that runs inside the gateway.')
+    _say('  Without it the tab loads and every message fails, which reads as a')
+    _say('  broken product rather than a missing service.')
+    _say()
+    ok, detail = _ensure_chat_gateway()
+    if ok:
+        _say(f'  Configured: {detail}.')
+        _say()
+        _say('  It still has to be running. Started by hand it stops when the')
+        _say('  terminal closes; installed as ' + _gateway_service_hint() + ' it')
+        _say('  comes back on its own after a reboot.')
+        _say()
+        if _confirm('Install the gateway so it starts automatically?', default=True):
+            if _install_gateway_service():
+                _say('  Installed. The chat tab works after the next login, and now.')
+            else:
+                _say('  Could not install it. Run `ettok gateway run` to start it')
+                _say('  by hand, or `ettok gateway install` to try again.')
+        else:
+            _say('  Skipped. Start it with `ettok gateway run` when you need chat.')
+    else:
+        _say(f'  Could not configure it -- {detail}.')
+        _say('  The rest of the agent is unaffected: collection, matching and')
+        _say('  reporting do not go through the gateway.')
+
+    # -- 7. running by itself ----------------------------------------------
+    _step(7, total, 'Run unattended?')
     _say('  A scheduled run survives reboots and a closed laptop, which an')
     _say('  in-process timer does not.')
     _say()
@@ -256,6 +283,34 @@ def run(args) -> int:
     _say(DIVIDER)
     _say()
     return 0
+
+
+def _install_gateway_service() -> bool:
+    """Install the gateway through the runtime's own service manager.
+
+    Deliberately not a hand-rolled Scheduled Task or unit file: the runtime
+    already knows systemd, launchd, Windows and s6, and writing a second
+    implementation here would work on the machine it was written on and rot
+    everywhere else.
+    """
+    import subprocess
+    import sys
+
+    try:
+        result = subprocess.run(
+            [sys.executable, '-m', 'hermes_cli.main', 'gateway', 'install'],
+            capture_output=True, text=True, encoding='utf-8', errors='replace',
+            timeout=180,
+        )
+        if result.returncode == 0:
+            return True
+        detail = (result.stderr or result.stdout or '').strip().splitlines()
+        if detail:
+            _say('    ' + detail[-1][:160])
+        return False
+    except Exception as exc:                          # noqa: BLE001
+        _say(f'    {type(exc).__name__}: {exc}')
+        return False
 
 
 def _pair(cfg, pairing, args):
@@ -369,6 +424,99 @@ def _apply_toolsets() -> bool:
         return True
     except Exception:
         return False
+
+
+CHAT_GATEWAY_PORT = 8642
+
+
+def _ensure_chat_gateway() -> tuple:
+    """Configure the API server the dashboard's chat tab talks to.
+
+    The chat tab proxies to the gateway's `api_server` platform. Nothing was
+    ever setting that up, so a fresh install ran `ettok gateway run` -- the
+    command the error message correctly names -- and got a gateway with no
+    platforms, nothing listening on 8642, and the same "gateway is not running"
+    it started with. The command was right; the configuration it needed did not
+    exist.
+
+    Returns (configured, message). Only fills what is empty: a port or key an
+    operator has already chosen is theirs.
+    """
+    import secrets
+
+    try:
+        from hermes_cli import config as hermes_config
+        cfg = hermes_config.load_config() or {}
+
+        gateway_cfg = cfg.setdefault('gateway', {})
+        if not isinstance(gateway_cfg, dict):
+            return False, 'gateway config is not a mapping; set it by hand'
+        platforms = gateway_cfg.setdefault('platforms', {})
+        if not isinstance(platforms, dict):
+            return False, 'gateway.platforms is not a mapping; set it by hand'
+
+        api = platforms.setdefault('api_server', {})
+        already = bool(api.get('enabled'))
+        api['enabled'] = True
+        api.setdefault('port', CHAT_GATEWAY_PORT)
+        api.setdefault('host', '127.0.0.1')
+        hermes_config.save_config(cfg)
+
+        # The gateway refuses to start without a key and 401s every request that
+        # does not carry one, so a missing key reads to the user as "the chat is
+        # broken" rather than "a key is missing". Generated rather than asked
+        # for: it authenticates the dashboard to a server on the same machine,
+        # and nobody needs to see it or type it.
+        created_key = _ensure_api_server_key(secrets.token_urlsafe(32))
+
+        if already and not created_key:
+            return True, 'already configured'
+        if created_key:
+            return True, f'enabled on port {api.get("port")}, key generated'
+        return True, f'enabled on port {api.get("port")}'
+    except Exception as exc:                          # noqa: BLE001
+        return False, f'{type(exc).__name__}: {exc}'
+
+
+def _ensure_api_server_key(candidate: str) -> bool:
+    """Write API_SERVER_KEY into the agent's .env when it has none.
+
+    Returns True when a key was created. An existing key is never replaced --
+    rotating it under a running gateway would lock the dashboard out of its own
+    chat with no clue why.
+    """
+    from .cli import _env_path
+
+    path = _env_path()
+    try:
+        existing = path.read_text(encoding='utf-8') if path.exists() else ''
+    except OSError:
+        existing = ''
+
+    for line in existing.splitlines():
+        if line.startswith('API_SERVER_KEY=') and line.split('=', 1)[1].strip():
+            return False
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    prefix = '' if (not existing or existing.endswith('\n')) else '\n'
+    with io.open(path, 'a', encoding='utf-8', newline='\n') as handle:
+        handle.write(f'{prefix}API_SERVER_KEY={candidate}\n')
+    return True
+
+
+def _gateway_service_hint() -> str:
+    """What "install as a service" means on this machine, in its own words."""
+    try:
+        from hermes_cli.service_manager import detect_service_manager
+        kind = detect_service_manager()
+    except Exception:                                 # noqa: BLE001
+        kind = 'none'
+    return {
+        'systemd': 'a systemd user service, started at login',
+        'launchd': 'a launchd agent, started at login',
+        'windows': 'a Windows Scheduled Task, started at login',
+        's6': 'an s6 service',
+    }.get(kind, 'a background service')
 
 
 def _model_configured() -> bool:

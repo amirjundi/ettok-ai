@@ -238,6 +238,50 @@ def _doctor(args) -> int:
         except Exception as exc:
             check('collector can reach the browser', False, str(exc))
 
+    # The dashboard's chat tab. Three states that look identical from the
+    # browser -- not configured, configured but not running, running but
+    # refusing the key -- and the tab reports all three as "the gateway is not
+    # running", which sent an operator to run the right command twice on a
+    # machine where it could not have worked.
+    try:
+        from hermes_cli import config as hermes_config
+        platforms = ((hermes_config.load_config() or {})
+                     .get('gateway', {}) or {}).get('platforms', {}) or {}
+        api = platforms.get('api_server') or {}
+        if not api.get('enabled'):
+            check('dashboard chat configured', False,
+                  'no api_server platform in gateway.platforms')
+            print('        The chat tab has nothing to talk to. `ettok setup` '
+                  'configures it; everything else works without it.')
+        else:
+            port = api.get('port', 8642)
+            check('dashboard chat configured', True, f'api_server on port {port}')
+            import httpx
+            try:
+                from agent.secret_scope import get_secret
+                key = (get_secret('API_SERVER_KEY', '') or '').strip()
+            except Exception:                         # noqa: BLE001
+                key = ''
+            headers = {'Authorization': f'Bearer {key}'} if key else {}
+            host = api.get('host', '127.0.0.1')
+            try:
+                with httpx.Client(timeout=3.0) as http:
+                    resp = http.get(f'http://{host}:{port}/v1/models', headers=headers)
+                if resp.status_code == 401:
+                    check('dashboard chat reachable', False,
+                          'the gateway refused API_SERVER_KEY')
+                    print('        The key in .env does not match the one the '
+                          'gateway is using. Restart the gateway after changing it.')
+                else:
+                    check('dashboard chat reachable', resp.status_code < 400,
+                          f'HTTP {resp.status_code}')
+            except Exception:                         # noqa: BLE001
+                check('dashboard chat reachable', False, 'nothing listening')
+                print('        Start it with `ettok gateway run`, or '
+                      '`ettok gateway install` so it comes back after a reboot.')
+    except Exception as exc:                          # noqa: BLE001
+        check('dashboard chat configured', False, str(exc))
+
     try:
         import curses  # noqa: F401
         check('interactive menus available', True)

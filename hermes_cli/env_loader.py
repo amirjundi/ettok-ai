@@ -332,7 +332,20 @@ def load_hermes_dotenv(
 ) -> list[Path]:
     """Load Hermes env files: ``~/.hermes/.env`` overrides stale shell exports; project ``.env`` is a dev
     fallback that only fills gaps when the user env exists (and overrides shell vars when it does not)."""
-    home_path = Path(hermes_home or os.getenv("HERMES_HOME", Path.home() / ".hermes"))
+    # get_hermes_home() rather than a second guess at the same path. On POSIX the
+    # two agree (~/.hermes); on Windows they do not -- the platform default is
+    # %LOCALAPPDATA%\hermes, and this line read ~/.hermes, a directory nothing
+    # creates. So every credential written to the real home was invisible to
+    # anything reading os.environ: the API key the dashboard's chat sends, the
+    # platform URL, the pairing key. The symptom is a chat that fails with the
+    # gateway running and a doctor that reports "not paired" next to a .env
+    # holding the pairing key.
+    #
+    # get_hermes_home() already honours HERMES_HOME and the multiplex override,
+    # so this is strictly the same behaviour wherever the old line was right.
+    from hermes_constants import get_hermes_home
+
+    home_path = Path(hermes_home) if hermes_home else get_hermes_home()
 
     # Multiplex gateway: while a routed profile-home override is active, copying that profile's .env
     # into os.environ would expose its credentials to sibling turns and every spawned child. Unscoped

@@ -271,6 +271,34 @@ def _gateway_headers() -> dict:
     return {'Authorization': f'Bearer {key}'} if key else {}
 
 
+def _api_server_configured() -> bool:
+    """Whether the gateway has an api_server platform to serve at all.
+
+    A gateway with no platforms starts cleanly, logs nothing alarming, and
+    listens on nothing -- so "start the gateway" is advice that cannot work, and
+    the operator runs the right command twice and concludes the product is
+    broken. That happened on a fresh install here.
+    """
+    try:
+        from hermes_cli import config as hermes_config
+        platforms = ((hermes_config.load_config() or {})
+                     .get('gateway', {}) or {}).get('platforms', {}) or {}
+        return bool((platforms.get('api_server') or {}).get('enabled'))
+    except Exception:                                 # noqa: BLE001
+        # Unknown is not the same as absent; fall back to the generic advice
+        # rather than telling somebody to configure what may already be there.
+        return True
+
+
+def _not_running_hint() -> str:
+    if not _api_server_configured():
+        return ('The gateway has no api_server platform configured, so starting it '
+                'would serve nothing. Run `ettok setup` to configure it, or '
+                '`ettok gateway install` to have it start automatically.')
+    return ('Start it with `ettok gateway run`, or `ettok gateway install` to '
+            'have it start on login and survive reboots.')
+
+
 @router.get('/chat/health')
 def chat_health() -> dict:
     """Whether there is anything to chat to.
@@ -302,7 +330,8 @@ def chat_health() -> dict:
             'available': False,
             'url': url,
             'reason': str(exc),
-            'hint': 'Start it with `ettok gateway run` (api_server platform enabled).',
+            'configured': _api_server_configured(),
+            'hint': _not_running_hint(),
         }
 
 
@@ -373,7 +402,7 @@ async def chat(payload: dict) -> Any:
             # Surfaced into the stream rather than raised: the page is already
             # reading a stream, and an error it can render beats a dead socket.
             yield _sse({'error': f'{type(exc).__name__}: {exc}',
-                        'hint': 'Is the gateway running? `ettok gateway run`'})
+                        'hint': _not_running_hint()})
 
     return StreamingResponse(relay(), media_type='text/event-stream')
 
