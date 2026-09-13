@@ -32,6 +32,16 @@ def register_cli(subparser) -> None:
 
     commands.add_parser('doctor', help='Check everything this agent needs in order to work')
     commands.add_parser('eval', help='Run the gold set against the live lexicon')
+
+    selectors = commands.add_parser(
+        'selectors', help='Check the extraction selectors against a saved page',
+    )
+    selectors.add_argument('page', help='A post page saved from the browser (.html)')
+    selectors.add_argument('--platform', default='facebook')
+    selectors.add_argument('--url', default='',
+                           help='The URL the page came from, if the file does not carry it')
+    selectors.add_argument('--try', dest='candidate', default='',
+                           help='A JSON object of selectors to try instead of the defaults')
     commands.add_parser('status', help='Show pairing, open cases and the delivery queue')
 
     outbox = commands.add_parser('outbox', help='Inspect or drain the delivery queue')
@@ -55,6 +65,7 @@ def handle_cli(args) -> int:
         'connect': _connect,
         'doctor': _doctor,
         'eval': _eval,
+        'selectors': _selectors,
         'status': _status,
         'outbox': _outbox,
         'schedule': _schedule,
@@ -63,7 +74,7 @@ def handle_cli(args) -> int:
     if handler is None:
         # No subcommand is how a new operator arrives here. Point at setup
         # rather than printing a list they have no basis for choosing from.
-        print('Usage: ettok {setup|connect|doctor|eval|status|outbox|schedule}')
+        print('Usage: ettok {setup|connect|doctor|eval|selectors|status|outbox|schedule}')
         print()
         print('New here? Run:  ettok setup')
         return 1
@@ -295,6 +306,47 @@ def _eval(args) -> int:
             print(f'  - {term}')
 
     return 0 if not report['failures'] else 1
+
+
+def _selectors(args) -> int:
+    """Check the extraction selectors against a page saved from a browser.
+
+    The one unknown no amount of testing here can close is whether the selectors
+    match the real site, because collection has never run against it. This is the
+    cheapest way to find out: it needs no account and no login, only a saved
+    page, and it runs the collector's own extraction JavaScript so what it
+    reports is what a scan would get.
+
+        ettok selectors ~/Downloads/post.html
+
+    Save the page after the comments have loaded -- scroll to them first and
+    expand "view more comments", because a page saved before they render has
+    nothing in it to find and the result would blame the selectors.
+    """
+    import json as _json
+
+    from .collect import selector_check
+
+    candidate = None
+    if getattr(args, 'candidate', ''):
+        try:
+            candidate = _json.loads(args.candidate)
+        except ValueError as exc:
+            print(f'--try needs a JSON object of selectors: {exc}')
+            return 1
+
+    try:
+        report = selector_check.check(
+            args.page, platform=args.platform, selectors=candidate, url=args.url,
+        )
+    except selector_check.CheckError as exc:
+        print(f'Could not run the check: {exc}')
+        return 1
+
+    print(selector_check.describe(report))
+
+    # Non-zero when the page yielded nothing, so this can gate a deploy.
+    return 0 if report['comments'] else 1
 
 
 def _status(args) -> int:

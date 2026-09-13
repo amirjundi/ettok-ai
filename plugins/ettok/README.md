@@ -173,7 +173,53 @@ curator work rather than bugs:
   however complete it looks in the admin.
 
 The platform's `export_curator_workbook` reports both counts, along with tropes
-that have no activation gate and terms with no exemptions.
+that have no activation gate and terms with no exemptions. `ettok eval` reports
+them too, and scores the curated lexicon against a fixed set of sentences from
+the field data, so "is detection any good today" has an answer that does not
+depend on anyone's memory.
+
+A third kind of silence is not curator work at all:
+
+- **Selectors that no longer match the page.** Social platforms change their
+  markup without notice, and an extractor that finds nothing returns an empty
+  page, which is indistinguishable from a page with no comments on it.
+
+## Checking the selectors without a live session
+
+Collection has never run against a live platform, so the Facebook selectors are
+written against markup nobody has confirmed. Identity capture, the per-post
+rates and the accounts page all rest on them.
+
+Checking them needs no account and no login. Open a post in a browser, scroll
+until the comments have loaded, expand "view more comments", save the page
+(Ctrl+S, *Webpage, Complete* — or paste `document.documentElement.outerHTML`
+into a file), then:
+
+```bash
+ettok selectors ~/Downloads/post.html
+```
+
+It runs the collector's own extraction JavaScript against that page and reports
+what it would have got: the parent post, the comments, and how many of them
+carry a name, a profile link and a permalink. The three are counted separately
+because they fail separately — comments with no profile links means detection
+still works while repeat-offender tracking is dead, and comments with no
+permalinks means every finding cites the page rather than itself.
+
+When something is wrong, try a candidate set against the same page before
+committing to it:
+
+```bash
+ettok selectors ~/Downloads/post.html --try '{"post": "[role=main]", "comment": ".x1y1aw1k", "author": "a span"}'
+```
+
+and save the set that works with `ettok_save_selectors`, which is what a scan
+will then use.
+
+Two things it cannot tell you: whether the page you saved is representative, and
+whether the markup changes next week. It answers one question — would today's
+selectors have found the comments on this page — and that question is currently
+unanswered.
 
 ## Development
 

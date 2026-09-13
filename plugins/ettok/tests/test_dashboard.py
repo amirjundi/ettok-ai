@@ -49,7 +49,8 @@ def test_chat_replaces_the_built_in_terminal():
 def test_chat_bundle_parsers():
     result = subprocess.run(
         [shutil.which('node'), str(HERE / 'bundle_check.js')],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, encoding='utf-8', errors='replace',
+        timeout=60,
     )
     assert result.returncode == 0, result.stderr or result.stdout
 
@@ -100,7 +101,8 @@ def test_pages_actually_render():
     """
     result = subprocess.run(
         [shutil.which('node'), str(HERE / 'render_check.js')],
-        capture_output=True, text=True, timeout=120, cwd=str(PLUGINS.parent),
+        capture_output=True, text=True, encoding='utf-8', errors='replace',
+        timeout=120, cwd=str(PLUGINS.parent),
     )
     output = (result.stderr or '') + (result.stdout or '')
     if result.returncode != 0 and 'Cannot find module' in output:

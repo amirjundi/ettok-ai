@@ -291,9 +291,15 @@ def _clean_url(href: str) -> str:
         parts = urlsplit(href.strip())
     except ValueError:
         return ''
+    # Matched on the name up to any bracket. Facebook's are indexed --
+    # `__cft__[0]`, `__cft__[1]` -- so an exact-name comparison let every one of
+    # them through, and the cleaning silently did nothing on the parameter it
+    # was written for. A profile link then differed on every page load, which
+    # means the same person builds a new account history each time they are
+    # seen: the opposite of what identity capture is for.
     kept = [
         (key, value) for key, value in parse_qsl(parts.query)
-        if key not in _TRACKING_PARAMS
+        if key.split('[')[0] not in _TRACKING_PARAMS
     ]
     return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(kept), ''))
 

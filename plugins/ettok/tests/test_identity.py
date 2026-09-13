@@ -63,3 +63,34 @@ def test_clean_url_keeps_meaningful_parameters():
     cleaned = _clean_url('https://x.invalid/permalink.php?story_fbid=7&__tn__=R')
     assert 'story_fbid=7' in cleaned
     assert '__tn__' not in cleaned
+
+
+def test_indexed_tracking_parameters_are_stripped():
+    """Facebook's tracking parameters are indexed: `__cft__[0]`, `__cft__[1]`.
+
+    Matching the exact name let every one of them through, so cleaning did
+    nothing on the parameter it was written for and the same profile produced a
+    different URL on every page load. A per-load URL means a person seen twice
+    looks like two people, and the repeat-offender history never accumulates.
+    """
+    from plugins.ettok.collect.base import _clean_url
+
+    dirty = (
+        'https://www.facebook.com/profile.php?id=100'
+        '&__cft__[0]=AZW1&__cft__[1]=AZW2&__tn__=R'
+    )
+    cleaned = _clean_url(dirty)
+
+    assert '__cft__' not in cleaned
+    assert '__tn__' not in cleaned
+    assert 'id=100' in cleaned
+
+
+def test_two_sightings_of_one_profile_clean_to_the_same_url():
+    """The property that actually matters, stated directly."""
+    from plugins.ettok.collect.base import _clean_url
+
+    first = 'https://www.facebook.com/nadia?__cft__[0]=AAA&__tn__=R'
+    second = 'https://www.facebook.com/nadia?__cft__[0]=BBB&__tn__=-UC'
+
+    assert _clean_url(first) == _clean_url(second)
