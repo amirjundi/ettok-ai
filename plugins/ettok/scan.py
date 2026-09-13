@@ -128,7 +128,9 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
 
         # --- free tier: always, whatever the budget ------------------------
         try:
-            result = match_mod.evaluate(item, know)
+            result = match_mod.evaluate(
+                item, know, case_id=case.case_id if case is not None else None,
+            )
         except Exception as exc:                      # noqa: BLE001
             log.exception('ettok: matching failed')
             summary['errors'].append(f'match failed: {exc}')

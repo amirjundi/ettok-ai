@@ -200,15 +200,39 @@ def match_tropes(text: str, tropes: list, *, groups_in_context: list, parent_tex
     return fired
 
 
-def evaluate(item: dict, knowledge) -> Match:
-    """Match one item against everything the platform sent."""
+def in_scope(row: dict, case_id=None) -> bool:
+    """Whether a term or trope applies while working this case.
+
+    Vocabulary is general unless a curator scoped it. A flare-up coins its own
+    language -- a hashtag, a nickname, a phrase from one viral video -- and that
+    language is meaningless outside the episode. Left general it would over-flag
+    every other case for as long as it stayed in the lexicon, so it is attached
+    to the case that met it and ignored everywhere else.
+
+    A run with no case (a manual check, a probe) sees the general vocabulary
+    only: case-scoped language has, by definition, no case to be scoped to.
+    """
+    row_case = row.get('case_id')
+    if row_case is None:
+        return True
+    return case_id is not None and int(row_case) == int(case_id)
+
+
+def evaluate(item: dict, knowledge, case_id=None) -> Match:
+    """Match one item against everything the platform sent that applies here.
+
+    `case_id` narrows the vocabulary to general plus this case's own. Omitted,
+    only the general vocabulary applies.
+    """
     parent = item.get('parent_post_text', '') or ''
     markers = knowledge.group_markers()
     groups = post_concerns(parent, markers)
 
     relevant_tropes = []
     for slug in groups or ['']:
-        relevant_tropes.extend(knowledge.tropes_for(slug))
+        relevant_tropes.extend(
+            t for t in knowledge.tropes_for(slug) if in_scope(t, case_id)
+        )
     seen, deduped = set(), []
     for trope in relevant_tropes:
         if trope.get('id') not in seen:
@@ -216,7 +240,9 @@ def evaluate(item: dict, knowledge) -> Match:
             deduped.append(trope)
 
     terms, skipped = match_terms(
-        item.get('text', ''), knowledge.terms, groups_in_context=groups,
+        item.get('text', ''),
+        [t for t in knowledge.terms if in_scope(t, case_id)],
+        groups_in_context=groups,
     )
     tropes = match_tropes(
         item.get('text', ''), deduped, groups_in_context=groups, parent_text=parent,
