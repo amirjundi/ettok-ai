@@ -1,347 +1,217 @@
 # Ettok AI
 
-<p align="center">
-  <a href="https://github.com/NousResearch/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
-  <a href="THIRD-PARTY-LICENSES.md"><img src="https://img.shields.io/badge/Built%20on-Hermes%20Agent-blueviolet?style=for-the-badge" alt="Built on Hermes Agent"></a>
-</p>
-
 **A hate speech monitoring agent for minority communities in Iraq.**
 
-Ettok AI monitors public social media discourse for hate speech targeting Yazidi,
-Assyrian, Christian, Mandaean and other minority communities, and delivers
+Ettok AI reads public social media discourse for hate speech targeting Yazidi and
+Iraqi Christian (Assyrian, Chaldean, Syriac) communities, and delivers
 evidence-backed findings to the Ettok platform for expert review.
 
-Hate speech in Iraq is episodic — a campaign flares against one community around
-an incident, cools, goes dormant, and reactivates weeks later against another.
-Ettok AI is organised around **cases**: bounded monitoring episodes with defined
-targets, schedules, budgets and stop conditions.
+Hate speech here is episodic. A campaign flares against one community around an
+incident, cools, goes dormant, and reactivates weeks later — sometimes against a
+different community entirely. So the agent is organised around **cases**: bounded
+monitoring episodes with defined targets, schedules, budgets and stop conditions,
+all owned by the platform rather than decided by the agent.
 
-What makes it different from a generic hate-speech classifier is **context**. The
-phrase *اعوذ بالله من الشيطان الرجيم* is ordinary piety on most posts, and the
-devil-worship libel under Yazidi content. Ettok AI judges a comment together with
-what it replies to, against a dictionary of coded language curated by people from
-the affected communities — not against a general-purpose model's idea of offence.
+## What makes it different from a hate-speech classifier
 
-Findings are advisory. Every one is reviewed by a human before it goes anywhere.
+**Context.** The phrase *اعوذ بالله من الشيطان الرجيم* — "I seek refuge in God
+from the accursed devil" — is said daily by millions. Under a road accident it is
+ordinary piety. Under a post about Sinjar, aimed at Yazidis, it is the
+devil-worship taunt, the oldest libel against that community and the one ISIS
+used as justification.
 
-- **Specification**: [`specs/001-ettok-ai-agent/spec.md`](../specs/001-ettok-ai-agent/spec.md)
-- **Platform contract**: the Ettok platform is the system of record for the
-  lexicon, tropes, cases and review queue. The agent holds no authoritative
-  knowledge and caches what it fetches only for the duration of one run.
+Identical words. Only the post above them differs. So every comment is judged
+together with what it replies to, against vocabulary curated by people from the
+affected communities — not against a general-purpose model's idea of offence.
 
-## Installing
+**The denominator.** Comments that match nothing are collected too. Nine findings
+means little; nine out of four hundred is an ordinary thread and nine out of
+twelve is a pile-on, and the two need different responses.
 
-Ettok AI is not published to a package index; install it from this repository.
+**Reporting without approval.** A finding is recorded the moment the agent sees
+it. Nobody has to approve it for it to count, because an approval queue that
+nobody empties is a silent off-switch. Review is correction: a person marks what
+the agent got wrong, and their judgement replaces its own.
+
+## Requirements
+
+- Python 3.11 — [`uv`](https://docs.astral.sh/uv/) fetches its own, so you do not
+  need it installed. The runtime caps below 3.14 deliberately: its Rust-backed
+  dependencies have no wheels above that.
+- Node.js 18+ for the dashboard and the browser tooling.
+- A reachable Ettok platform to report to.
+
+## Install
+
+Identical on all three platforms apart from activation.
 
 ```bash
 git clone https://github.com/amirjundi/ettok-ai.git
 cd ettok-ai
 
-# uv fetches its own Python 3.11 -- the runtime caps at <3.14 deliberately,
-# because the Rust-backed dependencies have no wheels above it.
 uv venv --python 3.11
 uv pip install -e ".[all,dev]"
-
-# Activate, or the shell will report `ettok: not recognized` -- the command is
-# installed inside the virtual environment rather than system-wide.
-.venv\Scripts\Activate.ps1     # Windows PowerShell
-# .venv\Scripts\activate.bat   # Windows cmd.exe
-# source .venv/bin/activate     # macOS / Linux
-
-ettok        # the CLI
 ```
 
-From a shell with nothing activated, prefix with `uv run` instead:
-`uv run ettok doctor`. That is also the form to use in a scheduled task.
+Then activate the environment. Without this the shell reports
+`ettok: not recognized` — the command lives inside the virtual environment, not
+system-wide.
 
-The upstream one-liner further down this file (`hermes-agent.nousresearch.com/install.sh`)
-installs **Nous's Hermes, not Ettok AI**. It is left in place because the rest of
-the upstream documentation refers to it, but it is not the way to install this.
+**Linux / macOS**
+
+```bash
+source .venv/bin/activate
+```
+
+**Windows — PowerShell**
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+**Windows — cmd.exe**
+
+```bat
+.venv\Scripts\activate.bat
+```
+
+If PowerShell refuses with an execution-policy error, use `cmd.exe`, or skip
+activation entirely and prefix commands with `uv run` — `uv run ettok ettok
+doctor` works from a fresh shell with nothing activated, and is the form to use
+in a scheduled task or a service unit.
+
+## First run
+
+```bash
+ettok plugins enable ettok      # the monitoring plugin is opt-in
+ettok ettok setup               # platform, pairing, model, gateway, schedule
+```
+
+`ettok ettok` is not a typo. The runtime's binary is `ettok`, and the monitoring
+agent registers its own commands underneath it, so its subcommands are reached as
+`ettok ettok <command>`.
+
+Setup walks through seven steps: which platform to report to, pairing this
+machine, the model, what the agent can currently detect, trimming the tool list,
+the dashboard chat backend, and whether to run unattended. It is safe to run
+again.
+
+Pairing needs an administrator on the platform to approve this specific machine.
+Ettok AI is open source, so anyone can run the agent — approval is what lets a
+particular machine see anything, and a lost laptop can be revoked without
+touching the others.
+
+## Running it
+
+**The dashboard** — sessions, logs, configuration and a chat with the agent:
+
+```bash
+ettok dashboard                 # http://127.0.0.1:8123
+```
+
+**In the background, with no dashboard open.** This is what field machines want:
+the agent keeps working after a reboot with nobody logged in.
+
+```bash
+ettok gateway install           # systemd, launchd, Windows Scheduled Task or s6
+```
+
+The runtime picks the right supervisor for the operating system. `ettok gateway
+run` starts it in the foreground instead, which is useful when you want to watch
+it and fine when you do not mind it stopping with the terminal.
+
+**Scheduled scans**, which survive reboots and a closed laptop in a way an
+in-process timer does not:
+
+```bash
+ettok ettok schedule --every 6h
+ettok ettok schedule --remove --name ettok-scan
+```
+
+One job works every case in turn. Each case has its own interval and waits it
+out, so an active campaign is scanned more often than a dormant watch and no case
+starves.
+
+## Checking it works
+
+```bash
+ettok ettok doctor              # pairing, database, browser, chat, knowledge
+ettok ettok status              # open cases and the delivery queue
+ettok ettok eval                # score the live lexicon against a fixed gold set
+```
+
+`doctor` answers "can this run". `eval` answers "would it be any good if it did",
+which is a different question — it runs sixteen sentences from the field data
+through the real matcher and reports what it got wrong, plus any curation debt.
+
+**Before the first live collection**, check the extraction selectors against a
+real page. Social platforms change their markup without notice, and an extractor
+that finds nothing returns an empty page — indistinguishable from a page with no
+comments on it.
+
+```bash
+ettok ettok selectors ~/Downloads/post.html
+```
+
+Save a post from the browser after scrolling until the comments load. It needs no
+account and no login, and reports whether the comments, the profile links and the
+permalinks would have been found.
+
+## Updating
+
+```bash
+ettok update                    # pull, reinstall dependencies, rebuild the UI
+ettok update --check            # is there anything to install?
+```
+
+On Windows, close the dashboard first. Its own executable is the file the update
+has to replace, and Windows will not replace a running one. The dashboard's
+Update button hits the same wall for the same reason; stopping the services makes
+it work:
+
+```
+ettok serve --stop
+ettok gateway stop
+```
+
+## Configuration and state
+
+Everything the agent holds lives outside the repository, so an update never
+touches it:
+
+| | Linux / macOS | Windows |
+|---|---|---|
+| Config | `~/.hermes/config.yaml` | `%LOCALAPPDATA%\hermes\config.yaml` |
+| Secrets | `~/.hermes/.env` | `%LOCALAPPDATA%\hermes\.env` |
+| Evidence and local state | `~/.hermes/plugin-data/ettok/` | `%LOCALAPPDATA%\hermes\plugin-data\ettok\` |
+
+Those paths keep the inherited name on purpose. Renaming them would break
+compatibility with the upstream runtime for no gain a user can see.
+
+## What it will not do
+
+The agent treats a CAPTCHA or a checkpoint as the platform saying it has
+noticed — it quarantines the account and stops, rather than solving it. Solving a
+challenge removes the only warning and leaves the detection in place, and the
+account escalates to a permanent ban instead of backing off while it is still
+recoverable.
+
+It does not decide its own limits either. Deadlines, budgets and stop conditions
+are enforced by the platform, and a case past any of them is never sent.
 
 ## Built on Hermes Agent
 
 Ettok AI is built on [Hermes Agent](https://github.com/NousResearch/hermes-agent)
-by [Nous Research](https://nousresearch.com), used under the MIT Licence — see
+by Nous Research, used under the MIT Licence — see
 [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
 
-Hermes supplies the agent runtime: the agent loop, scheduling, local state and
-search, provider adapters, browser tooling and the operator interface. None of
-that is rebuilt here, which is why the engineering goes into Iraqi-specific
-detection instead of into plumbing. Internal module names, environment variables
-and state paths inherited from Hermes are intentionally left unchanged so that
-upstream fixes can still be merged.
-
-The command is `ettok`; `hermes` remains as an alias so upstream documentation
-works unmodified.
-
----
-
-The remainder of this file is the upstream Hermes Agent documentation, which
-still describes the runtime accurately.
-
----
-
-<p align="center">
-  <img src="assets/banner.png" alt="Hermes Agent" width="100%">
-</p>
-
-# Hermes Agent ☤
-<p align="center">
-  <a href="https://hermes-agent.nousresearch.com/">Hermes Agent</a> | <a href="https://hermes-agent.nousresearch.com/">Hermes Desktop</a>
-</p>
-<p align="center">
-  <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
-  <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="https://github.com/NousResearch/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
-  <a href="https://nousresearch.com"><img src="https://img.shields.io/badge/Built%20by-Nous%20Research-blueviolet?style=for-the-badge" alt="Built by Nous Research"></a>
-  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
-  <a href="README.ur-pk.md"><img src="https://img.shields.io/badge/Lang-اردو-green?style=for-the-badge" alt="اردو"></a>
-  <a href="README.es.md"><img src="https://img.shields.io/badge/Lang-Español-orange?style=for-the-badge" alt="Español"></a>
-</p>
-
-**The self-improving AI agent built by [Nous Research](https://nousresearch.com).** It's the only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, searches its own past conversations, and builds a deepening model of who you are across sessions. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle. It's not tied to your laptop — talk to it from Telegram while it works on a cloud VM.
-
-Use any model you want — [Nous Portal](https://portal.nousresearch.com), OpenRouter, OpenAI, your own endpoint, and [many others](https://hermes-agent.nousresearch.com/docs/integrations/providers). Switch with `ettok model` — no code changes, no lock-in.
-
-<table>
-<tr><td><b>A real terminal interface</b></td><td>Full TUI with multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output.</td></tr>
-<tr><td><b>Lives where you do</b></td><td>Telegram, Discord, Slack, WhatsApp, Signal, and CLI — all from a single gateway process. Voice memo transcription, cross-platform conversation continuity.</td></tr>
-<tr><td><b>A closed learning loop</b></td><td>Agent-curated memory with periodic nudges. Autonomous skill creation after complex tasks. Skills self-improve during use. FTS5 session search with LLM summarization for cross-session recall. <a href="https://github.com/plastic-labs/honcho">Honcho</a> dialectic user modeling. Compatible with the <a href="https://agentskills.io">agentskills.io</a> open standard.</td></tr>
-<tr><td><b>Scheduled automations</b></td><td>Built-in cron scheduler with delivery to any platform. Daily reports, nightly backups, weekly audits — all in natural language, running unattended.</td></tr>
-<tr><td><b>Delegates and parallelizes</b></td><td>Spawn isolated subagents for parallel workstreams. Write Python scripts that call tools via RPC, collapsing multi-step pipelines into zero-context-cost turns.</td></tr>
-<tr><td><b>Runs anywhere, not just your laptop</b></td><td>Seven terminal backends — local, Docker, SSH, Singularity, Modal, Daytona, and Vercel Sandbox. Daytona and Modal offer serverless persistence — your agent's environment hibernates when idle and wakes on demand, costing nearly nothing between sessions. Run it on a $5 VPS or a GPU cluster.</td></tr>
-<tr><td><b>Research-ready</b></td><td>Batch trajectory generation, trajectory compression for training the next generation of tool-calling models.</td></tr>
-</table>
-
----
-
-## Quick Install
-
-### Linux, macOS, WSL2, Termux
-
-```bash
-curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
-```
-
-### Windows (native, PowerShell)
-
-> **Heads up:** Native Windows runs Hermes without WSL — CLI, gateway, TUI, and tools all work natively. If you'd rather use WSL2, the Linux/macOS one-liner above works there too. Found a bug? Please [file issues](https://github.com/NousResearch/hermes-agent/issues).
-
-Run this in PowerShell:
-
-```powershell
-iex (irm https://hermes-agent.nousresearch.com/install.ps1)
-```
-
-The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\hermes\git` — no admin required, completely isolated from any system Git install). Hermes uses this bundled Git Bash to run shell commands.
-
-If you already have Git installed, the installer detects it and uses that instead. Otherwise a ~45MB MinGit download is all you need — it won't touch or interfere with any system Git.
-
-> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://hermes-agent.nousresearch.com/docs/getting-started/termux). On Termux, Hermes installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies.
->
-> **Windows:** Native Windows is fully supported — the PowerShell one-liner above installs everything. If you'd rather use WSL2, the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\hermes`; WSL2 installs under `~/.hermes` as on Linux.
-
-After installation:
-
-```bash
-source ~/.bashrc    # reload shell (or: source ~/.zshrc)
-ettok              # start chatting!
-```
-
-### Troubleshooting
-
-#### Windows Defender or antivirus flags `uv.exe` as malware
-
-If your antivirus (Bitdefender, Windows Defender, etc.) quarantines `uv.exe` from the Hermes `bin` folder (`%LOCALAPPDATA%\hermes\bin\uv.exe`), this is a **false positive**. The file is Astral's `uv` — the Rust Python package manager Hermes bundles to manage its Python environment. ML-based antivirus engines commonly flag unsigned Rust binaries that download and install packages.
-
-**To verify your copy is authentic:**
-
-```powershell
-# Install GitHub CLI if needed
-winget install --id GitHub.cli
-
-# Login to GitHub
-gh auth login
-
-# Run verification
-$uv = "$env:LOCALAPPDATA\hermes\bin\uv.exe"
-$ver = (& $uv --version).Split(' ')[1]
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-$zip = "$env:TEMP\uv.zip"
-Invoke-WebRequest "https://github.com/astral-sh/uv/releases/download/$ver/uv-x86_64-pc-windows-msvc.zip" -OutFile $zip -UseBasicParsing
-gh attestation verify $zip --repo astral-sh/uv
-Expand-Archive $zip "$env:TEMP\uv_x" -Force
-(Get-FileHash "$env:TEMP\uv_x\uv.exe").Hash -eq (Get-FileHash $uv).Hash
-```
-
-If attestation says "Verification succeeded" and the last line prints `True`, you're good.
-
-**To whitelist Hermes:**
-- **Windows Defender:** Run PowerShell as Admin → `Add-MpPreference -ExclusionPath "$env:LOCALAPPDATA\hermes\bin"`
-- **Bitdefender:** Add an exception in the Bitdefender console (Protection > Antivirus > Settings > Manage Exceptions)
-- Whitelist the **folder**, not the file hash — Hermes updates `uv` and the hash changes every version
-
-For more context, see the upstream Astral reports: [astral-sh/uv#13553](https://github.com/astral-sh/uv/issues/13553), [astral-sh/uv#15011](https://github.com/astral-sh/uv/issues/15011), [astral-sh/uv#10079](https://github.com/astral-sh/uv/issues/10079).
-
----
-
-## Getting Started
-
-```bash
-ettok              # Interactive CLI — start a conversation
-ettok model        # Choose your LLM provider and model
-ettok tools        # Configure which tools are enabled
-ettok config set   # Set individual config values
-ettok config get   # Print individual config values
-ettok gateway      # Start the messaging gateway (Telegram, Discord, etc.)
-ettok setup        # Run the full setup wizard (configures everything at once)
-ettok claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
-ettok update       # Update to the latest version
-ettok doctor       # Diagnose any issues
-```
-
-📖 **[Full documentation →](https://hermes-agent.nousresearch.com/docs/)**
-
----
-
-## Skip the API-key collection — Nous Portal
-
-Hermes works with whatever provider you want — that's not changing. But if you'd rather not collect five separate API keys for the model, web search, image generation, TTS, and a cloud browser, **[Nous Portal](https://portal.nousresearch.com)** covers all of them under one subscription:
-
-- **300+ models** — pick any of them with `/model <name>`
-- **Tool Gateway** — web search (Firecrawl), image generation (FAL), text-to-speech (OpenAI), cloud browser (Browser Use), all routed through your sub. No extra accounts.
-
-One command from a fresh install:
-
-```bash
-ettok setup --portal
-```
-
-That logs you in via OAuth, sets Nous as your provider, and turns on the Tool Gateway. Check what's wired up any time with `hermes portal info`. Full details on the [Tool Gateway docs page](https://hermes-agent.nousresearch.com/docs/user-guide/features/tool-gateway).
-
-You can still bring your own keys per-tool whenever you want — the gateway is per-backend, not all-or-nothing.
-
----
-
-## CLI vs Messaging Quick Reference
-
-Hermes has two entry points: start the terminal UI with `hermes`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
-
-| Action                         | CLI                                           | Messaging platforms                                                              |
-| ------------------------------ | --------------------------------------------- | -------------------------------------------------------------------------------- |
-| Start chatting                 | `hermes`                                      | Run `ettok gateway setup` + `ettok gateway start`, then send the bot a message |
-| Start fresh conversation       | `/new` or `/reset`                            | `/new` or `/reset`                                                               |
-| Change model                   | `/model [provider:model]`                     | `/model [provider:model]`                                                        |
-| Set a personality              | `/personality [name]`                         | `/personality [name]`                                                            |
-| Retry or undo the last turn    | `/retry`, `/undo`                             | `/retry`, `/undo`                                                                |
-| Compress context / check usage | `/compress`, `/usage`, `/insights [--days N]` | `/compress`, `/usage`, `/insights [days]`                                        |
-| Browse skills                  | `/skills` or `/<skill-name>`                  | `/<skill-name>`                                                                  |
-| Interrupt current work         | `Ctrl+C` or send a new message                | `/stop` or send a new message                                                    |
-| Platform-specific status       | `/platforms`                                  | `/status`, `/sethome`                                                            |
-
-For the full command lists, see the [CLI guide](https://hermes-agent.nousresearch.com/docs/user-guide/cli) and the [Messaging Gateway guide](https://hermes-agent.nousresearch.com/docs/user-guide/messaging).
-
----
-
-## Documentation
-
-All documentation lives at **[hermes-agent.nousresearch.com/docs](https://hermes-agent.nousresearch.com/docs/)**:
-
-| Section                                                                                             | What's Covered                                             |
-| --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [Quickstart](https://hermes-agent.nousresearch.com/docs/getting-started/quickstart)                 | Install → setup → first conversation in 2 minutes          |
-| [CLI Usage](https://hermes-agent.nousresearch.com/docs/user-guide/cli)                              | Commands, keybindings, personalities, sessions             |
-| [Configuration](https://hermes-agent.nousresearch.com/docs/user-guide/configuration)                | Config file, providers, models, all options                |
-| [Messaging Gateway](https://hermes-agent.nousresearch.com/docs/user-guide/messaging)                | Telegram, Discord, Slack, WhatsApp, Signal, Home Assistant |
-| [Security](https://hermes-agent.nousresearch.com/docs/user-guide/security)                          | Command approval, DM pairing, container isolation          |
-| [Tools & Toolsets](https://hermes-agent.nousresearch.com/docs/user-guide/features/tools)            | 40+ tools, toolset system, terminal backends               |
-| [Skills System](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills)              | Procedural memory, Skills Hub, creating skills             |
-| [Memory](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory)                     | Persistent memory, user profiles, best practices           |
-| [MCP Integration](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp)               | Connect any MCP server for extended capabilities           |
-| [Cron Scheduling](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron)              | Scheduled tasks with platform delivery                     |
-| [Context Files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files)       | Project context that shapes every conversation             |
-| [Architecture](https://hermes-agent.nousresearch.com/docs/developer-guide/architecture)             | Project structure, agent loop, key classes                 |
-| [Contributing](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing)             | Development setup, PR process, code style                  |
-| [CLI Reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands)                  | All commands and flags                                     |
-| [Environment Variables](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) | Complete env var reference                                 |
-
----
-
-## Migrating from OpenClaw
-
-If you're coming from OpenClaw, Hermes can automatically import your settings, memories, skills, and API keys.
-
-**During first-time setup:** The setup wizard (`ettok setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
-
-**Anytime after install:**
-
-```bash
-ettok claw migrate              # Interactive migration (full preset)
-ettok claw migrate --dry-run    # Preview what would be migrated
-ettok claw migrate --preset user-data   # Migrate without secrets
-ettok claw migrate --overwrite  # Overwrite existing conflicts
-```
-
-What gets imported:
-
-- **SOUL.md** — persona file
-- **Memories** — MEMORY.md and USER.md entries
-- **Skills** — user-created skills → `~/.hermes/skills/openclaw-imports/`
-- **Command allowlist** — approval patterns
-- **Messaging settings** — platform configs, allowed users, working directory
-- **API keys** — allowlisted secrets (Telegram, OpenRouter, OpenAI, Anthropic, ElevenLabs)
-- **TTS assets** — workspace audio files
-- **Workspace instructions** — AGENTS.md (with `--workspace-target`)
-
-See `ettok claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration with dry-run previews.
-
----
-
-## Contributing
-
-We welcome contributions! See the [Contributing Guide](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) for development setup, code style, and PR process.
-
-Quick start for contributors — use the standard installer, then work from the
-full git checkout it creates at `$HERMES_HOME/hermes-agent` (usually
-`~/.hermes/hermes-agent`). This matches the layout used by `ettok update`, the
-managed venv, lazy dependencies, gateway, and docs tooling.
-
-```bash
-curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
-cd "${HERMES_HOME:-$HOME/.hermes}/hermes-agent"
-uv pip install -e ".[all,dev]"
-scripts/run_tests.sh
-```
-
-Manual clone fallback (for throwaway clones/CI where you intentionally do not
-want the managed install layout):
-
-Create the venv outside the cloned source tree — a venv inside the directory
-the agent operates from can be wiped by a relative-path command the agent runs
-against its own checkout, destroying the running runtime mid-session.
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-uv venv ~/.hermes/venvs/hermes-dev --python 3.11
-source ~/.hermes/venvs/hermes-dev/bin/activate
-uv pip install -e ".[all,dev]"
-scripts/run_tests.sh
-```
-
----
-
-## Community
-
-- 💬 [Discord](https://discord.gg/NousResearch)
-- 📚 [Skills Hub](https://agentskills.io)
-- 🐛 [Issues](https://github.com/NousResearch/hermes-agent/issues)
-- 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for Hermes and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
-- 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — Community WeChat bridge: Run Hermes Agent and OpenClaw on the same WeChat account.
-
----
-
-## License
-
-MIT — see [LICENSE](LICENSE).
-
-Built by [Nous Research](https://nousresearch.com).
+That project supplies the runtime: the agent loop, scheduling, local state and
+search, provider adapters, browser tooling and the operator interface. None of it
+is rebuilt here, which is why the engineering goes into Iraqi-specific detection
+rather than into plumbing. Internal module names, environment variables and state
+paths inherited from it are left unchanged so upstream fixes can still be merged.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE) and
+[THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
