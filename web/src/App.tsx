@@ -976,7 +976,7 @@ function SidebarSystemActions({
       const n = updateConfirmInfo.behind;
       return `This will run 'hermes update' (${cmd}) and pull ${n} new commit${n === 1 ? "" : "s"}. The gateway restarts when the update finishes; the current session keeps its prompt cache until then.`;
     }
-    const cmd = updateConfirmInfo?.update_command ?? "hermes update";
+    const cmd = updateConfirmInfo?.update_command ?? "ettok update";
     return (
       t.status.updateHermesConfirmMessage ??
       `This will run 'hermes update' (${cmd}) and restart the gateway when it finishes.`
@@ -1077,7 +1077,7 @@ function SidebarSystemActions({
       confirmLabel={t.status.restartGateway}
       description={
         t.status.restartGatewayConfirmMessage ??
-        "This restarts the Hermes gateway process. Connected channels and active sessions will reconnect afterward."
+        "This restarts the Ettok gateway process. Connected channels and active sessions will reconnect afterward."
       }
       loading={pendingAction === "restart"}
       onCancel={() => setRestartConfirmOpen(false)}

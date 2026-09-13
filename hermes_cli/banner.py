@@ -136,8 +136,8 @@ _last_target_rev: Optional[str] = None
 # Returned when an update is known to exist but commits can't be counted (e.g. nix builds).
 UPDATE_AVAILABLE_NO_COUNT = -1
 
-_UPSTREAM_REPO_URL = "https://github.com/NousResearch/hermes-agent.git"
-_OFFICIAL_REPO_CANONICAL = "github.com/nousresearch/hermes-agent"
+_UPSTREAM_REPO_URL = "https://github.com/amirjundi/ettok-ai.git"
+_OFFICIAL_REPO_CANONICAL = "github.com/amirjundi/ettok-ai"
 
 
 def _canonical_github_remote(url: str | None) -> str:
@@ -214,6 +214,30 @@ def _is_full_sha(value: Optional[str]) -> bool:
 
 
 _compare_payload_cache: Dict[tuple, dict] = {}
+_origin_slug_cache: Optional[str] = None
+
+
+def _origin_repo_slug() -> str:
+    """``owner/name`` of the repo this checkout updates from.
+
+    Read from the origin remote rather than hardcoded, because a fork that
+    diverged on purpose -- as this one did -- is its own source of truth, and
+    asking the parent repository about commits that only exist in the fork
+    returns 404 rather than an answer. Falls back to the configured official repo
+    when origin is missing or is not on GitHub.
+    """
+    global _origin_slug_cache
+    if _origin_slug_cache is not None:
+        return _origin_slug_cache
+    slug = _OFFICIAL_REPO_CANONICAL.removeprefix("github.com/")
+    repo_dir = _quiet(_resolve_repo_dir)
+    if repo_dir is not None:
+        origin = _git_stdout(["remote", "get-url", "origin"], cwd=repo_dir, network=True)
+        canonical = _canonical_github_remote(origin)
+        if canonical.startswith("github.com/"):
+            slug = canonical.removeprefix("github.com/")
+    _origin_slug_cache = slug
+    return slug
 
 
 def _github_compare(current_rev: str, target_rev: str) -> Optional[dict]:
@@ -228,7 +252,7 @@ def _github_compare(current_rev: str, target_rev: str) -> Optional[dict]:
     key = (current_rev, target_rev)
     if key in _compare_payload_cache:
         return _compare_payload_cache[key]
-    url = f"https://api.github.com/repos/nousresearch/hermes-agent/compare/{current_rev}...{target_rev}"
+    url = f"https://api.github.com/repos/{_origin_repo_slug()}/compare/{current_rev}...{target_rev}"
 
     def _fetch():
         import urllib.request
@@ -348,10 +372,15 @@ def _check_via_local_git(repo_dir: Path) -> Optional[int]:
     if not head_rev:
         return None
     canonical = _canonical_github_remote(origin_url)
+    target_rev = None
     if canonical.startswith("github.com/"):
         target_rev = _github_branch_tip(canonical.removeprefix("github.com/"), "main")
-    else:
-        # Non-GitHub origin: one ls-remote for the tip (ref advertisement only, no pack transfer).
+    if target_rev is None:
+        # One ls-remote for the tip: ref advertisement only, no pack transfer, no
+        # auth, and not rate limited. This is the only path for a non-GitHub
+        # origin, and the fallback for a GitHub one whose API call came back
+        # empty -- which in practice means the 60-request hourly limit is spent,
+        # shared across everyone behind the same address.
         result = _git_run(["ls-remote", "origin", "refs/heads/main"], cwd=repo_dir, timeout=10, network=True)
         target_rev = result.stdout.split()[0] if result is not None and result.returncode == 0 and result.stdout else None
     global _last_target_rev

@@ -864,6 +864,9 @@ class TestCmdUpdateBranchFlag:
         assert "nonexistent" in out
 
 
+from hermes_cli.update_cmd_git import OFFICIAL_REPO_URL  # noqa: E402
+
+
 class TestCmdUpdateCheckBranchFlag:
     """``ettok update --check --branch <name>`` honors the branch override.
 
@@ -882,6 +885,7 @@ class TestCmdUpdateCheckBranchFlag:
         verify_ok: bool = True,
         commit_count: str = "0",
         upstream_fetch_ok: bool = True,
+        origin_url: str = "https://github.com/someone/their-fork.git",
     ):
         """Mock side-effect for the _cmd_update_check git pipeline.
 
@@ -892,10 +896,17 @@ class TestCmdUpdateCheckBranchFlag:
         - ``commit_count``       rev-list count (0 = up-to-date)
         - ``upstream_fetch_ok``  if False, ``git fetch upstream`` fails
                                  (forces fallback to origin on branch==main)
+        - ``origin_url``         what ``git remote get-url origin`` answers.
+                                 Decides whether this checkout counts as a fork,
+                                 which is what gates the upstream probe. Defaults
+                                 to a fork so the existing cases are unchanged.
         """
 
         def side_effect(cmd, **kwargs):
             joined = " ".join(str(c) for c in cmd)
+
+            if "remote" in joined and "get-url" in joined and "origin" in joined:
+                return subprocess.CompletedProcess(cmd, 0, stdout=origin_url + "\n", stderr="")
 
             if "fetch" in joined and "upstream" in joined:
                 rc = 0 if upstream_fetch_ok else 128
@@ -972,12 +983,18 @@ class TestCmdUpdateCheckBranchFlag:
 
     @patch("hermes_cli.config.detect_install_method", return_value="git")
     @patch("subprocess.run")
-    def test_check_default_main_still_prefers_upstream(
+    def test_check_default_main_still_prefers_upstream_on_a_fork(
         self, mock_run, _mock_method, capsys
     ):
-        """No --branch (or --branch=None) preserves the upstream-then-origin probe."""
+        """A real fork, with no --branch, keeps the upstream-then-origin probe.
+
+        The origin URL has to be supplied: the probe is conditional on actually
+        being a fork, and a mocked git that answers "" to `remote get-url origin`
+        is indistinguishable from an install whose origin is this project.
+        """
         mock_run.side_effect = self._check_side_effect(
-            target_branch="main", verify_ok=True, commit_count="0"
+            target_branch="main", verify_ok=True, commit_count="0",
+            origin_url="https://github.com/someone/their-fork.git",
         )
         args = SimpleNamespace(check=True, branch=None)
 
@@ -989,6 +1006,34 @@ class TestCmdUpdateCheckBranchFlag:
         # Compare ref is upstream/main (upstream fetch succeeded).
         rev_list_cmds = [c for c in commands if "rev-list" in c]
         assert any("upstream/main" in c for c in rev_list_cmds), rev_list_cmds
+
+    @patch("hermes_cli.config.detect_install_method", return_value="git")
+    @patch("subprocess.run")
+    def test_check_on_the_official_repo_never_probes_upstream(
+        self, mock_run, _mock_method, capsys
+    ):
+        """An install of this project compares against its own origin.
+
+        This is the bug the gate exists for. A checkout carrying a leftover
+        `upstream` remote -- which every install created by the old installer
+        does -- compared itself against the repository it deliberately diverged
+        from and reported hundreds of commits behind, on a checkout that was
+        perfectly current. The dashboard lit an update badge that could not be
+        cleared by updating.
+        """
+        mock_run.side_effect = self._check_side_effect(
+            target_branch="main", verify_ok=True, commit_count="0",
+            origin_url=OFFICIAL_REPO_URL,
+        )
+        args = SimpleNamespace(check=True, branch=None)
+
+        cmd_update(args)
+
+        commands = [" ".join(str(a) for a in c.args[0]) for c in mock_run.call_args_list]
+        assert not any("fetch" in c and "upstream" in c for c in commands), commands
+        rev_list_cmds = [c for c in commands if "rev-list" in c]
+        assert any("origin/main" in c for c in rev_list_cmds), rev_list_cmds
+        assert not any("upstream/main" in c for c in rev_list_cmds), rev_list_cmds
 
 
 class TestCmdUpdateZipBranchRefusal:

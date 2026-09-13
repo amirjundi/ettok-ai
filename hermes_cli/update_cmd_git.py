@@ -168,13 +168,26 @@ def _print_parked_branch_kept_notice(current_branch: str, target_branch: str, un
     )
 
 
+# The repository this agent updates from.
+#
+# It was NousResearch/hermes-agent, which made every Ettok checkout look like a
+# fork that had fallen behind its parent: `ettok update --check` compared against
+# Hermes and reported "764 commits behind", and the dashboard lit an update badge
+# that could never be cleared because those commits are not ones this project
+# wants. Ettok is a deliberate divergence -- the rebrand, the hate-speech plugin,
+# the collection safety rules -- and merging Hermes back over it would undo the
+# lot. Upstream is an ancestor, not a source of truth.
+#
+# Naming Ettok here is what makes `_is_fork()` answer False for an ordinary
+# install, which in turn stops the updater offering to add an `upstream` remote
+# on operator machines and stops it syncing with one.
 OFFICIAL_REPO_URLS = {
-    "https://github.com/NousResearch/hermes-agent.git",
-    "git@github.com:NousResearch/hermes-agent.git",
-    "https://github.com/NousResearch/hermes-agent",
-    "git@github.com:NousResearch/hermes-agent",
+    "https://github.com/amirjundi/ettok-ai.git",
+    "git@github.com:amirjundi/ettok-ai.git",
+    "https://github.com/amirjundi/ettok-ai",
+    "git@github.com:amirjundi/ettok-ai",
 }
-OFFICIAL_REPO_URL = "https://github.com/NousResearch/hermes-agent.git"
+OFFICIAL_REPO_URL = "https://github.com/amirjundi/ettok-ai.git"
 SKIP_UPSTREAM_PROMPT_FILE = ".skip_upstream_prompt"
 
 

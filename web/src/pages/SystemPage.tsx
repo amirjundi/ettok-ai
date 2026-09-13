@@ -546,7 +546,7 @@ export default function SystemPage() {
     setUpdateConfirmOpen(false);
     if (status?.can_update_hermes === false) {
       showToast(
-        "Hermes updates are managed outside this dashboard.",
+        "Ettok updates are managed outside this dashboard.",
         "success",
       );
       return;
@@ -662,7 +662,7 @@ export default function SystemPage() {
         open={canUpdateHermes && updateConfirmOpen}
         onCancel={() => setUpdateConfirmOpen(false)}
         onConfirm={() => void applyUpdate()}
-        title="Update Hermes?"
+        title="Update Ettok?"
         description={
           updateInfo && updateInfo.behind && updateInfo.behind > 0
             ? `This will run 'hermes update' (${updateInfo.update_command}) and pull ${updateInfo.behind} new commit${updateInfo.behind === 1 ? "" : "s"}. The gateway restarts when the update finishes; the current session keeps its prompt cache until then.`
@@ -846,7 +846,7 @@ export default function SystemPage() {
                 <div>{stats?.python_impl} {stats?.python_version}</div>
               </div>
               <div>
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">Hermes</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">Ettok</div>
                 <div className="flex items-center gap-2">
                   <span>v{stats?.hermes_version}</span>
                   {canUpdateHermes &&
@@ -1327,8 +1327,8 @@ export default function SystemPage() {
             </div>
             <ConfirmDialog
               open={!!importConfirmTarget}
-              title="Restore full Hermes backup?"
-              description={`This will overwrite your current Hermes configuration, skills, sessions, and data with the contents of ${backupImportLabel(importConfirmTarget)}. This cannot be undone.`}
+              title="Restore full Ettok backup?"
+              description={`This will overwrite your current Ettok configuration, skills, sessions, and data with the contents of ${backupImportLabel(importConfirmTarget)}. This cannot be undone.`}
               destructive
               confirmLabel="Restore"
               cancelLabel="Cancel"

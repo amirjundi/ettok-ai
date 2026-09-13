@@ -499,8 +499,17 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
     depth_args = ["--depth", "1"] if is_shallow else []
 
     # Probe locally for an 'upstream' remote before a network fetch non-forks always fail.
+    #
+    # Gated on _is_fork as well as on the remote existing. A checkout of this
+    # project is not a fork of anything it wants to track, but it may still carry
+    # an `upstream` remote left over from when it was one -- and on that remote
+    # alone the check compared against Hermes and reported hundreds of commits
+    # behind, every time, for an install that was perfectly current. An update
+    # check has to measure the distance to the code it would actually install.
     fetch_result = None
-    if branch == "main" and _git_run(git_cmd, ["remote", "get-url", "upstream"]).returncode == 0:
+    _origin_is_a_fork = _is_fork(_get_origin_url(git_cmd, _m().PROJECT_ROOT))
+    if (branch == "main" and _origin_is_a_fork
+            and _git_run(git_cmd, ["remote", "get-url", "upstream"]).returncode == 0):
         print("→ Fetching from upstream...")
         fetch_result = _git_run(git_cmd, ["fetch"] + depth_args + ["upstream", branch], network=True)
     if fetch_result is not None and fetch_result.returncode == 0:

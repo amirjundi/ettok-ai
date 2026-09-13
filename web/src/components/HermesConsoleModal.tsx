@@ -395,7 +395,7 @@ export function HermesConsoleModal({ open, onClose }: HermesConsoleModalProps) {
     setConnectionState("connecting");
     setConsoleProfile(profile || "current");
     hasReadyFrameRef.current = false;
-    writeLine(term, "\x1b[2mConnecting to Hermes Console...\x1b[0m");
+    writeLine(term, "\x1b[2mConnecting to Ettok Console...\x1b[0m");
 
     void (async () => {
       try {

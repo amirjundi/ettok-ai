@@ -215,7 +215,7 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
     typeof window !== "undefined" &&
     !window.__HERMES_SESSION_TOKEN__ &&
     !window.__HERMES_AUTH_REQUIRED__
-      ? "Session token unavailable. Open this page through `hermes dashboard`, not directly."
+      ? "Session token unavailable. Open this page through `ettok dashboard`, not directly."
       : null,
   );
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");

@@ -194,7 +194,7 @@ function MemoryProviderSetupHint({
     >
       <p className={isBlocked ? "text-destructive" : "text-muted-foreground"}>
         {needsDependencySetup
-          ? "Finish these setup steps before Hermes can activate this provider."
+          ? "Finish these setup steps before Ettok can activate this provider."
           : "Provider dependency setup completed."}
       </p>
 
@@ -924,7 +924,7 @@ export default function PluginsPage() {
                 target="_blank"
                 rel="noreferrer"
               >
-                {t.pluginsPage.catalogEmptyDocsLink ?? "Learn about Hermes plugins"}
+                {t.pluginsPage.catalogEmptyDocsLink ?? "Learn about Ettok plugins"}
               </a>
             </p>
           ) : (
