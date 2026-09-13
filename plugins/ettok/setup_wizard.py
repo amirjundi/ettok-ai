@@ -296,17 +296,29 @@ def _install_gateway_service() -> bool:
     import subprocess
     import sys
 
+    # Two things this got wrong, and both froze the wizard.
+    #
+    # `gateway install` asks up to three questions -- start now, start on login,
+    # and on Windows whether to open the UAC prompt. Captured output swallowed
+    # them and no stdin was attached, so it sat waiting for an answer nobody
+    # could give until the timeout. To the operator the wizard simply stopped.
+    #
+    # So: answer the first two with flags, and inherit stdio for whatever is
+    # left. The operator is sitting at a terminal -- they just typed y -- so a
+    # prompt they can see and answer is right, and the elevation prompt is a
+    # Windows dialog that has to be allowed through anyway.
+    _say()
     try:
         result = subprocess.run(
-            [sys.executable, '-m', 'hermes_cli.main', 'gateway', 'install'],
-            capture_output=True, text=True, encoding='utf-8', errors='replace',
-            timeout=180,
+            [sys.executable, '-m', 'hermes_cli.main', 'gateway', 'install',
+             '--start-now', '--start-on-login'],
+            timeout=600,
         )
-        if result.returncode == 0:
-            return True
-        detail = (result.stderr or result.stdout or '').strip().splitlines()
-        if detail:
-            _say('    ' + detail[-1][:160])
+        _say()
+        return result.returncode == 0
+    except subprocess.TimeoutExpired:
+        _say()
+        _say('    The install did not finish within ten minutes.')
         return False
     except Exception as exc:                          # noqa: BLE001
         _say(f'    {type(exc).__name__}: {exc}')
