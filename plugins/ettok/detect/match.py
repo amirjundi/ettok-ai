@@ -126,7 +126,20 @@ def match_terms(text: str, terms: list, *, groups_in_context: list) -> tuple:
         slug = (term.get('target_group_slug') or '').strip()
         if not term.get('is_explicit', True):
             # Context-dependent: only counts with its community in the post.
-            if slug and slug not in groups_in_context:
+            #
+            # A term with no group is the harder half. The field data has words
+            # -- "stinking", "dirty people", "you are infidels" -- reported
+            # against several communities at once, so no single group fits, and
+            # they are ordinary vocabulary everywhere else. Letting an empty
+            # slug through unconditionally made `is_explicit=False` a no-op on
+            # exactly the words that most need the gate: the curator marks the
+            # word context-dependent, and it goes on flagging every post.
+            #
+            # So an empty slug means "any monitored community", not "no gate".
+            if slug:
+                if slug not in groups_in_context:
+                    continue
+            elif not groups_in_context:
                 continue
 
         fired.append({

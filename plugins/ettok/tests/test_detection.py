@@ -237,3 +237,57 @@ def test_kurdish_orthography_survives_normalization():
     which would destroy Kurdish spelling and silently un-match every Kurdish term.
     """
     assert 'ئ' in normalize('ئێزیدی')
+
+
+# ---------------------------------------------------------------------------
+# Context-dependent terms that belong to no single community
+# ---------------------------------------------------------------------------
+#
+# The field data reports "stinking", "dirty people" and "you are infidels"
+# against several communities at once, so a curator cannot pick one target
+# group for them -- and they are ordinary vocabulary everywhere else.
+
+STINKING = 'گەنی'
+
+
+def _groupless(**over):
+    base = _term(
+        id=24, term=STINKING, target_group_slug='', is_explicit=False,
+        category='slur', severity_weight=5,
+    )
+    base.update(over)
+    return base
+
+
+def test_a_groupless_context_term_stays_quiet_off_topic():
+    """An ordinary insult under an unrelated post is not hate speech.
+
+    This is the regression: an empty target group used to skip the gate
+    entirely, so marking the term context-dependent changed nothing and the
+    word flagged every post that contained it.
+    """
+    know = FakeKnowledge(terms=[_groupless()], markers=MARKERS)
+    result = match_mod.evaluate(
+        {'text': f'الاكل هنا {STINKING}', 'parent_post_text': 'مطعم جديد في دهوك'},
+        know,
+    )
+    assert not result.matched, result.explain()
+
+
+def test_a_groupless_context_term_fires_when_a_community_is_the_subject():
+    know = FakeKnowledge(terms=[_groupless()], markers=MARKERS)
+    result = match_mod.evaluate(
+        {'text': f'هذول {STINKING}', 'parent_post_text': 'اخبار من سنجار عن الايزيدية'},
+        know,
+    )
+    assert result.matched
+    assert result.fired_terms[0]['term'] == STINKING
+
+
+def test_a_groupless_explicit_term_still_fires_anywhere():
+    """Closing the gate must not mute terms that are attacks on their own."""
+    know = FakeKnowledge(terms=[_groupless(is_explicit=True)], markers=MARKERS)
+    result = match_mod.evaluate(
+        {'text': f'هذول {STINKING}', 'parent_post_text': 'مطعم جديد في دهوك'}, know,
+    )
+    assert result.matched

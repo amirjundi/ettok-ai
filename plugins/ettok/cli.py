@@ -31,6 +31,7 @@ def register_cli(subparser) -> None:
     wizard.add_argument('--name', help='Name the administrator will see when approving')
 
     commands.add_parser('doctor', help='Check everything this agent needs in order to work')
+    commands.add_parser('eval', help='Run the gold set against the live lexicon')
     commands.add_parser('status', help='Show pairing, open cases and the delivery queue')
 
     outbox = commands.add_parser('outbox', help='Inspect or drain the delivery queue')
@@ -53,6 +54,7 @@ def handle_cli(args) -> int:
         'setup': _setup,
         'connect': _connect,
         'doctor': _doctor,
+        'eval': _eval,
         'status': _status,
         'outbox': _outbox,
         'schedule': _schedule,
@@ -61,7 +63,7 @@ def handle_cli(args) -> int:
     if handler is None:
         # No subcommand is how a new operator arrives here. Point at setup
         # rather than printing a list they have no basis for choosing from.
-        print('Usage: ettok {setup|connect|doctor|status|outbox|schedule}')
+        print('Usage: ettok {setup|connect|doctor|eval|status|outbox|schedule}')
         print()
         print('New here? Run:  ettok setup')
         return 1
@@ -236,6 +238,63 @@ def _doctor(args) -> int:
     failed = [label for label, ok, _ in checks if not ok]
     print('\n' + ('All checks passed.' if not failed else f'{len(failed)} check(s) failed.'))
     return 0 if not failed else 1
+
+
+def _eval(args) -> int:
+    """Score the live lexicon against the gold set.
+
+    `doctor` answers "can this agent run". This answers "would it be any good if
+    it did", which is a different question and the one that decides whether a
+    scan is worth starting. It fetches the real knowledge, so it measures what a
+    curator actually left in the database rather than a snapshot taken some time
+    ago.
+
+    Every case is a sentence from the focus group transcript or the survey, or a
+    false positive the vocabulary would produce. The failures are the output that
+    matters: each one names the sentence, what detection did, and why the case is
+    in the set at all.
+    """
+    from .detect import goldset
+
+    cfg = _load_config(args)
+    if not cfg.is_paired:
+        print('Not paired with a platform yet. Run:  ettok setup')
+        return 1
+
+    client = PlatformClient(cfg)
+    try:
+        know = knowledge_mod.fetch(client)
+    except Exception as exc:                                      # noqa: BLE001
+        print(f'Could not fetch the lexicon: {exc}')
+        return 1
+
+    markers = know.group_markers()
+    gated = sum(1 for values in markers.values() if values)
+    inert = [
+        t.get('name', '?') for t in know.tropes
+        if not (t.get('surface_forms') or []) and not t.get('is_visual')
+    ]
+    bare = [t['term'] for t in know.terms if not t.get('never_flag_when')]
+
+    report = goldset.run(know)
+    print(f'{len(know.terms)} terms, {len(know.tropes)} tropes, '
+          f'{gated} communities with a topic gate')
+    print(goldset.describe(report))
+
+    # Curation debt, reported whether or not the gold set passed: the gold set
+    # only covers the communities it has sentences for, and silence about the
+    # others would read as a clean bill of health.
+    if inert:
+        print(f'\n{len(inert)} active trope(s) cannot fire -- no surface forms:')
+        for name in inert:
+            print(f'  - {name}')
+    if bare:
+        print(f'\n{len(bare)} term(s) carry no exemptions, so nothing '
+              f'downstream is told what would make a match legitimate:')
+        for term in bare[:10]:
+            print(f'  - {term}')
+
+    return 0 if not report['failures'] else 1
 
 
 def _status(args) -> int:
