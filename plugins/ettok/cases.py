@@ -73,6 +73,11 @@ class CaseWork:
     budget: Budget = field(default_factory=Budget)
     suggests_closing: bool = False
     trigger: str = ''
+    # Whether the platform says this case is ready for another run, and when it
+    # next will be. Defaults to True so a platform too old to send the field
+    # behaves as it always did rather than going silent.
+    due: bool = True
+    next_scan_at: str = ''
 
     @classmethod
     def from_payload(cls, payload: dict) -> 'CaseWork':
@@ -87,6 +92,8 @@ class CaseWork:
             budget=Budget(remaining_usd=limits.get('cost_remaining_usd')),
             suggests_closing=bool(payload.get('suggests_closing')),
             trigger=payload.get('trigger', ''),
+            due=bool(payload.get('due', True)),
+            next_scan_at=payload.get('next_scan_at') or '',
         )
 
     @property
@@ -125,21 +132,38 @@ class CaseWork:
 
 
 def pick(knowledge, *, case_id: Optional[int] = None) -> Optional[CaseWork]:
-    """Choose the case to work.
+    """Choose the case to work, and let the others have a turn.
 
     Only runnable cases reach the agent -- the platform filters out anything past
     its deadline or budget -- so this picks among cases that are already allowed
     to run rather than re-deciding whether they should.
+
+    Cases not yet due are skipped. Without that, sorting by state alone meant the
+    same case won every single run: two active cases, and the second was never
+    scanned once, while the dashboard showed both as monitored. A case is due
+    when it has never been scanned, or when its own interval has elapsed since
+    the last finished run -- the platform decides which, and says so.
+
+    Among the cases that are due, a live campaign still outranks a watch on a
+    quiet one; the tiebreak is whichever has waited longest, so equals rotate
+    instead of one of them starving.
     """
     cases = [CaseWork.from_payload(c) for c in (knowledge.cases or [])]
     if not cases:
         return None
     if case_id is not None:
+        # An explicit request is an operator asking for this case now, which
+        # outranks the rota.
         return next((c for c in cases if c.case_id == case_id), None)
-    # Active before cooling before dormant: a live campaign is worth more of a
-    # limited run than a watch on a quiet one.
+
+    due = [c for c in cases if c.due]
+    if not due:
+        return None
+
     order = {'active': 0, 'reactivated': 0, 'cooling': 1, 'dormant': 2}
-    return sorted(cases, key=lambda c: order.get(c.state, 3))[0]
+    # An empty next_scan_at means never scanned, which should go first; the
+    # empty string sorts before any ISO timestamp, so it does.
+    return sorted(due, key=lambda c: (order.get(c.state, 3), c.next_scan_at))[0]
 
 
 def start_run(conn, case: Optional[CaseWork], knowledge) -> int:

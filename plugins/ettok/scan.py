@@ -205,6 +205,10 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         outbox_mod.enqueue(conn, 'flagged-items/', {'items': findings})
 
     outbox_mod.enqueue(conn, 'scan-log/', {
+        # The case this run worked. It is what lets the platform stamp the case
+        # as scanned and move it to the back of the queue; without it every case
+        # stays permanently due and the highest-priority one takes every run.
+        'case_id': case.case_id if case is not None else None,
         'platforms_browsed': sorted({f['platform'] for f in findings}) or [],
         'posts_scanned': summary['scanned'],
         'items_flagged': summary['flagged'],
