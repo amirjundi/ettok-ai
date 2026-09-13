@@ -156,6 +156,12 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             summary['match_only'] += 1
 
         findings.append({
+            # The case and the hash travel with the finding so the platform can
+            # file it against the right case and recognise it again on a later
+            # scan. The agent already knows both -- it just never said so, which
+            # left the platform unable to answer "what has this case gathered".
+            'case_id': case.case_id if case is not None else None,
+            'content_hash': digest,
             'platform': item['platform'] or 'unknown',
             'url': item['url'],
             'text': item['text'],
