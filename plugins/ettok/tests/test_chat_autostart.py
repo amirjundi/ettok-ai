@@ -151,3 +151,62 @@ def test_a_short_key_counts_as_no_key():
 
         env_path.return_value.read_text.return_value = 'API_SERVER_KEY=' + 'x' * 40 + '\n'
         assert plugin_api._has_api_server_key() is True
+
+
+REAL_FAILURE_LOG = """2026-09-13 21:47:39,483 WARNING gateway.run: No env user allowlists configured.
+2026-09-13 21:47:39,821 ERROR gateway.platforms.api_server: [Api_Server] Refusing to start: API_SERVER_KEY is required for the API server, including loopback-only binds on 127.0.0.1.
+2026-09-13 21:47:39,838 WARNING gateway.run: api_server failed to connect
+2026-09-13 21:47:39,858 ERROR gateway.run: Gateway hit a non-retryable startup conflict
+2026-09-13 21:47:40,183 WARNING tools.registry: check_fn _a2a_tools_available returned False; dependent tools will be unavailable this turn
+"""
+
+
+def _with_log(tmp_path, text):
+    log = tmp_path / 'gw.log'
+    log.write_text(text, encoding='utf-8')
+    return mock.patch.object(api, '_gateway_log_path', return_value=log)
+
+
+def test_the_gateways_own_reason_is_extracted(tmp_path):
+    """Taken from a real failing machine. The operator saw only "not running";
+    the gateway had said exactly what was wrong and it went in the bin."""
+    with _with_log(tmp_path, REAL_FAILURE_LOG):
+        reason = api._gateway_failure_reason()
+
+    assert 'API_SERVER_KEY is required' in reason
+    # The cause, not the consequence two lines later.
+    assert 'non-retryable' not in reason
+
+
+def test_the_tool_registry_noise_is_ignored(tmp_path):
+    """Every gateway start logs a page of these. Burying the one real error in
+    them is how it went unread the first time."""
+    noise = '\n'.join(
+        f'2026-09-13 21:47:40 WARNING tools.registry: check_fn _c{i} returned False'
+        for i in range(20)
+    )
+    with _with_log(tmp_path, noise):
+        assert api._gateway_failure_reason() == ''
+
+
+def test_a_clean_log_yields_no_reason(tmp_path):
+    with _with_log(tmp_path, 'starting\nlistening on 8642\n'):
+        assert api._gateway_failure_reason() == ''
+
+
+def test_a_missing_log_is_not_an_error(tmp_path):
+    with mock.patch.object(api, '_gateway_log_path', return_value=tmp_path / 'absent.log'):
+        assert api._gateway_failure_reason() == ''
+
+
+def test_a_refusal_is_reported_rather_than_a_silent_failure(tmp_path):
+    """The whole point: attempted, did not come up, and here is why."""
+    with _with_log(tmp_path, REAL_FAILURE_LOG), \
+         mock.patch.object(api, '_gateway_is_up', return_value=False), \
+         mock.patch.object(api, '_configure_api_server', return_value=(True, 'ok')), \
+         mock.patch.object(api, '_spawn_gateway', return_value=True), \
+         mock.patch('time.sleep'):
+        result = api._ensure_chat_backend()
+
+    assert result['started'] is False
+    assert 'API_SERVER_KEY is required' in result['failure']

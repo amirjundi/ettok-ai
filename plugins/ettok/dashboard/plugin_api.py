@@ -306,7 +306,62 @@ def _ensure_chat_backend() -> dict:
 
     started = _spawn_gateway()
     log.info('ettok: chat gateway %s', 'started' if started else 'could not be started')
+
+    # A gateway that refuses to start does so within a second or two, so a short
+    # wait is the difference between reporting "starting..." forever and
+    # reporting the actual reason. Long enough to catch a refusal, short enough
+    # that a page load does not feel stalled.
+    if started:
+        import time
+        for _ in range(12):
+            time.sleep(0.5)
+            if _gateway_is_up():
+                break
+        else:
+            reason = _gateway_failure_reason()
+            if reason:
+                return {'attempted': True, 'configured': detail,
+                        'started': False, 'failure': reason}
+
     return {'attempted': True, 'configured': detail, 'started': started}
+
+
+def _gateway_log_path():
+    """Where a gateway started by the dashboard writes its startup output."""
+    from hermes_constants import get_hermes_home
+    from pathlib import Path
+
+    return Path(get_hermes_home()) / 'logs' / 'ettok-chat-gateway.log'
+
+
+def _gateway_failure_reason() -> str:
+    """The line that explains why the gateway is not up, or ''.
+
+    Only the lines that say something: the gateway logs a page of "dependent
+    tools will be unavailable this turn" warnings on every start, and burying
+    the one real error in those is how it went unread the first time.
+    """
+    try:
+        text = _gateway_log_path().read_text(encoding='utf-8', errors='replace')
+    except Exception:                                 # noqa: BLE001
+        return ''
+
+    interesting = [
+        line.strip() for line in text.splitlines()
+        if ('ERROR' in line or 'Refusing to start' in line
+            or 'non-retryable' in line or 'failed to connect' in line)
+        and 'tools.registry' not in line
+    ]
+    if not interesting:
+        return ''
+    # The first error is the cause; the ones after it are usually consequences.
+    reason = interesting[0]
+    # Strip the logger preamble, which is noise to a reader in a browser.
+    for marker in (': ', ' - '):
+        if marker in reason and reason.index(marker) < 80:
+            reason = reason.split(marker, 1)[1]
+            break
+    return reason[:400]
 
 
 def _has_api_server_key() -> bool:
@@ -391,9 +446,17 @@ def _spawn_gateway() -> bool:
     import sys
 
     try:
+        # Into a log, not into DEVNULL. The gateway explains itself perfectly
+        # well when it refuses to start -- "API_SERVER_KEY is required", "port
+        # already in use" -- and discarding that left the operator with "the
+        # gateway is not running" and nowhere to look. The reason is the whole
+        # value of the message.
+        log_path = _gateway_log_path()
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        handle = open(log_path, 'w', encoding='utf-8', errors='replace')
         kwargs = {'stdin': subprocess.DEVNULL,
-                  'stdout': subprocess.DEVNULL,
-                  'stderr': subprocess.DEVNULL}
+                  'stdout': handle,
+                  'stderr': subprocess.STDOUT}
         if sys.platform == 'win32':
             # Detached, and without a console window appearing over the user's
             # browser.
@@ -474,12 +537,15 @@ def chat_health() -> dict:
             'status': response.status_code,
         }
     except Exception as exc:                          # noqa: BLE001
+        # If it was tried and refused, its own words beat anything written here.
+        failure = _gateway_failure_reason()
         return {
             'available': False,
             'url': url,
-            'reason': str(exc),
+            'reason': failure or str(exc),
             'configured': _api_server_configured(),
-            'hint': _not_running_hint(),
+            'hint': (f'The gateway refused to start: {failure}'
+                     if failure else _not_running_hint()),
         }
 
 
