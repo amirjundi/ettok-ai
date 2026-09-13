@@ -38,6 +38,13 @@ DEFAULT_EXTRACTORS = {
         'comment': '[role="article"] [role="article"]',
         'author': 'a[role="link"] span',
         'text': '[dir="auto"]',
+        # The author's profile link, which is where a stable account id lives.
+        # A display name is not an identity: names change and repeat.
+        'author_link': 'a[role="link"][href*="/"]',
+        # A comment's own permalink, usually its timestamp. Without it every
+        # comment on a page cites the same URL and none can be reached again
+        # after the page moves on.
+        'permalink': 'a[href*="comment_id"], a[href*="/posts/"], a[href*="permalink"]',
     },
 }
 
@@ -51,13 +58,21 @@ _EXTRACT_JS = """
     const text = (node.innerText || '').trim();
     if (!text) return;
     const authorEl = node.querySelector(sel.author);
+    const authorLink = sel.author_link ? node.querySelector(sel.author_link) : null;
+    const permalink = sel.permalink ? node.querySelector(sel.permalink) : null;
     out.push({
       text: text.slice(0, 2000),
       author_name: authorEl ? (authorEl.innerText || '').trim().slice(0, 200) : '',
+      author_href: authorLink ? (authorLink.href || '') : '',
+      permalink: permalink ? (permalink.href || '') : '',
       index: i,
     });
   });
-  return JSON.stringify({ parent_post_text: postText, comments: out.slice(0, 200) });
+  return JSON.stringify({
+    parent_post_text: postText,
+    parent_post_url: location.href,
+    comments: out.slice(0, 200),
+  });
 })()
 """
 
@@ -206,6 +221,11 @@ class BrowserCollector:
             return []
 
         parent = (blob.get('parent_post_text') or '').strip()
+        # The page the comments hang under. This is the grouping key for
+        # every per-post question -- how many comments were scanned here,
+        # how many were findings -- so it has to be the same string for
+        # every comment on the page.
+        parent_url = _clean_url(blob.get('parent_post_url') or '') or url
         items = []
         for comment in blob.get('comments', []):
             text = (comment.get('text') or '').strip()
@@ -217,10 +237,18 @@ class BrowserCollector:
                 # replies to cannot be judged for context-dependent hate.
                 'parent_post_text': parent,
                 'parent_media_text': '',
-                'url': url,
+                # The comment's own permalink where the page offered one, and
+                # the page URL otherwise. Evidence has to be reachable again
+                # after the feed has moved on, and a page URL shared by two
+                # hundred comments cannot single one out.
+                'url': _clean_url(comment.get('permalink') or '') or url,
+                'parent_post_url': parent_url or url,
                 'platform': self.platform,
                 'author_name': (comment.get('author_name') or '').strip(),
-                'author_id': '',
+                'author_id': author_id_from_href(
+                    comment.get('author_href') or '', self.platform,
+                ),
+                'author_url': _clean_url(comment.get('author_href') or ''),
             })
         return items
 
@@ -235,3 +263,85 @@ COLLECTORS = {'facebook': FacebookCollector}
 def for_platform(ctx, platform: str, **kwargs) -> Optional[BrowserCollector]:
     collector = COLLECTORS.get((platform or '').lower())
     return collector(ctx, **kwargs) if collector else None
+
+
+# Identity is the anchor for everything about repeat offenders, and a display
+# name is not one: names change, and two people share one readily. The stable
+# handle is in the profile link, so that is what is turned into an id.
+#
+# The normalisation below is deliberately conservative. It returns '' rather
+# than a guess, because a wrong id is worse than a missing one -- it merges two
+# people into one account history, and that history is what an advocacy report
+# or a platform referral would be built on.
+
+_TRACKING_PARAMS = ('__cft__', '__tn__', 'fref', 'refid', 'eav', 'hc_ref', 'rdid')
+
+
+def _clean_url(href: str) -> str:
+    """Drop the tracking parameters social platforms staple onto every link.
+
+    Left in, the same profile yields a different string on every page load and
+    no two findings ever look like the same person.
+    """
+    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+    if not href:
+        return ''
+    try:
+        parts = urlsplit(href.strip())
+    except ValueError:
+        return ''
+    kept = [
+        (key, value) for key, value in parse_qsl(parts.query)
+        if key not in _TRACKING_PARAMS
+    ]
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(kept), ''))
+
+
+def author_id_from_href(href: str, platform: str = '') -> str:
+    """A stable account id from a profile link, or '' when there isn't one.
+
+    Facebook exposes two shapes -- a numeric id behind `profile.php?id=` or a
+    vanity path -- and inside a group the member link carries the numeric id
+    after `/user/`. All three reduce to one token so the same person recognised
+    through different link shapes is one account.
+    """
+    from urllib.parse import parse_qs, urlsplit
+
+    cleaned = _clean_url(href)
+    if not cleaned:
+        return ''
+
+    try:
+        parts = urlsplit(cleaned)
+    except ValueError:
+        return ''
+
+    # A real link, or nothing. Without this a stray string becomes a path and
+    # its first word becomes an account id -- which is the wrong-id failure this
+    # function exists to avoid, arriving through the front door.
+    if not parts.netloc:
+        return ''
+
+    prefix = (platform or '').strip().lower()[:2] or 'xx'
+    segments = [s for s in parts.path.split('/') if s]
+
+    numeric = parse_qs(parts.query).get('id', [''])[0].strip()
+    if numeric.isdigit():
+        return f'{prefix}:{numeric}'
+
+    # .../groups/<group>/user/<id>/ -- the group member link.
+    if 'user' in segments:
+        index = segments.index('user')
+        if index + 1 < len(segments) and segments[index + 1].isdigit():
+            return f'{prefix}:{segments[index + 1]}'
+
+    # A vanity path: the first segment, unless it is a route rather than a name.
+    routes = {
+        'groups', 'photo', 'photo.php', 'permalink.php', 'story.php', 'watch',
+        'reel', 'posts', 'p', 'share', 'video.php', 'events', 'pages',
+    }
+    if segments and segments[0].lower() not in routes and '.php' not in segments[0]:
+        return f'{prefix}:{segments[0].lower()}'
+
+    return ''

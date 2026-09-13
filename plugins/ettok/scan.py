@@ -60,6 +60,38 @@ def remember(conn, digest: str) -> None:
     conn.commit()
 
 
+def _finding(item: dict, result, verdict, case, digest: str) -> dict:
+    """One submission row, for a finding or for the context around it.
+
+    `verdict` is None for a comment that matched nothing: there is no judgement
+    to report, and an empty `why_flagged` is how the platform recognises the row
+    as context rather than a finding.
+
+    The account fields are what make a repeat offender visible across posts and
+    weeks, and `parent_post_url` is what groups comments by the post they hang
+    under. A display name is not an identity -- names change, and two people
+    share one -- so `author_id` carries the stable handle from the profile link
+    and is empty rather than guessed when the page did not offer one.
+    """
+    return {
+        # The case and the hash travel with every row so the platform can file
+        # it against the right case and recognise it again on a later scan.
+        'case_id': case.case_id if case is not None else None,
+        'content_hash': digest,
+        'platform': item['platform'] or 'unknown',
+        'url': item['url'],
+        'parent_post_url': item.get('parent_post_url', '') or '',
+        'text': item['text'],
+        'parent_post_text': item['parent_post_text'],
+        'parent_media_text': item['parent_media_text'],
+        'author_name': item['author_name'],
+        'author_id': item.get('author_id', '') or '',
+        'author_url': item.get('author_url', '') or '',
+        'why_flagged': result.explain() if result.matched else '',
+        'agent_verdict': verdict.as_payload(result) if verdict is not None else {},
+    }
+
+
 def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool = True) -> dict:
     """Work one batch of items under one case.
 
@@ -136,7 +168,16 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             summary['errors'].append(f'match failed: {exc}')
             continue
 
+        # Unmatched comments are kept and submitted too. They cost nothing to
+        # collect -- they were already fetched, read and hashed -- and without
+        # them the platform has findings but no denominator, so it can say "nine
+        # findings" and never "nine out of four hundred comments", which is the
+        # number that says whether a post is a pile-on or an ordinary thread.
+        #
+        # Only findings go on to classification, so the expensive tier is
+        # unchanged.
         if not result.matched:
+            findings.append(_finding(item, result, None, case, digest))
             continue
         summary['flagged'] += 1
 
@@ -157,23 +198,7 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             verdict = classify_mod.from_match_only(result, know.versions)
             summary['match_only'] += 1
 
-        findings.append({
-            # The case and the hash travel with the finding so the platform can
-            # file it against the right case and recognise it again on a later
-            # scan. The agent already knows both -- it just never said so, which
-            # left the platform unable to answer "what has this case gathered".
-            'case_id': case.case_id if case is not None else None,
-            'content_hash': digest,
-            'platform': item['platform'] or 'unknown',
-            'url': item['url'],
-            'text': item['text'],
-            'parent_post_text': item['parent_post_text'],
-            'parent_media_text': item['parent_media_text'],
-            'author_name': item['author_name'],
-            'author_id': item['author_id'],
-            'why_flagged': result.explain(),
-            'agent_verdict': verdict.as_payload(result),
-        })
+        findings.append(_finding(item, result, verdict, case, digest))
 
     # --- delivery: queued first, sent second ------------------------------
     if findings:
