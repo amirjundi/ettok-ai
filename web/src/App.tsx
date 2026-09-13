@@ -611,12 +611,30 @@ export default function App() {
               >
                 <PluginSlot name="header-left" />
 
+                <img
+                  src="/ettok-mark.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-9 w-auto shrink-0 select-none"
+                  draggable={false}
+                />
+
                 <Typography className="font-bold text-[1.125rem] leading-[0.95] tracking-[0.0525rem] text-midground uppercase">
-                  Hermes
+                  Ettok
                   <br />
-                  Agent
+                  AI
                 </Typography>
               </div>
+
+              {collapsed && (
+                <img
+                  src="/ettok-mark.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="hidden lg:block h-8 w-auto shrink-0 select-none"
+                  draggable={false}
+                />
+              )}
 
               <Button
                 ghost

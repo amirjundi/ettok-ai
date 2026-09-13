@@ -440,7 +440,7 @@ export default function ChannelsPage() {
                     </a>
                   </div>
                   <p className="text-xs">
-                    You can leave allowed users blank. Hermes will then send new DM
+                    You can leave allowed users blank. Ettok will then send new DM
                     users a code that you approve from the Pairing page.
                   </p>
                 </div>
@@ -957,7 +957,7 @@ function WhatsAppOnboardingPanel({
 
               {phase === "waiting" && (
                 <div className="text-xs text-muted-foreground">
-                  After saving, unknown DMs use Hermes pairing codes unless their
+                  After saving, unknown DMs use Ettok pairing codes unless their
                   number is already allowed.
                 </div>
               )}
@@ -1266,7 +1266,7 @@ function TelegramOnboardingPanel({
         </span>
         <span className="text-xs text-muted-foreground">
           Both options connect a bot you control and save its credentials only to
-          this Hermes installation.
+          this Ettok installation.
         </span>
       </div>
 
@@ -1279,7 +1279,7 @@ function TelegramOnboardingPanel({
             <Badge tone="success">recommended</Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            Scan a QR code and confirm in Telegram. Hermes creates the bot and
+            Scan a QR code and confirm in Telegram. Ettok creates the bot and
             detects your Telegram user ID automatically.
           </p>
           <Button
