@@ -68,9 +68,26 @@ _EXTRACT_JS = """
       index: i,
     });
   });
+  // Does the post carry an image worth describing? Avatars, reaction icons and
+  // tracking pixels are everywhere on a social page, so size is the filter: a
+  // post image is displayed large, a profile picture is not.
+  let mediaCount = 0;
+  if (post) {
+    post.querySelectorAll('img').forEach((im) => {
+      // Rendered size where the image has painted, intrinsic size where it has
+      // not: a feed lazy-loads, so an image below the fold measures 0x0 by
+      // rect while naturalWidth is already correct. Either one counts.
+      const r = im.getBoundingClientRect();
+      const w = Math.max(r.width, im.naturalWidth || 0);
+      const h = Math.max(r.height, im.naturalHeight || 0);
+      if (w >= 120 && h >= 120) mediaCount += 1;
+    });
+    mediaCount += post.querySelectorAll('video').length;
+  }
   return JSON.stringify({
     parent_post_text: postText,
     parent_post_url: location.href,
+    parent_media_count: mediaCount,
     comments: out.slice(0, 200),
   });
 })()
@@ -197,6 +214,63 @@ class BrowserCollector:
         result.items = self._extract(url, page_text)
         return result
 
+    # A factual description, capped. Long enough for a flag, a gesture and a
+    # line of meme text; short enough that it cannot crowd the comment out of
+    # the classifier's prompt.
+    _MEDIA_DESCRIPTION_LIMIT = 900
+
+    _MEDIA_QUESTION = (
+        'Describe only what is visibly present in the main image or video of this '
+        'post: people, objects, gestures, flags, religious symbols, animals, and '
+        'any text that appears inside the image. Transcribe image text verbatim in '
+        'its original language and script; do not translate it. Report what is '
+        'shown, not what it might mean -- do not interpret intent, do not say '
+        'whether it is offensive, and do not draw a conclusion about the people '
+        'depicted.'
+    )
+
+    def _describe_media(self, media_count: int) -> str:
+        """What the post's image shows, as text the rest of the pipeline can read.
+
+        A quarter of the active trope catalogue is visual -- donkey memes carrying
+        the Assyrian flag, desecration video, doctored images of clergy. The
+        matcher reads text, so every one of those tropes matches nothing at all,
+        and the run reports a clean page. This is the only place the image can
+        enter the pipeline: `parent_media_text` is already carried on every item
+        and already read by the classifier prompt, and was only ever filled with
+        an empty string.
+
+        Deliberately a description and not a judgement. The classifier decides,
+        with the comment and the post in front of it and the exemption list
+        applied; a describer that pre-judged would smuggle a verdict past all of
+        that. It is also why the description is of the POST, not the comment:
+        the image is the context a reply is made against.
+
+        Returns '' whenever anything is missing -- no media, no vision model, a
+        failed call -- which is exactly the behaviour before this existed.
+        """
+        if media_count <= 0:
+            return ''
+        try:
+            answer = self._call('browser_vision', {
+                'question': self._MEDIA_QUESTION, 'annotate': False,
+            })
+        except Exception:
+            log.debug('ettok: media description unavailable', exc_info=True)
+            return ''
+
+        if not isinstance(answer, dict):
+            return ''
+        # The aux-vision path returns its text under `analysis`. A native-vision
+        # model attaches the screenshot to a conversation instead and returns no
+        # text, which is useless here: the collector is not a model turn, and
+        # there is no next turn to inspect it. Treat that as no description
+        # rather than inventing one.
+        text = (answer.get('analysis') or '').strip()
+        if not text:
+            return ''
+        return text[:self._MEDIA_DESCRIPTION_LIMIT]
+
     def _extract(self, url: str, page_text: str) -> list:
         """Pull comments and their parent post out of the loaded page."""
         selectors = self._selectors or self._extractors.get(self.platform)
@@ -221,6 +295,7 @@ class BrowserCollector:
             return []
 
         parent = (blob.get('parent_post_text') or '').strip()
+        media = self._describe_media(int(blob.get('parent_media_count') or 0))
         # The page the comments hang under. This is the grouping key for
         # every per-post question -- how many comments were scanned here,
         # how many were findings -- so it has to be the same string for
@@ -236,7 +311,7 @@ class BrowserCollector:
                 # Carried on every item, because a comment without the post it
                 # replies to cannot be judged for context-dependent hate.
                 'parent_post_text': parent,
-                'parent_media_text': '',
+                'parent_media_text': media,
                 # The comment's own permalink where the page offered one, and
                 # the page URL otherwise. Evidence has to be reachable again
                 # after the feed has moved on, and a page URL shared by two

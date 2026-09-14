@@ -30,9 +30,10 @@ def home(monkeypatch):
 class FakeCtx:
     """A browser that returns whatever the test says the page contains."""
 
-    def __init__(self, page_text='', extracted=None):
+    def __init__(self, page_text='', extracted=None, media_analysis=None):
         self.page_text = page_text
         self.extracted = extracted
+        self.media_analysis = media_analysis
         self.calls = []
 
     def dispatch_tool(self, tool, args, **kwargs):
@@ -42,6 +43,8 @@ class FakeCtx:
         if tool == 'browser_console':
             return json.dumps({'result': json.dumps(self.extracted or {})})
         if tool == 'browser_vision':
+            if 'Describe only what is visibly present' in (args or {}).get('question', ''):
+                return json.dumps({'success': True, 'analysis': self.media_analysis})                     if self.media_analysis is not None else json.dumps({'success': False})
             return json.dumps({'image_b64': ''})
         return json.dumps({'ok': True})
 
@@ -246,3 +249,99 @@ def test_pacing_is_randomised(home):
     """A constant delay is as distinctive a signature as none, only slower."""
     delays = {round(NoWait(min_seconds=1, max_seconds=5).wait(), 6) for _ in range(20)}
     assert len(delays) > 1
+
+
+# ---------------------------------------------------------------------------
+# The post's image, which a quarter of the trope catalogue is about
+# ---------------------------------------------------------------------------
+
+def test_a_post_image_is_described_onto_every_comment(home):
+    """Five of nineteen active tropes are visual -- donkey memes carrying the
+    Assyrian flag, desecration video, doctored images of clergy. The matcher
+    reads text, so unless the image becomes text it matches nothing and the run
+    reports a clean page."""
+    ctx = FakeCtx(
+        page_text='ordinary page',
+        extracted={
+            'parent_post_text': 'منشور',
+            'parent_media_count': 1,
+            'comments': [{'text': 'تعليق اول'}, {'text': 'تعليق ثاني'}],
+        },
+        media_analysis='A donkey photographed beside a flag with a winged sun emblem.',
+    )
+    result = collect_mod.FacebookCollector(ctx, pacer=NoWait()).collect('https://facebook.com/p')
+
+    assert len(result.items) == 2
+    for item in result.items:
+        assert 'donkey' in item['parent_media_text']
+        assert 'winged sun' in item['parent_media_text']
+
+
+def test_a_post_without_an_image_costs_no_vision_call(home):
+    """One aux-vision call per page is affordable; one per text-only page is
+    a bill for nothing."""
+    ctx = FakeCtx(
+        page_text='ordinary page',
+        extracted={'parent_post_text': 'منشور', 'parent_media_count': 0,
+                   'comments': [{'text': 'تعليق'}]},
+        media_analysis='should never be asked for',
+    )
+    result = collect_mod.FacebookCollector(ctx, pacer=NoWait()).collect('https://facebook.com/p')
+
+    assert result.items[0]['parent_media_text'] == ''
+    # browser_vision is still called once for the evidence screenshot; what must
+    # not happen is a second call to describe an image that is not there.
+    assert ctx.calls.count('browser_vision') <= 1
+
+
+def test_no_vision_model_degrades_to_the_old_behaviour(home):
+    """A missing or failed vision model must not lose the comments. Collection
+    reporting nothing is the failure this whole project exists to avoid."""
+    ctx = FakeCtx(
+        page_text='ordinary page',
+        extracted={'parent_post_text': 'منشور', 'parent_media_count': 2,
+                   'comments': [{'text': 'تعليق'}]},
+        media_analysis=None,        # the aux vision call comes back unusable
+    )
+    result = collect_mod.FacebookCollector(ctx, pacer=NoWait()).collect('https://facebook.com/p')
+
+    assert len(result.items) == 1
+    assert result.items[0]['parent_media_text'] == ''
+    assert result.items[0]['text'] == 'تعليق'
+
+
+def test_a_description_cannot_crowd_out_the_comment(home):
+    ctx = FakeCtx(
+        page_text='ordinary page',
+        extracted={'parent_post_text': 'منشور', 'parent_media_count': 1,
+                   'comments': [{'text': 'تعليق'}]},
+        media_analysis='x' * 5000,
+    )
+    result = collect_mod.FacebookCollector(ctx, pacer=NoWait()).collect('https://facebook.com/p')
+    described = result.items[0]['parent_media_text']
+    assert len(described) == collect_mod.FacebookCollector._MEDIA_DESCRIPTION_LIMIT
+
+
+def test_the_describer_is_asked_to_report_not_to_judge(home):
+    """The classifier judges, with the comment, the post and the exemption list
+    in front of it. A describer that pre-judged would smuggle a verdict past all
+    of that."""
+    asked = {}
+
+    class Recording(FakeCtx):
+        def dispatch_tool(self, tool, args, **kwargs):
+            if tool == 'browser_vision' and 'Describe' in (args or {}).get('question', ''):
+                asked['question'] = args['question']
+            return super().dispatch_tool(tool, args, **kwargs)
+
+    ctx = Recording(
+        page_text='ordinary page',
+        extracted={'parent_post_text': 'منشور', 'parent_media_count': 1,
+                   'comments': [{'text': 'تعليق'}]},
+        media_analysis='a flag',
+    )
+    collect_mod.FacebookCollector(ctx, pacer=NoWait()).collect('https://facebook.com/p')
+
+    question = asked.get('question', '')
+    assert 'do not interpret intent' in question.lower()
+    assert 'verbatim' in question.lower()

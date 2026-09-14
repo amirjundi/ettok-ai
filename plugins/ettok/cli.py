@@ -228,15 +228,34 @@ def _doctor(args) -> int:
         else:
             try:
                 know = knowledge_mod.fetch(client)
-                ungated = sum(
-                    1 for t in know.tropes
-                    if t.get('requires_target_group') and not (t.get('activation_topics') or [])
-                )
                 check('knowledge fetch', True,
                       f'{len(know.terms)} terms, {len(know.tropes)} tropes, {len(know.cases)} cases')
+
+                # Two different problems that both look like "a trope that never
+                # fires", and conflating them sends the operator to the wrong
+                # person. A text trope with no activation gate is curation debt.
+                # A visual trope has nothing to curate: the matcher reads text,
+                # so it cannot fire until an image description reaches it.
+                visual = [t for t in know.tropes
+                          if t.get('is_visual') and not (t.get('surface_forms') or [])]
+                ungated = [
+                    t for t in know.tropes
+                    if not t.get('is_visual')
+                    and t.get('requires_target_group')
+                    and not (t.get('activation_topics') or [])
+                ]
+                if visual:
+                    share = f'{len(visual)} of {len(know.tropes)}'
+                    print(f'        note: {share} trope(s) are visual -- memes, desecration '
+                          f'video, doctored images. They match nothing until the collector '
+                          f'describes the post image, so this share of the catalogue is '
+                          f'currently inert:')
+                    for t in visual[:6]:
+                        print(f'          - {t.get("name", "?")}')
                 if ungated:
-                    print(f'        note: {ungated} trope(s) have no activation gate yet, so '
-                          f'context-dependent detection is limited until curators fill them')
+                    print(f'        note: {len(ungated)} text trope(s) have no activation gate '
+                          f'yet, so context-dependent detection is limited until curators '
+                          f'fill them')
                 if not know.cases:
                     print('        note: no open cases -- nothing to scan until one is opened')
             except Exception as exc:
