@@ -348,7 +348,7 @@ def _pair(cfg, pairing, args):
         _say(f'  Pairing failed: {exc}')
         return cfg
 
-    pairing.write_credentials(result, _env_path())
+    pairing.write_credentials(result, _env_path(), cfg.platform_url)
     os.environ['ETTOK_AGENT_ID'] = result.agent_id
     os.environ['ETTOK_AGENT_KEY'] = result.agent_key
     _say(f'  Approved. Paired as "{result.agent_id}".')

@@ -137,7 +137,7 @@ def _connect(args) -> int:
         print(f'\nPairing failed: {exc}', file=sys.stderr)
         return 1
 
-    pairing.write_credentials(result, _env_path())
+    pairing.write_credentials(result, _env_path(), cfg.platform_url)
     print(f'\nPaired as "{result.agent_id}". The key is in {_env_path()} and was never')
     print('sent through a human channel. Run `ettok doctor` to confirm everything works.')
     return 0

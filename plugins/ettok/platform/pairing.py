@@ -143,12 +143,19 @@ def poll(
     raise PairingError('timed out waiting for approval')
 
 
-def write_credentials(result: PairingResult, env_path) -> None:
+def write_credentials(result: PairingResult, env_path, platform_url: str = '') -> None:
     """Persist the key where secrets belong: `.env`, not plugin storage.
 
     Plugin storage is wiped by a plugin update and is documented as the wrong place
     for secrets. Existing values are replaced in place rather than appended, so
     re-pairing a machine does not leave a stale key above the live one.
+
+    The platform address is written alongside the key, because a machine that
+    paired with a platform belongs to that platform. Without it, `--platform`
+    lasted only as long as the process: pairing succeeded, the key landed, and
+    the next run fell back to the built-in default and refused to connect to a
+    platform nobody had pointed it at. Paired, keyed, and unreachable -- the
+    agent on the machine this happened to called itself "half connected".
     """
     from pathlib import Path
 
@@ -157,6 +164,8 @@ def write_credentials(result: PairingResult, env_path) -> None:
     lines = path.read_text(encoding='utf-8').splitlines() if path.exists() else []
 
     wanted = {'ETTOK_AGENT_ID': result.agent_id, 'ETTOK_AGENT_KEY': result.agent_key}
+    if platform_url:
+        wanted['ETTOK_PLATFORM_URL'] = platform_url.rstrip('/')
     kept = [ln for ln in lines if ln.split('=', 1)[0].strip() not in wanted]
     kept.extend(f'{key}={value}' for key, value in wanted.items())
 
