@@ -66,6 +66,16 @@
                color: ok ? "rgb(60,140,90)" : "rgb(180,120,30)" };
     },
     muted: { opacity: 0.6, fontSize: "13px" },
+    formRow: { display: "flex", alignItems: "center", gap: "10px",
+               margin: "8px 0" },
+    label: { width: "120px", fontSize: "13px", opacity: 0.75, flexShrink: 0 },
+    input: { flex: 1, padding: "6px 9px", fontSize: "13px",
+             border: "1px solid rgba(128,128,128,0.35)", borderRadius: "4px",
+             background: "transparent", color: "inherit" },
+    btn: { padding: "6px 14px", fontSize: "13px", borderRadius: "4px",
+           border: "1px solid rgba(128,128,128,0.35)", background: "transparent",
+           color: "inherit", cursor: "pointer" },
+    problem: { fontSize: "13px", color: "rgb(200,70,50)", margin: "8px 0" },
     linkBtn: { border: "none", background: "transparent", color: "rgb(90,130,190)",
                cursor: "pointer", font: "inherit", fontSize: "12px", padding: "0 8px 0 0" },
   };
@@ -502,8 +512,135 @@
         h(Accounts, { accounts: status.accounts })),
 
       h("div", { style: S.section },
+        h("h2", { style: S.h2 }, "Account vault"),
+        h(Vault, null)),
+
+      h("div", { style: S.section },
         h("h2", { style: S.h2 }, "Recent runs"),
         h(Runs, { runs: status.runs })));
+  }
+
+  // Accounts the agent can sign in with.
+  //
+  // The vault has always existed as a CLI command and nothing in the dashboard
+  // said so, so the only way to discover it was to read `ettok vault --help`.
+  // An operator who does not find it types the password into the chat instead,
+  // which is the one place it must never go: a transcript keeps it for good, and
+  // a credential that has been in one has to be changed rather than used.
+  //
+  // The password leaves this form and is never returned. The list shows the
+  // site, the name and the login identifier -- the identifier is deliberately
+  // not a secret, because the agent types it itself; only the password is
+  // encrypted and filled server-side, on the exact origin it was saved for.
+  function Vault() {
+    const [data, error, reload] = useEndpoint("/vault", 0);
+    const [open, setOpen] = useState(false);
+    const [form, setForm] = useState({
+      label: "", origin: "", identifier: "", identifier_type: "email",
+      password: "", otp_secret: "",
+    });
+    const [saving, setSaving] = useState(false);
+    const [problem, setProblem] = useState("");
+
+    const set = function (key) {
+      return function (e) {
+        const value = e.target.value;
+        setForm(function (prev) {
+          const next = Object.assign({}, prev); next[key] = value; return next;
+        });
+      };
+    };
+
+    const save = useCallback(function () {
+      setSaving(true); setProblem("");
+      SDK.fetchJSON(API + "/vault", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      }).then(function (r) {
+        setSaving(false);
+        if (!r || !r.ok) { setProblem((r && r.error) || "Could not save it."); return; }
+        // Cleared immediately: no reason for the password to sit in the page
+        // after it has been stored.
+        setForm({ label: "", origin: "", identifier: "", identifier_type: "email",
+                  password: "", otp_secret: "" });
+        setOpen(false);
+        reload();
+      }).catch(function (e) {
+        setSaving(false); setProblem(e.message || String(e));
+      });
+    }, [form, reload]);
+
+    const remove = useCallback(function (id, label) {
+      if (!window.confirm("Remove \"" + label + "\" from the vault?")) return;
+      SDK.fetchJSON(API + "/vault/" + encodeURIComponent(id), { method: "DELETE" })
+        .then(reload).catch(function () { reload(); });
+    }, [reload]);
+
+    if (error) return h("div", { style: S.muted }, "Could not read the vault: " + error);
+    const items = (data && data.items) || [];
+
+    return h("div", null,
+      h("div", { style: S.muted },
+        "Accounts the agent signs in with. The password is stored encrypted on "
+        + "this machine and filled into the page server-side, on the site it was "
+        + "saved for \u2014 it is never shown again, never sent to the model, and "
+        + "never written to a log. Add accounts here rather than typing them into "
+        + "the chat, where a transcript would keep them."),
+
+      items.length
+        ? h("table", { style: S.table },
+            h("thead", null, h("tr", null,
+              h("th", { style: S.th }, "Name"),
+              h("th", { style: S.th }, "Site"),
+              h("th", { style: S.th }, "Signs in as"),
+              h("th", { style: S.th }, ""))),
+            h("tbody", null, items.map(function (it) {
+              return h("tr", { key: it.id },
+                h("td", { style: S.td }, it.label),
+                h("td", { style: S.td }, it.origin || "\u2014"),
+                h("td", { style: S.td },
+                  (it.identifier || "\u2014")
+                  + (it.has_otp ? "  \u00b7 2FA stored" : "")),
+                h("td", { style: S.td },
+                  h("button", {
+                    style: S.linkBtn,
+                    onClick: function () { remove(it.id, it.label); },
+                  }, "Remove")));
+            })))
+        : h("div", { style: S.muted }, "No accounts stored yet."),
+
+      open
+        ? h("div", { style: S.card },
+            h("div", { style: S.formRow },
+              h("label", { style: S.label }, "Name"),
+              h("input", { style: S.input, value: form.label, onChange: set("label"),
+                           placeholder: "Facebook monitoring account" })),
+            h("div", { style: S.formRow },
+              h("label", { style: S.label }, "Site"),
+              h("input", { style: S.input, value: form.origin, onChange: set("origin"),
+                           placeholder: "https://www.facebook.com" })),
+            h("div", { style: S.formRow },
+              h("label", { style: S.label }, "Signs in as"),
+              h("input", { style: S.input, value: form.identifier,
+                           onChange: set("identifier"), placeholder: "name@example.org" })),
+            h("div", { style: S.formRow },
+              h("label", { style: S.label }, "Password"),
+              h("input", { style: S.input, type: "password", value: form.password,
+                           onChange: set("password"), autoComplete: "new-password" })),
+            h("div", { style: S.formRow },
+              h("label", { style: S.label }, "2FA secret"),
+              h("input", { style: S.input, value: form.otp_secret,
+                           onChange: set("otp_secret"),
+                           placeholder: "optional \u2014 the setup key, not a 6-digit code" })),
+            problem ? h("div", { style: S.problem }, problem) : null,
+            h("div", { style: S.formRow },
+              h("button", { style: S.btn, onClick: save, disabled: saving },
+                saving ? "Saving\u2026" : "Save"),
+              h("button", { style: S.linkBtn, onClick: function () { setOpen(false); setProblem(""); } },
+                "Cancel")))
+        : h("button", { style: S.btn, onClick: function () { setOpen(true); } },
+            "Add an account"));
   }
 
   window.__HERMES_PLUGINS__.register("ettok", EttokPage);

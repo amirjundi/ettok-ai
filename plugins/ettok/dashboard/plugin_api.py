@@ -22,7 +22,7 @@ import logging
 import time
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 log = logging.getLogger(__name__)
 
@@ -547,6 +547,107 @@ def chat_health() -> dict:
             'hint': (f'The gateway refused to start: {failure}'
                      if failure else _not_running_hint()),
         }
+
+
+# ---------------------------------------------------------------------------
+# The credential vault
+# ---------------------------------------------------------------------------
+#
+# Monitoring needs accounts, and an operator with no other route types the
+# password into the chat -- which is the one place it must never go, because a
+# transcript keeps it for good. The vault already existed as a CLI command and
+# nothing in the dashboard mentioned it, so the CLI was the only way to know it
+# was there.
+#
+# What crosses the wire here is a password, so writes are refused unless the
+# request came over loopback. On a tunnelled or non-loopback dashboard the form
+# would put a credential on the network to save it from a transcript, which is
+# not a trade worth making. Reads never return secrets at all: the store keeps
+# the identifier as metadata by design (the agent types it itself) and only the
+# password is encrypted, so there is nothing secret to leak through the list.
+
+
+def _vault():
+    from agent.vault_store import VaultStore
+    return VaultStore()
+
+
+def _is_loopback(request) -> bool:
+    client = getattr(request, 'client', None)
+    host = (getattr(client, 'host', '') or '').strip()
+    return host in ('127.0.0.1', '::1', 'localhost', '')
+
+
+@router.get('/vault')
+def vault_list() -> dict:
+    """Handles, kinds and identifiers. Never a password."""
+    try:
+        store = _vault()
+        return {
+            'items': [meta.to_dict() for meta in store.list_items()],
+            'kinds': ['login', 'payment', 'address'],
+        }
+    except Exception as exc:                          # noqa: BLE001
+        log.warning('ettok: could not read the vault', exc_info=True)
+        return {'items': [], 'error': f'{type(exc).__name__}: {exc}'}
+
+
+@router.post('/vault')
+async def vault_add(request: Request) -> dict:
+    """Store one login. The password is encrypted at rest and never read back.
+
+    Bound to an origin, because that is what makes the fill safe: the page the
+    agent is on must match exactly, or nothing is typed.
+    """
+    if not _is_loopback(request):
+        return {'ok': False,
+                'error': 'Adding a credential is only allowed from this machine. '
+                         'Open the dashboard on 127.0.0.1 rather than over the '
+                         'network -- otherwise the password crosses the wire to '
+                         'be saved from a transcript, which is not a trade worth '
+                         'making.'}
+
+    body = await request.json()
+    kind = (body.get('kind') or 'login').strip()
+    label = (body.get('label') or '').strip()
+    origin = (body.get('origin') or '').strip()
+    identifier = (body.get('identifier') or '').strip()
+    identifier_type = (body.get('identifier_type') or 'email').strip()
+    password = body.get('password') or ''
+    otp = (body.get('otp_secret') or '').strip()
+
+    if kind != 'login':
+        return {'ok': False, 'error': 'Only logins can be added here for now.'}
+    for field, value in (('name', label), ('site', origin),
+                         ('username', identifier), ('password', password)):
+        if not value:
+            return {'ok': False, 'error': f'{field} is required.'}
+
+    secret = {
+        'identifier_type': identifier_type,
+        'identifier': identifier,
+        'password': password,
+    }
+    if otp:
+        secret['otp_secret'] = otp
+
+    try:
+        meta = _vault().add_item(kind='login', label=label, secret=secret, origin=origin)
+    except Exception as exc:                          # noqa: BLE001
+        # Deliberately not logging the exception object with exc_info: a
+        # validation error can carry the value that failed validation.
+        log.warning('ettok: vault add refused (%s)', type(exc).__name__)
+        return {'ok': False, 'error': str(exc)}
+
+    return {'ok': True, 'item': meta.to_dict()}
+
+
+@router.delete('/vault/{item_id}')
+def vault_remove(item_id: str) -> dict:
+    try:
+        return {'ok': bool(_vault().remove_item(item_id))}
+    except Exception as exc:                          # noqa: BLE001
+        return {'ok': False, 'error': f'{type(exc).__name__}: {exc}'}
 
 
 # Fields the page may set on a turn. An allow-list rather than a spread of the
