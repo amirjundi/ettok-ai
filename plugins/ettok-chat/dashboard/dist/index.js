@@ -279,6 +279,9 @@
     const [messages, setMessages] = useState([]);
     const [draft, setDraft] = useState("");
     const [busy, setBusy] = useState(false);
+    // The in-flight turn, so it can be called off. A ref rather than state:
+    // aborting must not wait for a re-render, and nothing renders from it.
+    const abortRef = useRef(null);
     const [health, setHealth] = useState(null);
     const [model, setModel] = useState(null);
     const [sessions, setSessions] = useState([]);
@@ -411,6 +414,9 @@
       const wire = messages.map(function (m) { return { role: m.role, content: m.content }; })
         .concat([{ role: "user", content: content }]);
 
+      const controller = new AbortController();
+      abortRef.current = controller;
+
       SDK.authedFetch(API + "/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -419,6 +425,7 @@
           resume_session_id: sessionId || "",
           reasoning_effort: effort || undefined,
         }),
+        signal: controller.signal,
       }).then(function (res) {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -430,6 +437,7 @@
         function pump() {
           return reader.read().then(function (r) {
             if (r.done) {
+              abortRef.current = null;
               setBusy(false);
               // Titles, counts and per-message token counts are written as the
               // turn completes, so both refreshes wait for it.
@@ -486,13 +494,41 @@
         }
         return pump();
       }).catch(function (e) {
+        abortRef.current = null;
+        setBusy(false);
+        // Stopping is a decision, not an error. Whatever had already streamed
+        // is kept -- the half-written answer is usually why it was stopped, and
+        // throwing it away to show an error message would be the second
+        // annoyance in a row.
+        if (e && (e.name === "AbortError" || controller.signal.aborted)) {
+          setMessages(function (prev) {
+            const last = prev[prev.length - 1] || {};
+            const partial = (last.content || "").trim();
+            return prev.slice(0, -1).concat([{
+              role: "assistant",
+              content: (partial ? partial + "\n\n" : "") + "_Stopped._",
+              tools: last.tools,
+            }]);
+          });
+          return;
+        }
         setMessages(history.concat([{
           role: "assistant",
           content: "**Could not reach the agent.** " + (e.message || String(e)),
         }]));
-        setBusy(false);
       });
     }, [draft, busy, messages, sessionId, effort, attachments, loadSessions]);
+
+    const stop = useCallback(function () {
+      const controller = abortRef.current;
+      if (!controller) return;
+      abortRef.current = null;
+      // Aborting closes the response body, which ends the proxy's relay and
+      // with it the connection to the agent. The turn already in the model's
+      // hands may finish server-side; what stops immediately is this turn's
+      // hold on the page.
+      controller.abort();
+    }, []);
 
     const vision = model && model.capabilities && model.capabilities.supports_vision;
     const reasoning = model && model.capabilities && model.capabilities.supports_reasoning;
@@ -594,10 +630,11 @@
           }),
           h("button", {
             style: Object.assign({}, C.send,
-              (busy || (!draft.trim() && !attachments.length)) ? { opacity: 0.45, cursor: "default" } : {}),
-            onClick: send,
-            disabled: busy || (!draft.trim() && !attachments.length),
-          }, busy ? "…" : "Send"))));
+              (!busy && !draft.trim() && !attachments.length) ? { opacity: 0.45, cursor: "default" } : {}),
+            onClick: busy ? stop : send,
+            disabled: !busy && !draft.trim() && !attachments.length,
+            title: busy ? "Stop the agent" : "Send",
+          }, busy ? "Stop" : "Send"))));
   }
 
   window.__HERMES_PLUGINS__.register("ettok-chat", EttokChatPage);
