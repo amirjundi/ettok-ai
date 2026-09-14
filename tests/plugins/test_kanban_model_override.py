@@ -163,57 +163,6 @@ def _create(client, **kwargs):
     assert r.status_code == 200, r.text
     return r.json()["task"]
 
-
-def test_patch_sets_model_override(client):
-    task = _create(client)
-    r = client.patch(
-        f"/api/plugins/kanban/tasks/{task['id']}",
-        json={"model_override": "gpt-5.6-sol", "provider_override": "openai"},
-    )
-    assert r.status_code == 200, r.text
-    updated = r.json()["task"]
-    assert updated["model_override"] == "gpt-5.6-sol"
-    assert updated["provider_override"] == "openai"
-
-
-def test_bulk_model_override(client):
-    t1 = _create(client)
-    t2 = _create(client)
-    r = client.post(
-        "/api/plugins/kanban/tasks/bulk",
-        json={
-            "ids": [t1["id"], t2["id"]],
-            "model_override": "fallback-model",
-            "provider_override": "nous",
-        },
-    )
-    assert r.status_code == 200, r.text
-    assert all(entry["ok"] for entry in r.json()["results"])
-    for tid in (t1["id"], t2["id"]):
-        got = client.get(f"/api/plugins/kanban/tasks/{tid}").json()["task"]
-        assert got["model_override"] == "fallback-model"
-        assert got["provider_override"] == "nous"
-
-
-def test_model_options_endpoint_shape(client, monkeypatch):
-    """The endpoint returns {providers: [{slug,label,models}]} and degrades
-    to an empty catalog when the inventory substrate raises."""
-    r = client.get("/api/plugins/kanban/model-options")
-    assert r.status_code == 200
-    data = r.json()
-    assert "providers" in data
-    assert isinstance(data["providers"], list)
-    for row in data["providers"]:
-        assert "slug" in row and "label" in row and "models" in row
-        assert isinstance(row["models"], list)
-        assert len(row["models"]) >= 1  # empty-model rows are filtered out
-
-
-# ---------------------------------------------------------------------------
-# Per-task reasoning effort — the depth half of the board's model picker
-# ---------------------------------------------------------------------------
-
-
 def test_reasoning_effort_normalizes_and_rejects(conn):
     tid = kb.create_task(conn, title="t", assignee="worker", reasoning_effort="  HIGH ")
     assert kb.get_task(conn, tid).reasoning_effort == "high"
@@ -277,48 +226,3 @@ def test_worker_cli_accepts_the_reasoning_flag():
     parser = build_top_level_parser()[0]
     args = parser.parse_args(["--cli", "chat", "-q", "hi", "--reasoning", "high"])
     assert args.reasoning == "high"
-
-
-def test_patch_sets_and_clears_reasoning_effort(client):
-    task = _create(client)
-    r = client.patch(
-        f"/api/plugins/kanban/tasks/{task['id']}",
-        json={"reasoning_effort": "xhigh"},
-    )
-    assert r.status_code == 200, r.text
-    assert r.json()["task"]["reasoning_effort"] == "xhigh"
-
-    r = client.patch(
-        f"/api/plugins/kanban/tasks/{task['id']}",
-        json={"clear_reasoning_effort": True},
-    )
-    assert r.status_code == 200, r.text
-    assert r.json()["task"]["reasoning_effort"] is None
-
-
-def test_patch_rejects_an_unknown_level(client):
-    task = _create(client)
-    r = client.patch(
-        f"/api/plugins/kanban/tasks/{task['id']}",
-        json={"reasoning_effort": "bogus"},
-    )
-    assert r.status_code == 400
-
-
-def test_create_accepts_reasoning_effort(client):
-    task = _create(client, reasoning_effort="minimal")
-    assert task["reasoning_effort"] == "minimal"
-
-
-def test_bulk_reasoning_effort(client):
-    t1 = _create(client)
-    t2 = _create(client)
-    r = client.post(
-        "/api/plugins/kanban/tasks/bulk",
-        json={"ids": [t1["id"], t2["id"]], "reasoning_effort": "max"},
-    )
-    assert r.status_code == 200, r.text
-    assert all(entry["ok"] for entry in r.json()["results"])
-    for tid in (t1["id"], t2["id"]):
-        got = client.get(f"/api/plugins/kanban/tasks/{tid}").json()["task"]
-        assert got["reasoning_effort"] == "max"

@@ -33,21 +33,15 @@ DIVIDER = '─' * 62
 # Disabled rather than deleted. A deny-list is one config line to undo, while
 # deleting the directories would conflict on every `git merge upstream/main`
 # forever -- and the cost being paid here is startup time, not disk.
-UNUSED_PLUGINS = [
-    # Messaging platforms. The agent reports to the Ettok platform over HTTPS and
-    # talks to nobody else.
-    'a2a-platform', 'buzz-platform', 'dingtalk-platform', 'discord-platform',
-    'email-platform', 'feishu-platform', 'google_chat-platform',
-    'homeassistant-platform', 'irc-platform', 'line-platform', 'matrix-platform',
-    'mattermost-platform', 'ntfy-platform', 'photon-platform', 'raft-platform',
-    'simplex-platform', 'slack-platform', 'sms-platform', 'teams-platform',
-    'telegram-platform', 'wecom-platform', 'whatsapp-platform',
-    # Generation providers. This agent reads; it does not produce media.
-    'image_gen/deepinfra', 'image_gen/fal', 'image_gen/krea', 'image_gen/meta-ai',
-    'image_gen/openai', 'image_gen/openai-codex', 'image_gen/openrouter', 'image_gen/xai',
-    'video_gen/deepinfra', 'video_gen/fal', 'video_gen/xai',
-    'spotify',
-]
+# Everything this list used to name has been deleted from the repository rather
+# than disabled, so the list is now empty -- and the messaging platforms that
+# survived (Discord, Telegram, WhatsApp, and Signal in gateway/platforms/) are
+# deliberately NOT here: an operator who enables one should get it.
+#
+# Kept as a named empty list rather than removed because the wizard reports its
+# length to the operator, and a future plugin that ships bundled-but-unwanted
+# belongs here rather than in a new mechanism.
+UNUSED_PLUGINS: list = []
 
 MONITORING_TOOLSETS = [
     'ettok',        # this plugin
@@ -208,16 +202,12 @@ def run(args) -> int:
     if current == MONITORING_TOOLSETS:
         _say('  Already trimmed to the monitoring set.')
     else:
-        _say('  The runtime offers every tool it ships -- desktop control, Spotify,')
-        _say('  Kanban, video generation. The model re-reads all of their')
-        _say('  definitions on every turn, so an agent that will never open')
-        _say('  Spotify still pays for knowing how, on every message.')
+        _say('  The runtime still offers more tools than this agent uses --')
+        _say('  desktop control, Kanban, code execution. The model re-reads all')
+        _say('  of their definitions on every turn, so an agent that will never')
+        _say('  run a Kanban board still pays for knowing how, on every message.')
         _say()
         _say('  Keeping: ' + ', '.join(MONITORING_TOOLSETS))
-        _say()
-        _say('  It also disables ' + str(len(UNUSED_PLUGINS)) + ' bundled plugins the agent never')
-        _say('  uses -- messaging platforms, image and video generators. Measured:')
-        _say('  52 plugins loading in 1.90s becomes 18 in 0.70s.')
         _say()
         _say('  And it stops the runtime hiding plugin tools behind a search.')
         _say('  Left on, it hides all ten Ettok tools -- an agent whose whole job')
@@ -401,10 +391,11 @@ def _apply_toolsets() -> bool:
         cfg['toolsets'] = list(MONITORING_TOOLSETS)
 
         # Startup cost, paid on every command. These load whether called or not.
-        plugins_cfg = cfg.setdefault('plugins', {})
-        if isinstance(plugins_cfg, dict):
-            disabled = set(plugins_cfg.get('disabled') or [])
-            plugins_cfg['disabled'] = sorted(disabled | set(UNUSED_PLUGINS))
+        if UNUSED_PLUGINS:
+            plugins_cfg = cfg.setdefault('plugins', {})
+            if isinstance(plugins_cfg, dict):
+                disabled = set(plugins_cfg.get('disabled') or [])
+                plugins_cfg['disabled'] = sorted(disabled | set(UNUSED_PLUGINS))
         tools_cfg = cfg.setdefault('tools', {})
         if isinstance(tools_cfg, dict):
             search_cfg = tools_cfg.setdefault('tool_search', {})

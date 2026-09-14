@@ -142,30 +142,6 @@ class TestMemoryFamily:
 
 
 # ---------------------------------------------------------------------------
-# Family B — image_gen plugins
-# ---------------------------------------------------------------------------
-
-class TestImageGenFamily:
-    def test_deepinfra_scoped_key_wins(self, multiplex_scope, monkeypatch):
-        monkeypatch.delenv("DEEPINFRA_API_KEY", raising=False)
-        multiplex_scope({"DEEPINFRA_API_KEY": "scoped-key"})
-
-        from plugins.image_gen.deepinfra import DeepInfraImageGenProvider
-
-        assert DeepInfraImageGenProvider().is_available() is True
-
-    def test_deepinfra_scoped_miss_does_not_borrow_environ(
-        self, multiplex_scope, monkeypatch
-    ):
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "env-other-profile")
-        multiplex_scope({})
-
-        from plugins.image_gen.deepinfra import DeepInfraImageGenProvider
-
-        assert DeepInfraImageGenProvider().is_available() is False
-
-
-# ---------------------------------------------------------------------------
 # Family C — browser/web plugins
 # ---------------------------------------------------------------------------
 

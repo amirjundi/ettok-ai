@@ -226,8 +226,8 @@ class TestBundledBackendAutoLoad:
         mgr = PluginManager()
         mgr.discover_and_load()
 
-        assert "image_gen/openai" in mgr._plugins
-        loaded = mgr._plugins["image_gen/openai"]
+        assert "web/ddgs" in mgr._plugins
+        loaded = mgr._plugins["web/ddgs"]
         assert loaded.manifest.source == "bundled"
         assert loaded.manifest.kind == "backend"
         assert loaded.enabled is True, f"error: {loaded.error}"

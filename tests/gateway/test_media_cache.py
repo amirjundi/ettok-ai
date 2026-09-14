@@ -72,44 +72,6 @@ class TestCacheMediaBytes:
 # ---------------------------------------------------------------------------
 # Per-adapter parity: HISTORICAL mappings hardcoded as the contract
 # ---------------------------------------------------------------------------
-
-class TestBlueBubblesParity:
-    """Historical closed maps from bluebubbles._download_attachment."""
-
-    IMAGE_CASES = {
-        "image/jpeg": ".jpg",
-        "image/png": ".png",
-        "image/gif": ".gif",
-        "image/webp": ".webp",
-        "image/heic": ".jpg",   # historically coerced to .jpg
-        "image/heif": ".jpg",   # historically coerced to .jpg
-        "image/tiff": ".jpg",   # historically coerced to .jpg
-        "image/bmp": ".jpg",    # unlisted → historical .jpg fallback
-    }
-    AUDIO_CASES = {
-        "audio/mp3": ".mp3",
-        "audio/mpeg": ".mp3",
-        "audio/ogg": ".ogg",
-        "audio/wav": ".wav",
-        "audio/x-caf": ".mp3",  # historically coerced to .mp3
-        "audio/mp4": ".m4a",
-        "audio/aac": ".m4a",    # historically .m4a (NOT .aac)
-        "audio/flac": ".mp3",   # unlisted → historical .mp3 fallback
-    }
-
-    @pytest.mark.parametrize("mime,expected", sorted(IMAGE_CASES.items()))
-    def test_image_map(self, mime, expected):
-        from gateway.platforms.bluebubbles import _BLUEBUBBLES_IMAGE_EXT_OVERRIDES
-        got = ext_for_mime(
-            mime,
-            overrides=_BLUEBUBBLES_IMAGE_EXT_OVERRIDES,
-            use_defaults=False,
-            use_mimetypes=False,
-            fallback=".jpg",
-        )
-        assert got == expected
-
-
 class TestWhatsAppCloudParity:
     """Historical _ext_for_mime: overrides → mimetypes → None."""
 

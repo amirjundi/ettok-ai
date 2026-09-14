@@ -104,50 +104,6 @@ def test_scalar_platform_toolsets_fall_back_to_platform_default():
 
 
 
-
-
-def test_get_platform_tools_homeassistant_toolset_enabled_for_cron_when_hass_token_set(monkeypatch):
-    """HA toolset is runtime-gated by check_fn (requires HASS_TOKEN).
-
-    When HASS_TOKEN is set, the user has explicitly opted in — _DEFAULT_OFF_TOOLSETS
-    shouldn't also strip HA from platforms (like cron) that run through
-    _get_platform_tools without an explicit saved toolset list.
-
-    Regression guard for Norbert's HA cron breakage after #14798 made cron
-    honor per-platform tool config.
-    """
-    monkeypatch.setenv("HASS_TOKEN", "fake-test-token")
-
-    cron_enabled = _get_platform_tools({}, "cron")
-    assert "homeassistant" in cron_enabled
-    # moa must stay off — the original goal of #14798
-    assert "moa" not in cron_enabled
-
-    cli_enabled = _get_platform_tools({}, "cli")
-    assert "homeassistant" in cli_enabled
-
-
-def test_get_platform_tools_homeassistant_uses_active_profile_token(monkeypatch):
-    from agent import secret_scope
-
-    monkeypatch.delenv("HASS_TOKEN", raising=False)
-    secret_scope.set_multiplex_active(True)
-    token = secret_scope.set_secret_scope({"HASS_TOKEN": "profile-token"})
-    try:
-        assert "homeassistant" in _get_platform_tools({}, "cron")
-        assert "homeassistant" in _get_platform_tools({}, "cli")
-    finally:
-        secret_scope.reset_secret_scope(token)
-        secret_scope.set_multiplex_active(False)
-
-
-# ─── #35527: platform-restricted default-off toolsets (discord/discord_admin)
-# are stripped by _DEFAULT_OFF_TOOLSETS even when the user explicitly opts in
-# via the platform's native composite. The composite ``hermes-discord``
-# contains both ``discord`` and ``discord_admin`` tools, so configuring it is
-# an explicit opt-in that should survive the default-off strip. ───────────────
-
-
 def test_discord_toolsets_do_not_leak_to_other_platforms():
     """Layer 4 (guard): discord/discord_admin are platform-restricted — they
     must never appear on a non-discord platform even when that platform is
@@ -784,26 +740,6 @@ class TestImagegenModelPicker:
             _configure_imagegen_model("fal", config)
         assert isinstance(config["image_gen"], dict)
         assert config["image_gen"]["model"] == "fal-ai/flux-2/klein/9b"
-
-    def test_plugin_picker_falls_back_when_default_is_missing_from_catalog(self):
-        """A stale cross-provider model must not become an unindexable row."""
-        from hermes_cli.tools_config import _configure_imagegen_model_for_plugin
-
-        catalog = {
-            "openai/gpt-5.4-image-2": {"strengths": "quality"},
-            "google/gemini-3-pro-image": {"strengths": "fallback"},
-        }
-        config = {"image_gen": {"model": "gpt-image-2-medium"}}
-        with (
-            patch(
-                "hermes_cli.tools_config._plugin_image_gen_catalog",
-                return_value=(catalog, "also-missing"),
-            ),
-            patch("hermes_cli.tools_config._prompt_choice", return_value=0),
-        ):
-            _configure_imagegen_model_for_plugin("openrouter", config)
-
-        assert config["image_gen"]["model"] == "openai/gpt-5.4-image-2"
 
 
 

@@ -34,7 +34,6 @@ def _accepts_metadata(method) -> bool:
     "module_name, class_name",
     [
         ("plugins.platforms.whatsapp.adapter", "WhatsAppAdapter"),
-        ("plugins.platforms.email.adapter", "EmailAdapter"),
     ],
 )
 def test_send_image_accepts_metadata(module_name, class_name):
@@ -49,20 +48,10 @@ def test_send_image_accepts_metadata(module_name, class_name):
 # platform SDK isn't installed are skipped; an adapter that imports but
 # whose override drops metadata is a hard failure.
 _ALL_ADAPTERS = [
-    ("gateway.platforms.bluebubbles", "BlueBubblesAdapter"),
-    ("plugins.platforms.dingtalk.adapter", "DingTalkAdapter"),
     ("gateway.platforms.discord", "DiscordAdapter"),
-    ("plugins.platforms.email.adapter", "EmailAdapter"),
-    ("plugins.platforms.feishu.adapter", "FeishuAdapter"),
-    ("plugins.platforms.matrix.adapter", "MatrixAdapter"),
-    ("gateway.platforms.mattermost", "MattermostAdapter"),
     ("gateway.platforms.signal", "SignalAdapter"),
-    ("plugins.platforms.slack.adapter", "SlackAdapter"),
     ("plugins.platforms.telegram.adapter", "TelegramAdapter"),
-    ("plugins.platforms.wecom.adapter", "WeComAdapter"),
-    ("gateway.platforms.weixin", "WeixinAdapter"),
     ("plugins.platforms.whatsapp.adapter", "WhatsAppAdapter"),
-    ("gateway.platforms.yuanbao", "YuanbaoAdapter"),
 ]
 
 
