@@ -192,9 +192,31 @@ def _doctor(args) -> int:
     cfg = _load_config(args)
     checks: list = []
 
-    def check(label: str, ok: bool, detail: str = '') -> None:
-        checks.append((label, ok, detail))
-        print(f'  {"PASS" if ok else "FAIL"}  {label}' + (f'  -- {detail}' if detail else ''))
+    def check(label: str, ok: bool, detail: str = '', *, required: bool = True) -> None:
+        """Report one check.
+
+        `required=False` prints WARN and does not count toward the exit code. It
+        is for capabilities the agent is designed to work without: their absence
+        narrows what it can find, but nothing is broken and nothing needs fixing
+        before the agent is useful. Reporting those as FAIL trains an operator to
+        read a red line as normal, which is how a real failure gets ignored.
+        """
+        if ok:
+            state = 'PASS'
+        else:
+            state = 'FAIL' if required else 'WARN'
+        if required or ok:
+            checks.append((label, ok, detail))
+        print(f'  {state}  {label}' + (f'  -- {detail}' if detail else ''))
+
+    # Resolved up front: the visual-trope note and the vision check below both
+    # need this, and they print in that order.
+    try:
+        from tools.vision_tools import _configured_aux_model
+        vision_model = _configured_aux_model(('vision',), ('AUXILIARY_VISION_MODEL',))
+    except Exception:
+        vision_model = None
+    vision_ready = bool(vision_model)
 
     print(f'Ettok AI doctor\n  Platform: {cfg.platform_url}\n')
 
@@ -246,10 +268,10 @@ def _doctor(args) -> int:
                 ]
                 if visual:
                     share = f'{len(visual)} of {len(know.tropes)}'
+                    state = ('active' if vision_ready
+                             else 'inert, because no vision model is configured')
                     print(f'        note: {share} trope(s) are visual -- memes, desecration '
-                          f'video, doctored images. They match nothing until the collector '
-                          f'describes the post image, so this share of the catalogue is '
-                          f'currently inert:')
+                          f'video, doctored images -- and are {state}:')
                     for t in visual[:6]:
                         print(f'          - {t.get("name", "?")}')
                 if ungated:
@@ -309,21 +331,17 @@ def _doctor(args) -> int:
         # `parent_media_text`. Without one the collector still works and the
         # text tropes still fire -- so this is a warning about reduced coverage,
         # not a broken install, and it says which tropes go dark.
-        try:
-            from tools.vision_tools import _configured_aux_model
-            vision_model = _configured_aux_model(('vision',), ('AUXILIARY_VISION_MODEL',))
+        if True:
             if vision_model:
                 check('vision model for image tropes', True, vision_model)
             else:
-                check('vision model for image tropes', False,
-                      'no auxiliary.vision.model configured')
-                print('        Memes, desecration video and doctored images are not read at '
-                      'all without one, and a page carrying only those is reported clean. '
-                      'Set auxiliary.vision.model in config.yaml to a model that accepts '
-                      'images.')
-        except Exception:
-            check('vision model for image tropes', False,
-                  'could not determine; image tropes may be inert')
+                check('vision model for image tropes', False, 'not configured -- optional',
+                      required=False)
+                print('        Text detection is unaffected. What is lost is the visual '
+                      'share of the catalogue: memes, desecration video and doctored '
+                      'images are not read, so a page carrying only those reads as clean.')
+                print('        To enable it, set auxiliary.vision.model in config.yaml to a '
+                      'model that accepts images.')
 
         # A browser that exists but whose tools the agent cannot call is the
         # worst of both worlds, and it is the runtime's DEFAULT. With

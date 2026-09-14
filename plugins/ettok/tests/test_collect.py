@@ -30,11 +30,15 @@ def home(monkeypatch):
 class FakeCtx:
     """A browser that returns whatever the test says the page contains."""
 
-    def __init__(self, page_text='', extracted=None, media_analysis=None):
+    def __init__(self, page_text='', extracted=None, media_analysis=None, config=None):
         self.page_text = page_text
         self.extracted = extracted
         self.media_analysis = media_analysis
+        self.config = config or {}
         self.calls = []
+
+    def get_config(self, key, default=None):
+        return self.config.get(key, default)
 
     def dispatch_tool(self, tool, args, **kwargs):
         self.calls.append(tool)
@@ -345,3 +349,52 @@ def test_the_describer_is_asked_to_report_not_to_judge(home):
     question = asked.get('question', '')
     assert 'do not interpret intent' in question.lower()
     assert 'verbatim' in question.lower()
+
+
+def test_image_description_can_be_turned_off(home):
+    """A vision model may be configured for reading pages or checking a
+    challenge without the operator wanting a paid call on every collected page
+    that carries a photograph. Collection cost scales with pages."""
+    ctx = FakeCtx(
+        page_text='ordinary page',
+        extracted={'parent_post_text': 'منشور', 'parent_media_count': 3,
+                   'comments': [{'text': 'تعليق'}]},
+        media_analysis='a donkey and a flag',
+        config={'describe_post_images': False},
+    )
+    result = collect_mod.FacebookCollector(ctx, pacer=NoWait()).collect('https://facebook.com/p')
+
+    assert result.items[0]['parent_media_text'] == ''
+    assert result.items[0]['text'] == 'تعليق'
+    # Only the evidence screenshot; no description call was made.
+    assert ctx.calls.count('browser_vision') <= 1
+
+
+def test_image_description_is_on_by_default(home):
+    """The visual tropes are a quarter of the catalogue, so the default has to
+    be on -- an operator who configured a vision model has said what they want."""
+    ctx = FakeCtx(
+        page_text='ordinary page',
+        extracted={'parent_post_text': 'منشور', 'parent_media_count': 1,
+                   'comments': [{'text': 'تعليق'}]},
+        media_analysis='a donkey and a flag',
+        config={},                      # nothing said either way
+    )
+    result = collect_mod.FacebookCollector(ctx, pacer=NoWait()).collect('https://facebook.com/p')
+    assert 'donkey' in result.items[0]['parent_media_text']
+
+
+def test_off_is_honoured_when_written_as_yaml_off(home):
+    """YAML 1.1 turns an unquoted `off` into False, but a hand-edited config or
+    an env override arrives as the string. Both mean off."""
+    for value in ('off', 'false', 'no', '0', False):
+        ctx = FakeCtx(
+            page_text='ordinary page',
+            extracted={'parent_post_text': 'منشور', 'parent_media_count': 1,
+                       'comments': [{'text': 'تعليق'}]},
+            media_analysis='a donkey and a flag',
+            config={'describe_post_images': value},
+        )
+        result = collect_mod.FacebookCollector(ctx, pacer=NoWait()).collect(
+            'https://facebook.com/p')
+        assert result.items[0]['parent_media_text'] == '', f'{value!r} should mean off'

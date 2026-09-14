@@ -229,6 +229,27 @@ class BrowserCollector:
         'depicted.'
     )
 
+    def _image_description_enabled(self) -> bool:
+        """`describe_post_images` in plugin config; on unless turned off.
+
+        Separate from whether a vision model exists, because the two questions
+        are different. A model may be configured for reading a page or checking
+        a challenge without the operator wanting a paid vision call on every
+        collected page that happens to carry a photograph -- and collection cost
+        scales with pages, which is the axis that grows.
+
+        On by default: the visual tropes are a quarter of the catalogue, and an
+        operator who has gone to the trouble of configuring a vision model has
+        said what they want.
+        """
+        try:
+            raw = self._ctx.get_config('describe_post_images', True)
+        except Exception:
+            return True
+        if isinstance(raw, bool):
+            return raw
+        return str(raw).strip().lower() not in {'off', 'false', 'no', '0', ''}
+
     def _describe_media(self, media_count: int) -> str:
         """What the post's image shows, as text the rest of the pipeline can read.
 
@@ -249,7 +270,7 @@ class BrowserCollector:
         Returns '' whenever anything is missing -- no media, no vision model, a
         failed call -- which is exactly the behaviour before this existed.
         """
-        if media_count <= 0:
+        if media_count <= 0 or not self._image_description_enabled():
             return ''
         try:
             answer = self._call('browser_vision', {
