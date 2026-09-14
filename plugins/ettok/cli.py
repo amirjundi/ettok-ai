@@ -283,6 +283,27 @@ def _doctor(args) -> int:
         except Exception:
             check('browser installed', False, 'could not determine; install it to be sure')
 
+        # Visual tropes are a quarter of the active catalogue, and the only way
+        # an image reaches the pipeline is a vision model describing it into
+        # `parent_media_text`. Without one the collector still works and the
+        # text tropes still fire -- so this is a warning about reduced coverage,
+        # not a broken install, and it says which tropes go dark.
+        try:
+            from tools.vision_tools import _configured_aux_model
+            vision_model = _configured_aux_model(('vision',), ('AUXILIARY_VISION_MODEL',))
+            if vision_model:
+                check('vision model for image tropes', True, vision_model)
+            else:
+                check('vision model for image tropes', False,
+                      'no auxiliary.vision.model configured')
+                print('        Memes, desecration video and doctored images are not read at '
+                      'all without one, and a page carrying only those is reported clean. '
+                      'Set auxiliary.vision.model in config.yaml to a model that accepts '
+                      'images.')
+        except Exception:
+            check('vision model for image tropes', False,
+                  'could not determine; image tropes may be inert')
+
         # A browser that exists but whose tools the agent cannot call is the
         # worst of both worlds, and it is the runtime's DEFAULT. With
         # `browser.backend` unset and the Browser Use CLI runnable, the whole
