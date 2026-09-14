@@ -91,6 +91,29 @@
 
   // ---- the wire -------------------------------------------------------
 
+  // Anything a model or a gateway calls "text", as text.
+  //
+  // "" + {} is "[object Object]", which is how an error message became a
+  // placeholder in the one place someone needed to read it.
+  function textOf(value) {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    // Content blocks: [{type: "text", text: "..."}, ...]
+    if (Array.isArray(value)) return value.map(textOf).join("");
+    if (typeof value === "object") {
+      // The common carriers, in the order they tend to appear.
+      if (typeof value.text === "string") return value.text;
+      if (typeof value.content === "string") return value.content;
+      if (typeof value.message === "string") return value.message;
+      if (Array.isArray(value.content)) return textOf(value.content);
+      // Unknown shape: show it rather than hide it. A reader can act on JSON;
+      // nobody can act on "[object Object]".
+      try { return JSON.stringify(value); } catch (e) { return String(value); }
+    }
+    return String(value);
+  }
+
   function parseFrame(frame) {
     // One SSE frame is a block of "field: value" lines. The event name matters:
     // tool activity arrives as `event: hermes.tool.progress`, and a parser that
@@ -473,11 +496,16 @@
                 if (!sessionId) setSessionId(obj.session_id);
                 continue;
               } else if (obj.error) {
-                acc += "\n\n**" + obj.error + "**" + (obj.hint ? "\n\n" + obj.hint : "");
+                acc += "\n\n**" + textOf(obj.error) + "**"
+                     + (obj.hint ? "\n\n" + textOf(obj.hint) : "");
               } else {
                 const choice = (obj.choices || [])[0] || {};
                 const delta = choice.delta || choice.message || {};
-                if (delta.content) acc += delta.content;
+                // reasoning_content is what a thinking model streams before its
+                // answer. Shown, because a reply that takes thirty seconds with
+                // an empty bubble reads as broken.
+                if (delta.reasoning_content) acc += textOf(delta.reasoning_content);
+                if (delta.content) acc += textOf(delta.content);
                 // Deliberately NOT fed to the context meter. `usage` is the
                 // agent's, summed across every model call in the turn: a reply
                 // that ran three shell commands reports ~28k prompt tokens
