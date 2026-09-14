@@ -152,6 +152,46 @@ def quarantine(conn, account_id: str, reason: str, *, auth_lost: bool = False) -
     log.warning('ettok: account %s quarantined -- %s', account_id, reason)
 
 
+def release(conn, account_id: str, *, note: str = '') -> bool:
+    """Return an account to rotation because a person says it is fine.
+
+    The cooldown exists because an account that has been challenged needs to go
+    quiet for a while. It does not exist to overrule the operator: someone who
+    has signed in, cleared the challenge and watched the account behave knows
+    something this agent cannot observe from a page of HTML.
+
+    Distinct from `record_success`, which records that a collection worked. This
+    records that a human intervened, which is a different fact and worth being
+    able to tell apart afterwards.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    reason = f'released by an operator{": " + note if note else ""}'
+    cursor = conn.execute(
+        'UPDATE account_health SET state = ?, cooldown_until = NULL, '
+        'block_reason = ? WHERE account_id = ?',
+        (HEALTHY, reason, account_id),
+    )
+    conn.commit()
+    if cursor.rowcount:
+        log.info('ettok: account %s released by an operator (%s)', account_id, now)
+        return True
+    return False
+
+
+def account_health(conn) -> list:
+    """Every account this agent has an opinion about, and why."""
+    rows = conn.execute(
+        'SELECT account_id, state, block_reason, cooldown_until, last_block_at, '
+        'last_success_at FROM account_health ORDER BY account_id'
+    ).fetchall()
+    out = []
+    for row in rows:
+        item = dict(row)
+        item['effective_state'] = account_state(conn, row['account_id'])
+        out.append(item)
+    return out
+
+
 def healthy_accounts(conn, accounts: list) -> list:
     """Which supplied accounts may be used right now."""
     usable = []

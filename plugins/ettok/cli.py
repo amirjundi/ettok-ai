@@ -44,6 +44,14 @@ def register_cli(subparser) -> None:
                            help='A JSON object of selectors to try instead of the defaults')
     commands.add_parser('status', help='Show pairing, open cases and the delivery queue')
 
+    accounts = commands.add_parser(
+        'accounts', help='Account health, and lifting a quarantine',
+    )
+    accounts.add_argument('--release', metavar='ACCOUNT_ID',
+                          help='Return a quarantined account to rotation')
+    accounts.add_argument('--note', default='',
+                          help='Why it is safe to resume, recorded with the release')
+
     outbox = commands.add_parser('outbox', help='Inspect or drain the delivery queue')
     outbox.add_argument('action', nargs='?', default='status', choices=['status', 'drain', 'failed'])
 
@@ -67,6 +75,7 @@ def handle_cli(args) -> int:
         'eval': _eval,
         'selectors': _selectors,
         'status': _status,
+        'accounts': _accounts,
         'outbox': _outbox,
         'schedule': _schedule,
     }
@@ -74,7 +83,7 @@ def handle_cli(args) -> int:
     if handler is None:
         # No subcommand is how a new operator arrives here. Point at setup
         # rather than printing a list they have no basis for choosing from.
-        print('Usage: ettok {setup|connect|doctor|eval|selectors|status|outbox|schedule}')
+        print('Usage: ettok {setup|connect|doctor|eval|selectors|status|accounts|outbox|schedule}')
         print()
         print('New here? Run:  ettok setup')
         return 1
@@ -420,6 +429,62 @@ def _status(args) -> int:
         'agent_id': cfg.agent_id or None,
         'queue': outbox_mod.status(conn),
     }, indent=2))
+    return 0
+
+
+def _accounts(args) -> int:
+    """Account health, and the operator's override on a quarantine.
+
+    The agent quarantines an account for 24 hours when a page comes back as a
+    CAPTCHA, a checkpoint or an "unusual activity" notice. That is right: the
+    challenge is the platform saying it has noticed, and carrying on regardless
+    is how a recoverable restriction becomes a ban.
+
+    What was missing is the way back. An operator who has signed in themselves,
+    cleared the challenge as the human being tested, and watched the account
+    behave knows something this agent cannot see from a page of HTML -- and had
+    no way to say so. Waiting out a cooldown that no longer describes reality is
+    not safety, it is the tool refusing to be told.
+
+    This does not let the agent clear a challenge. It lets a person who has
+    dealt with one say the account is fine again.
+    """
+    from .collect import session as session_mod
+    from .store import schema
+
+    conn = schema.connect()
+
+    if getattr(args, 'release', None):
+        account_id = args.release
+        if session_mod.release(conn, account_id, note=getattr(args, 'note', '')):
+            print(f'Released "{account_id}" -- it will be used again on the next run.')
+            print('Recorded as an operator release, so it stays distinguishable '
+                  'from a run that simply succeeded.')
+            return 0
+        print(f'No account called "{account_id}" is on record.')
+        print('Run `ettok ettok accounts` to see the ones that are.')
+        return 1
+
+    rows = session_mod.account_health(conn)
+    if not rows:
+        print('No account health recorded yet. Nothing has been collected with.')
+        return 0
+
+    print(f'{"account":24} {"state":12} {"until":22} reason')
+    for row in rows:
+        state = row['effective_state']
+        stored = row['state']
+        shown = state if state == stored else f'{state} (was {stored})'
+        until = (row['cooldown_until'] or '')[:19]
+        print(f'{row["account_id"][:24]:24} {shown:12} {until:22} {row["block_reason"] or ""}')
+
+    quarantined = [r for r in rows if r['effective_state'] != session_mod.HEALTHY]
+    if quarantined:
+        print()
+        print('An account is quarantined after a challenge. If you have signed in')
+        print('yourself and cleared it, release it rather than waiting out the')
+        print('cooldown:')
+        print(f'    ettok ettok accounts --release {quarantined[0]["account_id"]}')
     return 0
 
 
