@@ -57,7 +57,7 @@ def _wings(*glyphs) -> List[List[str]]:
 
 # Branding shared by every Ettok-named built-in (mono/daylight override help_header).
 _HERMES_BRANDING: Dict[str, str] = _branding(
-    "Ettok", "⚕", "Goodbye! ⚕", prompt="❯", help_header="(^_^)? Available Commands")
+    "Ettok", "ℹ", "Goodbye! ℹ", prompt="❯", help_header="(^_^)? Available Commands")
 
 _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
     "default": {
@@ -455,7 +455,7 @@ def get_active_help_header(fallback: str = "(^_^)? Available Commands") -> str:
     return _active_branding("help_header", fallback)
 
 
-def get_active_goodbye(fallback: str = "Goodbye! ⚕") -> str:
+def get_active_goodbye(fallback: str = "Goodbye! ℹ") -> str:
     return _active_branding("goodbye", fallback)
 
 

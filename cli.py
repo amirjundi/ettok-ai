@@ -2297,7 +2297,7 @@ def _build_compact_banner() -> str:
     dim_color = _color("banner_dim", "#B8860B")
 
     if (getattr(_skin, "name", "default") if _skin else "default") == "default":
-        tiny_line = "⚕ NOUS HERMES"
+        tiny_line = "ℹ NOUS HERMES"
     else:
         tiny_line = _skin.get_branding("agent_name", "Ettok AI") if _skin else "Ettok AI"
     line1 = f"{tiny_line} - AI Agent Framework"

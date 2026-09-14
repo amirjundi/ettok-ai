@@ -80,6 +80,17 @@ def start(config, *, name: Optional[str] = None, transport=None) -> PairingReque
     except httpx.HTTPError as exc:
         raise PairingError(f'could not reach the platform at {config.platform_url}: {exc}') from exc
 
+    if response.is_redirect:
+        # httpx does not follow redirects, and it should not: this POST carries
+        # the machine name to an address the operator typed, and a production
+        # platform sets SECURE_SSL_REDIRECT, so an `http://` URL answers 301 to
+        # the `https://` one. Following it silently would mean the first attempt
+        # went out in the clear. Say what happened instead.
+        target = response.headers.get('location', '')
+        raise PairingError(
+            f'the platform redirected {url} to {target or "another address"}. '
+            f'It is most likely served over HTTPS -- re-run with '
+            f'--platform https://{config.platform_url.split("://", 1)[-1]}')
     if response.status_code == 429:
         raise PairingError('too many pairing attempts from this address; wait and try again')
     if response.status_code >= 400:

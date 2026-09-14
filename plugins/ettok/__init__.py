@@ -629,7 +629,7 @@ def register(ctx) -> None:
         log.debug('ettok: auxiliary task slot unavailable', exc_info=True)
 
     try:
-        from .cli import register_cli, handle_cli
+        from .cli import register_cli, handle_cli, make_top_level, TOP_LEVEL
         ctx.register_cli_command(
             name='ettok',
             help='Pair with a platform, run a scan, inspect the queue',
@@ -637,6 +637,17 @@ def register(ctx) -> None:
             handler_fn=handle_cli,
             description='Operate the Ettok AI monitoring agent.',
         )
+        # ...and again, one command at a time, so the operator types
+        # `ettok scan` rather than `ettok ettok scan`. The group above stays:
+        # it is where `setup`, `doctor` and `status` live, because the runtime
+        # already owns those three names at the top level and means something
+        # different by them.
+        for name in TOP_LEVEL:
+            help_text, setup_fn = make_top_level(name)
+            ctx.register_cli_command(
+                name=name, help=help_text, setup_fn=setup_fn, handler_fn=handle_cli,
+                description=help_text,
+            )
     except Exception:
         log.exception('ettok: CLI registration failed; tools are still available')
 

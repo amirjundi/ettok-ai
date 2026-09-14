@@ -4655,7 +4655,7 @@ def run_gateway(verbose: int = 0, quiet: bool = False, replace: bool = False, fo
 
     from gateway.run import start_gateway
     print("┌─────────────────────────────────────────────────────────┐")
-    print("│           ⚕ Ettok Gateway Starting...                 │")
+    print("│           ℹ Ettok Gateway Starting...                 │")
     print("├─────────────────────────────────────────────────────────┤")
     print("│  Messaging platforms + cron scheduler                    │")
     print("│  Press Ctrl+C to stop                                   │")
@@ -5562,7 +5562,7 @@ def _setup_service_action(
 
 _WIZARD_BANNER = (
     "┌─────────────────────────────────────────────────────────┐",
-    "│             ⚕ Gateway Setup                            │",
+    "│             ℹ Gateway Setup                            │",
     "├─────────────────────────────────────────────────────────┤",
     "│  Configure messaging platforms and the gateway service. │",
     "│  Press Ctrl+C at any time to exit.                     │",

@@ -60,11 +60,17 @@ class TestManagedPersistenceToggle:
 
 
 class TestEphemeralMode:
-    """Default behavior: random userId, no persistence."""
+    """Opt-out behavior: random userId, no persistence.
+
+    No longer the default -- persistence is (see config_defaults.py) -- so the
+    ephemeral path is now reached by setting managed_persistence false.
+    """
 
     def test_session_gets_random_user_id(self, tmp_path, monkeypatch):
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         monkeypatch.setenv("CAMOFOX_URL", "http://localhost:9377")
+        monkeypatch.setattr(
+            "tools.browser_camofox._managed_persistence_enabled", lambda *a, **k: False)
 
         session = _get_session("task-1")
         assert session["user_id"].startswith("hermes_")

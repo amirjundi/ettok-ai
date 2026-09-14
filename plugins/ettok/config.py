@@ -67,6 +67,36 @@ class EttokConfig:
         return f"{self.platform_url.rstrip('/')}/api/hermes/{path.lstrip('/')}"
 
 
+def normalise_platform_url(raw: str) -> str:
+    """Make an operator-typed platform address into something requests can use.
+
+    `ettok connect --platform ettok.net` is the obvious thing to type and, used
+    verbatim, produces `ettok.net/api/hermes/pair/start/` -- not a URL, and the
+    failure names httpx rather than the typo.
+
+    A missing scheme is inferred rather than defaulted, because both answers are
+    wrong somewhere: a public deployment is HTTPS, and the loopback or LAN
+    address used while testing is not. An explicit scheme is always respected --
+    an operator who typed `http://` on purpose, as when pairing across a local
+    network, has made a decision this function does not get to overrule.
+    """
+    url = (raw or '').strip().rstrip('/')
+    if not url:
+        return url
+    if '://' in url:
+        return url
+
+    host = url.split('/', 1)[0].split(':', 1)[0].lower()
+    private = (
+        host in {'localhost', '127.0.0.1', '::1', '0.0.0.0'}
+        or host.endswith('.local')
+        or host.startswith(('10.', '192.168.', '169.254.'))
+        or (host.startswith('172.') and host.count('.') >= 2
+            and host.split('.')[1].isdigit() and 16 <= int(host.split('.')[1]) <= 31)
+    )
+    return f"{'http' if private else 'https'}://{url}"
+
+
 def load(ctx=None) -> EttokConfig:
     """Build the live configuration.
 
@@ -80,6 +110,7 @@ def load(ctx=None) -> EttokConfig:
         except Exception:
             url = ''
     url = url or os.environ.get('ETTOK_PLATFORM_URL', '').strip() or DEFAULT_PLATFORM_URL
+    url = normalise_platform_url(url)
 
     def _num(key: str, env: str, fallback: float) -> float:
         raw = ''

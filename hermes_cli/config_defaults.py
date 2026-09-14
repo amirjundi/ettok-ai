@@ -431,7 +431,20 @@ DEFAULT_CONFIG = {
         "camofox": {
             # true = send a stable profile-scoped userId so Camofox maps it to a persistent Firefox
             # profile; false = random ephemeral userId per session.
-            "managed_persistence": False,
+            #
+            # Upstream defaults this to false, which is right for a general assistant: a throwaway
+            # profile per task leaks nothing between unrelated jobs. It is wrong here. Ettok signs
+            # into an account once and reads with it for weeks, and under a random identity the
+            # operator signs in inside one task's profile while the collector that reads the page is
+            # a different task with a different empty one -- so collection sees the logged-out view
+            # and reports ten public comments where there were twenty-five. It returns a number, so
+            # it looks like a result rather than a failure.
+            #
+            # It is the DEFAULT rather than something the wizard writes because the wizard could not
+            # write it: the key ships present-and-false, so "set it only if the operator has
+            # expressed no preference" could never fire, and every install silently kept the wrong
+            # value. An operator who wants ephemeral profiles can still set false explicitly.
+            "managed_persistence": True,
             # Externally managed Camofox identity, for when another app owns the visible browser.
             "user_id": "",
             "session_key": "",
@@ -1478,7 +1491,7 @@ DEFAULT_CONFIG = {
     },
 
     "whatsapp": {
-        # reply_prefix: None = built-in "⚕ *Ettok AI*" header; "" disables; \n allowed.
+        # reply_prefix: None = built-in "ℹ *Ettok AI*" header; "" disables; \n allowed.
     },
 
     "telegram": {

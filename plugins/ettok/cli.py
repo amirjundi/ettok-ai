@@ -13,57 +13,94 @@ import sys
 from pathlib import Path
 
 
+# Each command's arguments, declared once. The same table builds the `ettok
+# ettok <command>` group and the top-level `ettok <command>` shortcuts, so the
+# two can never drift.
+def _connect_args(p) -> None:
+    p.add_argument('--platform', help='Platform base URL, e.g. https://ettok.example')
+    p.add_argument('--name', help='Name the administrator will see when approving')
+    p.add_argument('--timeout', type=float, default=600.0, help='Seconds to wait for approval')
+
+
+def _setup_args(p) -> None:
+    p.add_argument('--platform', help='Platform base URL')
+    p.add_argument('--name', help='Name the administrator will see when approving')
+
+
+def _selectors_args(p) -> None:
+    p.add_argument('page', help='A post page saved from the browser (.html)')
+    p.add_argument('--platform', default='facebook')
+    p.add_argument('--url', default='',
+                   help='The URL the page came from, if the file does not carry it')
+    p.add_argument('--try', dest='candidate', default='',
+                   help='A JSON object of selectors to try instead of the defaults')
+
+
+def _accounts_args(p) -> None:
+    p.add_argument('--release', metavar='ACCOUNT_ID',
+                   help='Return a quarantined account to rotation')
+    p.add_argument('--note', default='',
+                   help='Why it is safe to resume, recorded with the release')
+
+
+def _outbox_args(p) -> None:
+    p.add_argument('action', nargs='?', default='status', choices=['status', 'drain', 'failed'])
+
+
+def _schedule_args(p) -> None:
+    p.add_argument('--every', default='6h',
+                   help='Interval, e.g. 30m, 6h, or a 5-field cron expression')
+    p.add_argument('--name', default='ettok-scan')
+    p.add_argument('--remove', action='store_true', help='Remove the scheduled run')
+
+
+def _no_args(p) -> None:
+    pass
+
+
+# name -> (help, argument builder, whether the runtime already owns that name).
+#
+# `setup`, `doctor` and `status` are upstream's own top-level commands and mean
+# something different there -- the agent runtime rather than the monitoring it
+# does -- so those three stay inside the group and the rest also get a shortcut.
+COMMANDS = {
+    'connect':   ('Pair this machine with an Ettok platform', _connect_args, False),
+    'setup':     ('Set this machine up: platform, pairing, model, schedule', _setup_args, True),
+    'doctor':    ('Check everything this agent needs in order to work', _no_args, True),
+    'eval':      ('Run the gold set against the live lexicon', _no_args, False),
+    'selectors': ('Check the extraction selectors against a saved page', _selectors_args, False),
+    'status':    ('Show pairing, open cases and the delivery queue', _no_args, True),
+    'accounts':  ('Account health, and lifting a quarantine', _accounts_args, False),
+    'outbox':    ('Inspect or drain the delivery queue', _outbox_args, False),
+    'schedule':  ('Run unattended on a recurring schedule', _schedule_args, False),
+}
+
+TOP_LEVEL = [name for name, (_h, _a, taken) in COMMANDS.items() if not taken]
+
+
 def register_cli(subparser) -> None:
-    """Build the `ettok <command>` tree."""
+    """Build the `ettok ettok <command>` tree."""
     commands = subparser.add_subparsers(dest='ettok_command')
-
-    connect = commands.add_parser(
-        'connect', help='Pair this machine with an Ettok platform',
-    )
-    connect.add_argument('--platform', help='Platform base URL, e.g. https://ettok.example')
-    connect.add_argument('--name', help='Name the administrator will see when approving')
-    connect.add_argument('--timeout', type=float, default=600.0, help='Seconds to wait for approval')
-
-    wizard = commands.add_parser(
-        'setup', help='Set this machine up: platform, pairing, model, schedule',
-    )
-    wizard.add_argument('--platform', help='Platform base URL')
-    wizard.add_argument('--name', help='Name the administrator will see when approving')
-
-    commands.add_parser('doctor', help='Check everything this agent needs in order to work')
-    commands.add_parser('eval', help='Run the gold set against the live lexicon')
-
-    selectors = commands.add_parser(
-        'selectors', help='Check the extraction selectors against a saved page',
-    )
-    selectors.add_argument('page', help='A post page saved from the browser (.html)')
-    selectors.add_argument('--platform', default='facebook')
-    selectors.add_argument('--url', default='',
-                           help='The URL the page came from, if the file does not carry it')
-    selectors.add_argument('--try', dest='candidate', default='',
-                           help='A JSON object of selectors to try instead of the defaults')
-    commands.add_parser('status', help='Show pairing, open cases and the delivery queue')
-
-    accounts = commands.add_parser(
-        'accounts', help='Account health, and lifting a quarantine',
-    )
-    accounts.add_argument('--release', metavar='ACCOUNT_ID',
-                          help='Return a quarantined account to rotation')
-    accounts.add_argument('--note', default='',
-                          help='Why it is safe to resume, recorded with the release')
-
-    outbox = commands.add_parser('outbox', help='Inspect or drain the delivery queue')
-    outbox.add_argument('action', nargs='?', default='status', choices=['status', 'drain', 'failed'])
-
-    schedule = commands.add_parser(
-        'schedule', help='Run unattended on a recurring schedule',
-    )
-    schedule.add_argument('--every', default='6h',
-                          help='Interval, e.g. 30m, 6h, or a 5-field cron expression')
-    schedule.add_argument('--name', default='ettok-scan')
-    schedule.add_argument('--remove', action='store_true', help='Remove the scheduled run')
-
+    for name, (help_text, add_args, _taken) in COMMANDS.items():
+        add_args(commands.add_parser(name, help=help_text))
     subparser.set_defaults(func=handle_cli)
+
+
+def make_top_level(name: str):
+    """argparse setup for `ettok <name>`, registered as its own subcommand.
+
+    ``ettok ettok scan`` is an artefact of how plugins register commands: the
+    runtime gives a plugin one top-level name, ours is `ettok`, and the product
+    is also called Ettok. Registering each command in its own right removes the
+    stutter without breaking the group, which still works.
+    """
+    help_text, add_args, _taken = COMMANDS[name]
+
+    def setup(parser) -> None:
+        add_args(parser)
+        parser.set_defaults(func=handle_cli, ettok_command=name)
+
+    return help_text, setup
 
 
 def handle_cli(args) -> int:
@@ -83,9 +120,12 @@ def handle_cli(args) -> int:
     if handler is None:
         # No subcommand is how a new operator arrives here. Point at setup
         # rather than printing a list they have no basis for choosing from.
-        print('Usage: ettok {setup|connect|doctor|eval|selectors|status|accounts|outbox|schedule}')
+        print('Usage: ettok ettok {' + '|'.join(COMMANDS) + '}')
         print()
-        print('New here? Run:  ettok setup')
+        print('Most of these also work on their own: ' + ', '.join(
+            'ettok ' + name for name in TOP_LEVEL))
+        print()
+        print('New here? Run:  ettok ettok setup')
         return 1
     return handler(args)
 

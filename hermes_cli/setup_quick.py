@@ -57,7 +57,7 @@ def _run_nous_flow(config: dict, *, context: str, cancel_exc: tuple, cancel_line
 def _run_portal_one_shot(config: dict) -> None:
     """One-shot Nous Portal setup (``ettok setup --portal`` / ``ettok portal``)."""
     from hermes_cli.setup import _info, _print_banner, print_error, print_info, print_success
-    _print_banner("│     ⚕ Ettok Setup — Nous Portal (one-shot)             │")
+    _print_banner("│     ℹ Ettok Setup — Nous Portal (one-shot)             │")
     _info(None, "  One subscription, 300+ models, plus the Tool Gateway:",
           "    web search, image generation, TTS, browser automation",
           "    — all routed through your Nous Portal sub.", None,

@@ -39,7 +39,10 @@ class TestCamofoxConfigDefaults:
         from hermes_cli.config import DEFAULT_CONFIG
 
         browser_cfg = DEFAULT_CONFIG["browser"]
-        assert browser_cfg["camofox"]["managed_persistence"] is False
+        # True in this fork: the agent signs in once and reads with that account for
+        # weeks, so a random profile per task would collect logged out. See
+        # hermes_cli/config_defaults.py for why it is a default and not a wizard write.
+        assert browser_cfg["camofox"]["managed_persistence"] is True
         assert browser_cfg["camofox"]["user_id"] == ""
         assert browser_cfg["camofox"]["session_key"] == ""
         assert browser_cfg["camofox"]["adopt_existing_tab"] is False
