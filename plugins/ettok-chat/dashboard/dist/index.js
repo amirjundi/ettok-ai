@@ -371,6 +371,38 @@
         .catch(function () { /* the meter is advisory; a failure just leaves it */ });
     }, []);
 
+    // Watch a session until its reply is stored, then show it. Polling rather
+    // than reconnecting to the stream: the turn is already being read to the end
+    // by the server, and a second reader would duplicate it. What is wanted here
+    // is only the result.
+    const waitFor = useRef(null);
+    const waitForReply = useCallback(function (id, base) {
+      if (waitFor.current) clearInterval(waitFor.current);
+      let tries = 0;
+      waitFor.current = setInterval(function () {
+        tries += 1;
+        // Four minutes. A turn that has not landed by then has failed in a way
+        // polling will not discover, and an indicator that spins for ever is
+        // worse than one that stops.
+        if (tries > 80) { clearInterval(waitFor.current); waitFor.current = null; return; }
+        SDK.fetchJSON("/api/sessions/" + encodeURIComponent(id) + "/messages?limit=200&order=oldest")
+          .then(function (d) {
+            const rows = (d && d.messages) || [];
+            const last = rows[rows.length - 1] || {};
+            const text = typeof last.content === "string" ? last.content : "";
+            if (last.role !== "assistant" || !text.trim()) return;
+            clearInterval(waitFor.current);
+            waitFor.current = null;
+            setMessages(base.concat([{ role: "assistant", content: text }]));
+          })
+          .catch(function () { /* the next tick tries again */ });
+      }, 3000);
+    }, []);
+
+    useEffect(function () {
+      return function () { if (waitFor.current) clearInterval(waitFor.current); };
+    }, []);
+
     const openSession = useCallback(function (id) {
       setSessionId(id);
       setMessages([{ role: "assistant", content: "_Loading…_" }]);
@@ -392,13 +424,33 @@
             if (!text) continue;
             out.push({ role: m.role, content: String(text) });
           }
-          setMessages(out);
           setUsedTokens(used);
+
+          // A turn is only written into the session when it finishes. While it
+          // runs, the rows are tool calls and assistant entries with no text,
+          // which the loop above correctly drops -- so reopening mid-turn shows
+          // the question and nothing under it, and reads as a reply that never
+          // came. Ask whether one is still being written, and say so.
+          SDK.fetchJSON(API + "/chat/active")
+            .then(function (a) {
+              const running = ((a && a.sessions) || []).some(function (row) {
+                return row.session_id === id;
+              });
+              if (!running) { setMessages(out); return; }
+              setMessages(out.concat([{
+                role: "assistant",
+                content: "_Still working on this. It keeps going whether or not "
+                       + "this page is open; the reply appears here when it lands._",
+                pending: true,
+              }]));
+              waitForReply(id, out);
+            })
+            .catch(function () { setMessages(out); });
         })
         .catch(function (e) {
           setMessages([{ role: "assistant", content: "**Could not load that conversation.** " + e }]);
         });
-    }, []);
+    }, [waitForReply]);
 
     // Reopen whatever was last open, once, on arrival. Guarded by a ref rather
     // than an empty dependency list so a re-render cannot restart it and

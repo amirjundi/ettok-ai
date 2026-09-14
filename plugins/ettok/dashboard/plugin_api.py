@@ -37,6 +37,14 @@ router = APIRouter()
 # be garbage collected mid-sentence.
 _running_turns: set = set()
 
+# session id -> when its turn started. A turn is only written into the session
+# when it finishes: while it runs, the rows are tool calls and assistant entries
+# with no text, which the chat page correctly drops. So an operator who comes
+# back mid-turn sees their own message and nothing under it, and reasonably
+# concludes the agent stopped when they left. It had not; there was simply
+# nothing yet to show and no way to say so.
+_active_sessions: dict = {}
+
 _PLATFORM_TTL_SECONDS = 60
 _platform_cache: Dict[str, Any] = {}
 _platform_cache_at: float = 0.0
@@ -510,6 +518,23 @@ def _not_running_hint() -> str:
             'have it start on login and survive reboots.')
 
 
+@router.get('/chat/active')
+def chat_active() -> dict:
+    """Sessions with a turn still being written.
+
+    The page asks this when it reopens a conversation. Without it, returning
+    mid-turn is indistinguishable from returning to a turn that failed: both
+    show the question and nothing else.
+    """
+    now = time.time()
+    return {
+        'sessions': [
+            {'session_id': session_id, 'running_for': round(now - started, 1)}
+            for session_id, started in _active_sessions.items()
+        ],
+    }
+
+
 @router.get('/chat/health')
 def chat_health() -> dict:
     """Whether there is anything to chat to.
@@ -709,6 +734,8 @@ async def chat(payload: dict) -> Any:
     # writer. `None` closes it.
     queue: 'asyncio.Queue' = asyncio.Queue()
 
+    started_at = time.time()
+
     async def pump():
         """Read the gateway to the end, whether or not anyone is listening."""
         try:
@@ -726,6 +753,7 @@ async def chat(payload: dict) -> Any:
                     # long flushed by the time it is known.
                     landed = response.headers.get('X-Hermes-Session-Id')
                     if landed:
+                        _active_sessions[landed] = time.time()
                         await queue.put(_sse({'session_id': landed}))
                     # Raw bytes, not lines. The gateway announces tool activity as
                     # an `event: hermes.tool.progress` line followed by its `data:`
@@ -740,6 +768,8 @@ async def chat(payload: dict) -> Any:
             await queue.put(_sse({'error': f'{type(exc).__name__}: {exc}',
                                   'hint': _not_running_hint()}))
         finally:
+            for session_id in [k for k, v in _active_sessions.items() if v == started_at]:
+                _active_sessions.pop(session_id, None)
             await queue.put(None)
             _running_turns.discard(asyncio.current_task())
 

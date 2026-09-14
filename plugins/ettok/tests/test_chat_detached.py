@@ -132,3 +132,49 @@ async def test_a_gateway_error_reaches_the_reader(monkeypatch):
     body = b''.join([chunk async for chunk in response.body_iterator])
 
     assert b'gateway returned 502' in body
+
+
+@pytest.mark.asyncio
+async def test_a_session_is_reported_active_while_its_turn_runs(monkeypatch):
+    """The gap behind "it never replied".
+
+    A turn is only written into the session when it finishes; while it runs the
+    rows are tool calls and assistant entries with no text, which the chat page
+    correctly drops. So an operator returning mid-turn saw their own message and
+    nothing under it. This is how the page learns to say "still working".
+    """
+    chunks = [f'data: chunk-{i}\n\n'.encode() for i in range(10)]
+    stream = FakeStream(chunks, delay=0.05)
+    monkeypatch.setattr(httpx, 'AsyncClient', lambda *a, **kw: FakeClient(stream))
+
+    api._active_sessions.clear()
+    response = await api.chat(_request())
+
+    iterator = response.body_iterator.__aiter__()
+    await iterator.__anext__()          # the session announcement
+    await iterator.__anext__()
+    await iterator.aclose()             # the reader walks away
+
+    await asyncio.sleep(0.1)
+    active = [row['session_id'] for row in api.chat_active()['sessions']]
+    assert 'api-test' in active, 'a running turn was not reported as active'
+
+    # And it stops being reported once the turn lands.
+    for _ in range(200):
+        await asyncio.sleep(0.02)
+        if not api.chat_active()['sessions']:
+            break
+    assert api.chat_active()['sessions'] == [], 'a finished turn is still reported running'
+
+
+@pytest.mark.asyncio
+async def test_a_failed_turn_does_not_stay_marked_active(monkeypatch):
+    """An indicator that spins for ever is worse than one that stops."""
+    stream = FakeStream([], status=502)
+    monkeypatch.setattr(httpx, 'AsyncClient', lambda *a, **kw: FakeClient(stream))
+
+    api._active_sessions.clear()
+    response = await api.chat(_request())
+    [chunk async for chunk in response.body_iterator]
+
+    assert api.chat_active()['sessions'] == []
