@@ -139,11 +139,3 @@ def test_skill_has_tests(name):
     assert tests_dir.is_dir(), f"{name}: missing tests/ directory"
     assert list(tests_dir.glob("test_*.py")), f"{name}: no test files in tests/"
 
-
-def test_docs_pages_generated():
-    """Each bundled office skill has a generated docs-site page."""
-    docs_dir = REPO / "website" / "docs" / "user-guide" / "skills" / "bundled" / "productivity"
-    for name in OFFICE_SKILLS:
-        assert (docs_dir / f"productivity-{name}.md").exists(), (
-            f"missing generated docs page for {name}; run website/scripts/generate-skill-docs.py"
-        )

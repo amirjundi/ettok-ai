@@ -31,10 +31,9 @@ GRANDFATHER: dict[str, set[str]] = {
 
 
 def _skill_paths():
-    return sorted(
-        list(REPO.glob("skills/**/SKILL.md"))
-        + list(REPO.glob("optional-skills/**/SKILL.md"))
-    )
+    # optional-skills/ was deleted with the rest of the general-assistant
+    # surface; skills/ is the whole population now.
+    return sorted(REPO.glob("skills/**/SKILL.md"))
 
 
 def _rel(p: Path) -> str:
@@ -73,9 +72,9 @@ def _all_names():
 
 
 def test_at_least_the_expected_population():
-    # sanity: the globs actually find the trees (not a count snapshot)
+    # sanity: the glob actually finds the tree (not a count snapshot)
     paths = _skill_paths()
-    assert any("optional-skills" in str(p) for p in paths)
+    assert paths, "no SKILL.md found under skills/ -- glob or layout drift?"
     assert any(str(p.parent).startswith(str(REPO / "skills")) for p in paths)
 
 

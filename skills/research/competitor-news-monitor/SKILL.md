@@ -8,7 +8,6 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [Competitors, News, Market-Research, Monitoring]
-    related_skills: [blogwatcher, rss-feeds, reddit-reading]
 ---
 
 # Competitor News Monitor
