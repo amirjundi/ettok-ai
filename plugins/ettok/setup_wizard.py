@@ -417,6 +417,30 @@ def _apply_toolsets() -> bool:
         if isinstance(browser_cfg, dict) and not browser_cfg.get('backend'):
             browser_cfg['backend'] = 'off'
 
+        # The browser's identity, which decides whether a sign-in survives.
+        #
+        # Camofox resolves a userId per task, and with managed persistence off it
+        # falls through to `hermes_<random>` -- a new identity, and therefore a
+        # new empty profile, for every task and every restart. For a general
+        # assistant that is a reasonable default: a throwaway profile leaks
+        # nothing between unrelated jobs.
+        #
+        # For this agent it is the wrong default and quietly breaks the product.
+        # Monitoring means signing into an account once and using it for weeks.
+        # With a random identity the operator signs in inside one task's profile
+        # and the collector that reads the page is a different task with a
+        # different empty one -- so collection sees the logged-out view and
+        # reports ten public comments where there were twenty-five. It reports a
+        # number, so it looks like a result rather than a failure.
+        #
+        # Turning it on pins the identity to this Ettok profile, so one sign-in
+        # holds across tasks and restarts. Scoped to the profile: running under a
+        # different HERMES_HOME is a different browser identity and a separate
+        # sign-in, which is the correct behaviour for a separate deployment.
+        camofox_cfg = browser_cfg.setdefault('camofox', {}) if isinstance(browser_cfg, dict) else None
+        if isinstance(camofox_cfg, dict) and 'managed_persistence' not in camofox_cfg:
+            camofox_cfg['managed_persistence'] = True
+
         # Presentation, so Ettok does not arrive wearing the upstream product's
         # colours. `mono` is the monochrome skin; the dashboard has a theme of
         # the same name and the two are set together so the terminal and the

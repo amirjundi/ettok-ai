@@ -247,6 +247,36 @@ def _doctor(args) -> int:
         except Exception as exc:
             check('collector can reach the browser', False, str(exc))
 
+    # Whether a sign-in will survive a restart.
+    #
+    # Camofox gives each task a random userId unless managed persistence is on,
+    # so every task gets its own empty browser profile. An operator signs in
+    # inside one profile and the collector reads the page in another, sees the
+    # logged-out view, and reports the public comment count -- ten where there
+    # were twenty-five. It reports a number, so it reads as a result rather than
+    # a failure, which is the worst shape a bug can take in this product.
+    try:
+        import os
+
+        from hermes_cli import config as hermes_config
+        browser_cfg = (hermes_config.load_config() or {}).get('browser', {}) or {}
+        camofox_cfg = browser_cfg.get('camofox') or {}
+        pinned = bool(camofox_cfg.get('managed_persistence')
+                      or camofox_cfg.get('user_id')
+                      or os.environ.get('CAMOFOX_USER_ID'))
+        if pinned:
+            check('browser keeps its sign-in', True)
+        else:
+            check('browser keeps its sign-in', False,
+                  'every task gets a new random browser profile')
+            print("        A sign-in is saved into one task's profile and the next "
+                  "task looks in a different one, so collection runs logged out and "
+                  "reports the public comment count as if it were the whole thread.")
+            print('        Fix: set browser.camofox.managed_persistence: true in '
+                  'config.yaml, or re-run `ettok ettok setup`.')
+    except Exception as exc:                          # noqa: BLE001
+        check('browser keeps its sign-in', False, str(exc))
+
     # The dashboard's chat tab. Three states that look identical from the
     # browser -- not configured, configured but not running, running but
     # refusing the key -- and the tab reports all three as "the gateway is not
