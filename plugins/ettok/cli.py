@@ -258,6 +258,27 @@ def _doctor(args) -> int:
                           f'fill them')
                 if not know.cases:
                     print('        note: no open cases -- nothing to scan until one is opened')
+                else:
+                    # A community the lexicon and tropes cover, with no open case
+                    # naming it, is monitored in principle and not at all in
+                    # practice: topic markers come from the cases, so nothing
+                    # gates, nothing is collected and nothing is reported. It
+                    # looks identical to a community with no hate directed at it.
+                    covered = {
+                        g.get('slug') for case in know.cases
+                        for g in (case.get('target_groups') or []) if g.get('slug')
+                    }
+                    curated = {
+                        (t.get('target_group_slug') or '').strip()
+                        for t in know.tropes
+                    } - {''}
+                    dormant = sorted(curated - covered)
+                    if dormant:
+                        print(f'        note: {len(dormant)} curated community(ies) have no '
+                              f'open case, so nothing about them is being monitored: '
+                              f'{", ".join(dormant)}')
+                        print('              Open a case for them on the platform, or their '
+                              'terms and tropes sit idle while the run reports success.')
             except Exception as exc:
                 check('knowledge fetch', False, str(exc))
 
@@ -444,10 +465,12 @@ def _eval(args) -> int:
     in the set at all.
     """
     from .detect import goldset
+    from .platform import knowledge as knowledge_mod
+    from .platform.client import PlatformClient
 
     cfg = _load_config(args)
     if not cfg.is_paired:
-        print('Not paired with a platform yet. Run:  ettok setup')
+        print('Not paired with a platform yet. Run:  ettok ettok setup')
         return 1
 
     client = PlatformClient(cfg)
