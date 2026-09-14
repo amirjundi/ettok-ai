@@ -22,6 +22,9 @@
   // CDN, and a parser dependency would mean a toolchain for a plugin that has
   // none.
 
+  // Where the last-open conversation is remembered between visits.
+  const LAST_SESSION_KEY = "ettok-chat.last-session";
+
   const SDK = window.__HERMES_PLUGIN_SDK__;
   if (!SDK || !window.__HERMES_PLUGINS__) return;
 
@@ -308,7 +311,25 @@
     const [health, setHealth] = useState(null);
     const [model, setModel] = useState(null);
     const [sessions, setSessions] = useState([]);
-    const [sessionId, setSessionId] = useState(null);
+    // Which conversation this tab is in, kept across reloads. Held in component
+    // state alone, it was lost the moment the page unmounted -- navigate to
+    // Sessions and back, or reload, and the chat opened blank while the
+    // conversation sat in the sidebar unreferenced. It reads as lost history,
+    // and the messages were never gone.
+    const [sessionId, setSessionId] = useState(function () {
+      try { return window.localStorage.getItem(LAST_SESSION_KEY) || null; }
+      catch (e) { return null; }
+    });
+
+    useEffect(function () {
+      // Per-viewer convenience, so localStorage is right -- and it can throw in
+      // a private window or with site data blocked, which must not take the
+      // chat down with it.
+      try {
+        if (sessionId) window.localStorage.setItem(LAST_SESSION_KEY, sessionId);
+        else window.localStorage.removeItem(LAST_SESSION_KEY);
+      } catch (e) { /* not worth a broken page */ }
+    }, [sessionId]);
     const [effort, setEffort] = useState("");
     const [attachments, setAttachments] = useState([]);
     const [usedTokens, setUsedTokens] = useState(0);
@@ -378,6 +399,16 @@
           setMessages([{ role: "assistant", content: "**Could not load that conversation.** " + e }]);
         });
     }, []);
+
+    // Reopen whatever was last open, once, on arrival. Guarded by a ref rather
+    // than an empty dependency list so a re-render cannot restart it and
+    // overwrite a turn already in flight.
+    const restored = useRef(false);
+    useEffect(function () {
+      if (restored.current) return;
+      restored.current = true;
+      if (sessionId) openSession(sessionId);
+    }, [sessionId, openSession]);
 
     const newChat = useCallback(function () {
       setSessionId(null);

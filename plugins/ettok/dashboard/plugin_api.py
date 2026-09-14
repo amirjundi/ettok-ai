@@ -17,6 +17,7 @@ errors, and finds nothing, because the knowledge it needs was never curated.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -31,6 +32,11 @@ router = APIRouter()
 # The platform is a network hop away and this panel polls. Local state is read
 # every time; the platform snapshot is cached, because an operator watching a
 # dashboard should not be generating a request storm against the VPS.
+# Turns still running. Held strongly: asyncio keeps only a weak reference to a
+# task, and a turn nobody is watching is precisely the one that would otherwise
+# be garbage collected mid-sentence.
+_running_turns: set = set()
+
 _PLATFORM_TTL_SECONDS = 60
 _platform_cache: Dict[str, Any] = {}
 _platform_cache_at: float = 0.0
@@ -690,14 +696,29 @@ async def chat(payload: dict) -> Any:
 
     url = f'{_gateway_url()}/v1/chat/completions'
 
-    async def relay():
+    # The turn runs in a task of its own, and the browser reads from a queue it
+    # fills. That separation is the whole point: relaying straight from the
+    # gateway to the browser tied the agent's work to somebody looking at it, so
+    # closing the tab or switching pages cancelled the response mid-sentence.
+    # Measured before this change -- a forty-step answer, client disconnected
+    # after four seconds, and the reply stored in the session was one character
+    # long. The operator came back to their own question and nothing else.
+    #
+    # A queue rather than a shared buffer because the reader and the writer run
+    # at different speeds, and because dropping the reader must not stall the
+    # writer. `None` closes it.
+    queue: 'asyncio.Queue' = asyncio.Queue()
+
+    async def pump():
+        """Read the gateway to the end, whether or not anyone is listening."""
         try:
             async with httpx.AsyncClient(timeout=_CHAT_TIMEOUT_SECONDS) as client:
                 async with client.stream('POST', url, json=body,
                                           headers=headers) as response:
                     if response.status_code >= 400:
                         detail = (await response.aread()).decode('utf-8', 'replace')[:400]
-                        yield _sse({'error': f'gateway returned {response.status_code}: {detail}'})
+                        await queue.put(_sse({
+                            'error': f'gateway returned {response.status_code}: {detail}'}))
                         return
                     # Announced in-band rather than as a response header: the
                     # header is written before the agent has resolved which
@@ -705,19 +726,48 @@ async def chat(payload: dict) -> Any:
                     # long flushed by the time it is known.
                     landed = response.headers.get('X-Hermes-Session-Id')
                     if landed:
-                        yield _sse({'session_id': landed})
+                        await queue.put(_sse({'session_id': landed}))
                     # Raw bytes, not lines. The gateway announces tool activity as
                     # an `event: hermes.tool.progress` line followed by its `data:`
                     # line, and re-framing line by line would split that pair --
                     # the browser would then see a data frame with no event name
                     # and quietly treat a tool call as an empty completion chunk.
                     async for chunk in response.aiter_bytes():
-                        yield chunk
+                        await queue.put(chunk)
         except Exception as exc:                      # noqa: BLE001
             # Surfaced into the stream rather than raised: the page is already
             # reading a stream, and an error it can render beats a dead socket.
-            yield _sse({'error': f'{type(exc).__name__}: {exc}',
-                        'hint': _not_running_hint()})
+            await queue.put(_sse({'error': f'{type(exc).__name__}: {exc}',
+                                  'hint': _not_running_hint()}))
+        finally:
+            await queue.put(None)
+            _running_turns.discard(asyncio.current_task())
+
+    task = asyncio.create_task(pump())
+    # Held, because asyncio keeps only a weak reference to a running task and a
+    # turn nobody is watching is exactly the one that would be collected.
+    _running_turns.add(task)
+
+    async def relay():
+        """Hand the browser whatever has arrived, and stop caring if it leaves."""
+        try:
+            while True:
+                chunk = await queue.get()
+                if chunk is None:
+                    return
+                yield chunk
+        except (GeneratorExit, asyncio.CancelledError):
+            # The browser navigated away or closed the tab. The turn keeps
+            # going; the gateway writes it into the session as it completes, so
+            # it is there when the operator comes back. Draining the queue in
+            # the background stops the writer blocking once it fills.
+            async def drain():
+                while await queue.get() is not None:
+                    pass
+            drainer = asyncio.create_task(drain())
+            _running_turns.add(drainer)
+            drainer.add_done_callback(_running_turns.discard)
+            raise
 
     return StreamingResponse(relay(), media_type='text/event-stream')
 
