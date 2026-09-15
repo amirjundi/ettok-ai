@@ -344,10 +344,21 @@ class TestCmdUpdateBranchFallback:
         assert "Already up to date!" not in captured.out
 
     @pytest.mark.parametrize(
-        ("health_after_repair", "runtime_status", "expected_runtime_checks"),
+        ("health_after_repair", "runtime_status", "expected_runtime_checks", "exposed", "exit_code"),
         [
-            (True, (False, SimpleNamespace(sqlite_version_string="3.46.1")), 1),
-            (False, (True, None), 0),
+            # Vulnerable runtime with a database actually in WAL: a real risk,
+            # and the update must say so.
+            (True, (False, SimpleNamespace(sqlite_version_string="3.46.1")), 1, ["state.db"], 1),
+            # Vulnerable runtime, journal modes unreadable: exposure cannot be
+            # ruled out, so it is treated as the risky case.
+            (True, (False, SimpleNamespace(sqlite_version_string="3.46.1")), 1, None, 1),
+            # Vulnerable runtime, every database out of WAL. The repair is still
+            # outstanding but nothing it can damage is exposed -- and on Windows
+            # the repair can never run from inside the venv it replaces, so
+            # failing here made the dashboard's update button report failure for
+            # a working update, permanently.
+            (True, (False, SimpleNamespace(sqlite_version_string="3.46.1")), 1, [], 0),
+            (False, (True, None), 0, [], 1),
         ],
     )
     @patch("shutil.which", return_value=None)
@@ -360,6 +371,8 @@ class TestCmdUpdateBranchFallback:
         health_after_repair,
         runtime_status,
         expected_runtime_checks,
+        exposed,
+        exit_code,
     ):
         """Python repair must not bypass runtime and durable outcome checks."""
         from hermes_cli import main as hm
@@ -395,20 +408,36 @@ class TestCmdUpdateBranchFallback:
             update_cmd,
             "_post_update_sqlite_runtime_status",
             return_value=runtime_status,
-        ) as runtime_check, patch.object(
+        ) as runtime_check, patch(
+            "hermes_cli.update_cmd_maint._databases_exposed_to_wal_reset",
+            return_value=exposed,
+        ), patch.object(
             update_cmd, "_write_gateway_update_exit_code"
         ) as write_gateway_exit, patch(
             "hermes_cli.update_receipt.finalize_update_receipt"
         ) as finalize_receipt, patch(
             "hermes_cli.update_receipt.finalize_pending_update_receipt"
         ):
-            with pytest.raises(SystemExit) as exit_info:
+            if exit_code:
+                with pytest.raises(SystemExit) as exit_info:
+                    cmd_update(mock_args)
+                assert exit_info.value.code == exit_code
+            else:
                 cmd_update(mock_args)
 
-        assert exit_info.value.code == 1
         assert runtime_check.call_count == expected_runtime_checks
-        write_gateway_exit.assert_called_once_with(False)
-        finalize_receipt.assert_called_once_with("partial")
+        # Only the failing path records a gateway exit code; a successful update
+        # leaves that marker alone.
+        if exit_code:
+            write_gateway_exit.assert_called_once_with(False)
+        else:
+            write_gateway_exit.assert_not_called()
+        # A partial receipt records an update that did not fully land. The
+        # mitigated path did land, so it files none.
+        if exit_code:
+            finalize_receipt.assert_called_once_with("partial")
+        else:
+            finalize_receipt.assert_not_called()
 
     @patch("shutil.which", return_value=None)
     @patch("subprocess.run")

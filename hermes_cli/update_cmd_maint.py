@@ -404,11 +404,65 @@ def _print_verified_update_completion(message: str) -> bool:
     if sqlite_info is None or sqlite_runtime_ok:
         _print_update_completion(message)
         return True
+    exposed = _databases_exposed_to_wal_reset()
+    if exposed == []:
+        # Applied. The runtime still carries the bug, but nothing it can damage
+        # is in WAL mode, which is the mitigation Ettok maintains on purpose.
+        # Reporting this as a failed update taught every operator on Windows to
+        # ignore the result of the one command whose result matters most.
+        print()
+        print(f"✓ Update applied. One repair is still outstanding: "
+              f"{_SQLITE_WAL_BUG_DETAIL.format(sqlite_info.sqlite_version_string)}.")
+        print("  Nothing is at risk meanwhile — every Ettok database is in rollback-journal "
+              "mode, which the bug cannot touch.")
+        print("  To clear it, rebuild the venv with a uv-managed Python, then `ettok doctor`.")
+        _print_update_completion(message)
+        return True
+
     print()
     print(f"⚠ Update partially complete — {_SQLITE_WAL_BUG_DETAIL.format(sqlite_info.sqlite_version_string)}.")
+    if exposed:
+        print("  " + ", ".join(exposed) + " "
+              + ("is" if len(exposed) == 1 else "are")
+              + " in WAL mode and exposed to it right now.")
+    else:
+        print("  Journal modes could not be read, so exposure cannot be ruled out.")
     print("  Rebuild the Ettok venv with a uv-managed Python, restart Ettok, then verify with `ettok doctor`.")
     return False
 
+
+
+def _databases_exposed_to_wal_reset() -> "list[str] | None":
+    """Names of Ettok databases in WAL mode, or None if that cannot be determined.
+
+    None is deliberately distinct from an empty list: "no database is exposed"
+    and "we could not look" must not collapse into the same answer, because one
+    of them is a reason to pass the update and the other is not.
+    """
+    try:
+        from hermes_cli.doctor import HERMES_HOME
+        from hermes_cli.doctor_platform import _hermes_database_paths, _read_journal_mode
+    except Exception:
+        return None
+
+    try:
+        databases = _hermes_database_paths(HERMES_HOME)
+    except Exception:
+        return None
+
+    exposed = []
+    for name, path in databases:
+        try:
+            if not path.is_file():
+                continue
+            mode, error = _read_journal_mode(path)
+        except Exception:
+            return None
+        if error is not None:
+            return None          # unreadable: cannot rule out exposure
+        if mode == "wal":
+            exposed.append(name)
+    return exposed
 
 def _clear_stale_sqlite_sidecars(db_path: Path) -> None:
     """Delete -wal/-shm/-journal next to *db_path*, immediately before overwriting it with a
