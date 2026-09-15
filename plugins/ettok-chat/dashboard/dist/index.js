@@ -23,6 +23,34 @@
   // none.
 
   const LAST_SESSION_KEY = "ettok-chat.last-session";
+  // Where the turn currently in flight is kept.
+  //
+  // A message is only written into the session when its turn COMPLETES. Leave
+  // the page mid-turn and come back and the transcript is the one from before
+  // you asked: your question is not in it, the answer is not in it, and the
+  // agent looks like it never heard you -- while it is in fact still working.
+  // Holding the question and whatever has streamed so far here means the page
+  // can show the turn it is actually in, and hand over to the stored copy as
+  // soon as the server has one.
+  const INFLIGHT_KEY = "ettok-chat.inflight";
+
+  function readInflight() {
+    try {
+      const raw = window.localStorage.getItem(INFLIGHT_KEY);
+      if (!raw) return null;
+      const v = JSON.parse(raw);
+      // Anything older than half an hour is a turn that died with a closed tab.
+      if (!v || !v.at || Date.now() - v.at > 30 * 60 * 1000) return null;
+      return v;
+    } catch (e) { return null; }
+  }
+
+  function writeInflight(v) {
+    try {
+      if (v) window.localStorage.setItem(INFLIGHT_KEY, JSON.stringify(v));
+      else window.localStorage.removeItem(INFLIGHT_KEY);
+    } catch (e) { /* a private window must not break the chat */ }
+  }
 
   const SDK = window.__HERMES_PLUGIN_SDK__;
   if (!SDK || !window.__HERMES_PLUGINS__) return;
@@ -585,6 +613,7 @@
             const text = typeof last.content === "string" ? last.content : "";
             if (last.role !== "assistant" || !text.trim()) return;
             stopPolling();
+            writeInflight(null);
             setMessages(base.concat([{ role: "assistant", content: text }]));
           })
           .catch(function () { /* the next tick tries again */ });
@@ -624,14 +653,31 @@
               const running = ((a && a.sessions) || []).some(function (row) {
                 return row.session_id === id;
               });
-              if (!running) { setMessages(out); return; }
-              setMessages(out.concat([{
+              // The stored transcript is what COMPLETED. A turn in flight is
+              // not in it yet, so fall back to the local record: it holds the
+              // question that was asked and whatever had streamed back before
+              // the page was left.
+              const flight = readInflight();
+              const usable = flight && (!flight.sessionId || flight.sessionId === id)
+                             && flight.history && flight.history.length > out.length;
+              const base = usable ? flight.history : out;
+
+              if (!running) {
+                // Not running and nothing stored for it: the turn ended while
+                // away and its result is already in `out`.
+                setMessages(out);
+                if (usable) writeInflight(null);
+                return;
+              }
+
+              setMessages(base.concat([{
                 role: "assistant",
-                content: "_Still working on this. It keeps going whether or not "
+                content: (usable && flight.partial ? flight.partial + "\n\n" : "")
+                       + "_Still working on this. It keeps going whether or not "
                        + "this page is open; the reply appears here when it lands._",
                 pending: true,
               }]));
-              waitForReply(id, out, mine);
+              waitForReply(id, base, mine);
             })
             .catch(function () { if (epoch.current === mine) setMessages(out); });
         })
@@ -697,6 +743,13 @@
       const controller = new AbortController();
       abortRef.current = controller;
 
+      const asked = history[history.length - 1];
+      writeInflight({
+        at: Date.now(), sessionId: sessionId || null,
+        history: history.map(function (m) { return { role: m.role, content: m.content }; }),
+        partial: "",
+      });
+
       return SDK.authedFetch(API + "/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -718,6 +771,7 @@
           return reader.read().then(function (r) {
             if (r.done) {
               abortRef.current = null;
+              writeInflight(null);
               if (epoch.current === mine) {
                 setBusy(false);
                 setLastTurn({ ms: Date.now() - startedAt, tools: tools.length });
@@ -772,6 +826,13 @@
               if (epoch.current === mine) {
                 setMessages(history.concat([
                   { role: "assistant", content: acc, tools: tools, streaming: true }]));
+                writeInflight({
+                  at: Date.now(), sessionId: landed || sessionId || null,
+                  history: history.map(function (m) {
+                    return { role: m.role, content: m.content };
+                  }),
+                  partial: acc,
+                });
               }
             }
             return pump();
@@ -780,6 +841,7 @@
         return pump();
       }).catch(function (e) {
         abortRef.current = null;
+        writeInflight(null);
         if (epoch.current !== mine) return;
         setBusy(false);
         if (e && (e.name === "AbortError" || controller.signal.aborted)) {

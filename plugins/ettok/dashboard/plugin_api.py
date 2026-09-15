@@ -746,6 +746,9 @@ async def chat(payload: dict) -> Any:
     queue: 'asyncio.Queue' = asyncio.Queue()
 
     started_at = time.time()
+    # Session ids this turn registered, so the cleanup removes its own and not
+    # whatever happens to share a timestamp.
+    mine: set = set()
 
     async def pump():
         """Read the gateway to the end, whether or not anyone is listening."""
@@ -769,6 +772,7 @@ async def chat(payload: dict) -> Any:
                     landed = response.headers.get('X-Hermes-Session-Id')
                     if landed:
                         _active_sessions[landed] = time.time()
+                        mine.add(landed)
                         await queue.put(_sse({'session_id': landed}))
                     # Raw bytes, not lines. The gateway announces tool activity as
                     # an `event: hermes.tool.progress` line followed by its `data:`
@@ -783,7 +787,13 @@ async def chat(payload: dict) -> Any:
             await queue.put(_sse({'error': f'{type(exc).__name__}: {exc}',
                                   'hint': _not_running_hint()}))
         finally:
-            for session_id in [k for k, v in _active_sessions.items() if v == started_at]:
+            # Remove exactly what this turn registered. The previous version
+            # matched on `v == started_at`, but the value stored is the time the
+            # session id ARRIVED, which is always later than the time the turn
+            # began -- so the comparison never matched and nothing was ever
+            # removed. /chat/active then reported every session it had ever seen
+            # as still running, for the life of the process.
+            for session_id in mine:
                 _active_sessions.pop(session_id, None)
             await queue.put(None)
             _running_turns.discard(asyncio.current_task())
