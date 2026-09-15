@@ -1531,6 +1531,7 @@ class APIServerAdapter(OpenAICompatRoutesMixin, BasePlatformAdapter):
             ("POST", "/api/sessions/{session_id}/chat/stream", self._handle_session_chat_stream),
             ("POST", "/api/sessions/{session_id}/model", self._handle_session_model_lock),
             ("POST", "/v1/chat/completions", self._handle_chat_completions),
+            ("POST", "/v1/clarify/{clarify_id}", self._handle_clarify_answer),
             ("POST", "/v1/responses", self._handle_responses),
             ("GET", "/v1/responses/{response_id}", self._handle_get_response),
             ("DELETE", "/v1/responses/{response_id}", self._handle_delete_response),
@@ -3631,6 +3632,31 @@ class APIServerAdapter(OpenAICompatRoutesMixin, BasePlatformAdapter):
             usage["runtime"] = runtime
         return result, usage
 
+    async def _handle_clarify_answer(self, request: "web.Request") -> "web.Response":
+        """POST /v1/clarify/{id} — the answer to a question the agent asked mid-turn.
+
+        It arrives on its own request because the turn that asked is still
+        streaming on the first one: the agent thread is parked on the clarify
+        Event and cannot read its own reply.
+        """
+        from tools import clarify_gateway
+        clarify_id = request.match_info.get("clarify_id") or ""
+        try:
+            body = await request.json()
+        except Exception:
+            return _error_response("Invalid JSON in request body", 400)
+        answer = body.get("response")
+        if isinstance(answer, list):
+            answer = ", ".join(str(a) for a in answer)
+        answer = str(answer or "").strip()
+        if not answer:
+            return _error_response("response is required", 400)
+        if not clarify_gateway.resolve_gateway_clarify(clarify_id, answer):
+            # Already answered, timed out, or never existed — all the same to the
+            # caller, and none of them worth telling a browser apart.
+            return _error_response("No question is waiting on that id", 404)
+        return web.json_response({"ok": True})
+
     async def _run_agent(
         self, user_message: str, conversation_history: List[Dict[str, str]],
         ephemeral_system_prompt: Optional[str] = None, session_id: Optional[str] = None,
@@ -3641,7 +3667,8 @@ class APIServerAdapter(OpenAICompatRoutesMixin, BasePlatformAdapter):
         route: Optional[Dict[str, Any]] = None, session_model: Optional[str] = None,
         requested_runtime: Optional[Dict[str, Any]] = None, route_source: str = "global",
         confirmed_runtime_lock: bool = False, bind_declared_conversation: bool = False,
-        session_history_delivery: str = "", turn_author: Optional[Dict[str, Any]] = None) -> tuple:
+        session_history_delivery: str = "", turn_author: Optional[Dict[str, Any]] = None,
+        clarify_callback=None) -> tuple:
         """Create an agent and run one turn in a thread executor -> ``(result, usage)``.
         ``agent_ref[0]`` receives the agent so SSE writers can interrupt it; ``active_run_id``
         registers it in ``_active_run_agents``. Under a confirmed model lock the actual
@@ -3676,6 +3703,11 @@ class APIServerAdapter(OpenAICompatRoutesMixin, BasePlatformAdapter):
                         session_model=session_model, confirmed_runtime_lock=confirmed_runtime_lock)
                     if agent_ref is not None:
                         agent_ref[0] = agent
+                    if clarify_callback is not None:
+                        # Without this the clarify tool has no callback here and
+                        # returns "unavailable", so the agent guesses instead of
+                        # asking — on the one surface with a user watching it.
+                        agent.clarify_callback = clarify_callback
                     if active_run_id:
                         self._active_run_agents[active_run_id] = agent
                     effective_task_id = session_id or str(uuid.uuid4())

@@ -36,7 +36,12 @@ const { createRoot } = require("react-dom/client");
 const { act } = require("react");
 
 const SESSION = { id: "api-1", title: "Sinjar sweep", message_count: 12,
-                  last_activity_at: Date.now() / 1000 };
+                  source: "api_server", last_activity_at: Date.now() / 1000 };
+// A conversation from another channel. The sidebar filtered these out entirely
+// until now, so a single-session fixture could not have caught it.
+const TG_SESSION = { id: "tg-7", title: "Report from Bashiqa", message_count: 4,
+                     source: "telegram", display_name: "Nineb",
+                     last_activity_at: Date.now() / 1000 };
 const GOAL = { id: "j1", name: "ettok-goal: Watch Sinjar pages",
                schedule: { kind: "interval", minutes: 360, display: "every 360m" },
                next_run_at: new Date().toISOString() };
@@ -46,7 +51,7 @@ const RESPONSES = {
     model: "deepseek-flash", provider: "deepseek", effective_context_length: 1000000,
     capabilities: { supports_vision: true, supports_reasoning: true },
   },
-  "/api/sessions": { sessions: [SESSION] },
+  "/api/sessions": { sessions: [SESSION, TG_SESSION] },
   "/api/cron/jobs": {
     jobs: [GOAL, { id: "j2", name: "ettok-scan", schedule: { expr: "0 9 * * *" }, paused: true }],
   },
@@ -148,6 +153,11 @@ function expect(name, html, needle, what) {
       expect(name, html, "deepseek", "model not shown in the header");
       expect(name, html, "1.0M", "context meter did not render the limit");
       expect(name, html, "effort", "reasoning control missing on a model that supports it");
+      // Every channel, grouped and labelled -- not just the one you are typing in.
+      expect(name, html, "Report from Bashiqa", "a Telegram session never reached the sidebar");
+      expect(name, html, "Telegram", "sessions are not grouped by channel");
+      expect(name, html, "Dashboard", "the dashboard's own group heading is missing");
+      expect(name, html, "Nineb", "the sidebar does not say who the conversation was with");
     }
   }
 

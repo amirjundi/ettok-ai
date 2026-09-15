@@ -115,6 +115,29 @@ def _trim_tool_items(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return items
 
 
+# Tools whose result is text a person would want to read as it happens.
+_OUTPUT_TOOLS = frozenset({"terminal", "execute_code", "read_terminal"})
+_OUTPUT_LIMIT = 4000
+
+
+def _clip_output(result) -> str:
+    """The tail of a tool result, capped. The tail because that is where a shell
+    command puts the thing that went wrong."""
+    text = result if isinstance(result, str) else str(result or "")
+    if len(text) <= _OUTPUT_LIMIT:
+        return text
+    return "…\n" + text[-_OUTPUT_LIMIT:]
+
+
+# Queue sentinel -> SSE event name. A frame that is not a completion chunk goes
+# out under its own event so a client can ignore what it does not understand.
+_CUSTOM_EVENTS = {
+    "__tool_progress__": "hermes.tool.progress",
+    "__clarify__": "hermes.clarify",
+    "__clarify_done__": "hermes.clarify.done",
+}
+
+
 class _ResponsesStream:
     """Per-request state and event emitters for the POST /v1/responses SSE writer.
 
@@ -529,14 +552,46 @@ class OpenAICompatRoutesMixin:
                 if not tool_call_id or tool_call_id not in _started_tool_call_ids:
                     return
                 _started_tool_call_ids.discard(tool_call_id)
-                _stream_q.put_threadsafe(("__tool_progress__", {
-                    "tool": function_name, "toolCallId": tool_call_id, "status": "completed"}))
+                frame = {"tool": function_name, "toolCallId": tool_call_id, "status": "completed"}
+                if function_name in _OUTPUT_TOOLS:
+                    # Shell and code output, so watching the agent work means seeing
+                    # what it saw. Only these tools: a tool result is unbounded and
+                    # most of them are structured blobs no one wants on screen.
+                    frame["output"] = _clip_output(function_result)
+                _stream_q.put_threadsafe(("__tool_progress__", frame))
+
+            def _on_clarify(question, choices, multi_select: bool = False) -> str:
+                """Ask the user a question mid-turn and block until they answer.
+
+                Runs on the agent's worker thread. The question goes out on the
+                turn's own stream; the answer comes back on a separate request to
+                /v1/clarify/{id}, because this thread is the one that is parked.
+                """
+                import uuid as _uuid
+                from tools import clarify_gateway
+                clarify_id = _uuid.uuid4().hex[:10]
+                choices = [str(c) for c in choices] if choices else None
+                clarify_gateway.register(
+                    clarify_id=clarify_id, session_key=gateway_session_key or session_id or "",
+                    question=str(question), choices=choices, multi_select=bool(multi_select))
+                _stream_q.put_threadsafe(("__clarify__", {
+                    "clarifyId": clarify_id, "question": str(question),
+                    "choices": choices, "multiSelect": bool(multi_select) and bool(choices)}))
+                answer = clarify_gateway.wait_for_response(
+                    clarify_id, clarify_gateway.get_clarify_timeout())
+                # Tell the page the prompt is spent either way, so an answered or
+                # expired question stops sitting there looking live.
+                _stream_q.put_threadsafe(("__clarify_done__", {"clarifyId": clarify_id}))
+                if answer is None:
+                    return "[no response: the question timed out]"
+                return answer
 
             # tool_progress_callback deliberately NOT wired: it would duplicate the structured
             # start/complete callbacks (which carry the tool_call id).
             agent_task, agent_ref = self._spawn_stream_agent(
                 _stream_q, tool_start_callback=_on_tool_start,
-                tool_complete_callback=_on_tool_complete, **run_kwargs)
+                tool_complete_callback=_on_tool_complete,
+                clarify_callback=_on_clarify, **run_kwargs)
             # #13437 identity contract: an explicit-header client keeps addressing the id it
             # sent; the response echoes that stable id while reads/writes adopt the live tip,
             # so a rotation mid-turn (after these headers are prepared) never changes what the
@@ -650,9 +705,10 @@ class OpenAICompatRoutesMixin:
             async for delta in _iter_stream_items(stream_q, agent_task, response):
                 if delta is None:
                     break
-                if isinstance(delta, tuple) and len(delta) == 2 and delta[0] == "__tool_progress__":
-                    # Custom event: tool lifecycle for frontends without markers in history.
-                    await response.write(_sse_frame(delta[1], event="hermes.tool.progress"))
+                if isinstance(delta, tuple) and len(delta) == 2 and delta[0] in _CUSTOM_EVENTS:
+                    # Custom events: tool lifecycle and clarify prompts, for frontends
+                    # without markers in history.
+                    await response.write(_sse_frame(delta[1], event=_CUSTOM_EVENTS[delta[0]]))
                 else:
                     await response.write(_sse_frame(_chunk({"content": delta})))
             # The agent can fail after the queue drains (task raises / result flagged failed or

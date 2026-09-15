@@ -61,6 +61,42 @@
 
   const API = "/api/plugins/ettok";
 
+  // A session's `source` is the platform it happened on: the gateway stores
+  // `platform.value` for every messaging adapter and "api_server" for this
+  // page. Ordered so the channel you are typing in sits first.
+  const CHANNELS = [
+    { key: "api_server", label: "Dashboard", icon: "▣", live: true },
+    { key: "telegram", label: "Telegram", icon: "✈" },
+    { key: "whatsapp", label: "WhatsApp", icon: "✆" },
+    { key: "whatsapp_cloud", label: "WhatsApp Business", icon: "✆" },
+    { key: "discord", label: "Discord", icon: "◈" },
+    { key: "signal", label: "Signal", icon: "◉" },
+    { key: "webhook", label: "Webhook", icon: "⇥" },
+    { key: "local", label: "Terminal", icon: "▮" },
+  ];
+  const CHANNEL_BY_KEY = {};
+  for (const c of CHANNELS) CHANNEL_BY_KEY[c.key] = c;
+
+  // fetchJSON throws Error("<status>: <body>"), and the body is usually JSON.
+  // Nobody should read a status line and a brace to find out what went wrong.
+  function reason(err) {
+    const raw = (err && err.message) || "";
+    const body = raw.replace(/^\d{3}:\s*/, "");
+    try {
+      const parsed = JSON.parse(body);
+      const detail = parsed.detail || (parsed.error && parsed.error.message) || parsed.message;
+      if (detail) return String(detail);
+    } catch (e) { /* not JSON; the text itself is the message */ }
+    return body || "The question may have timed out.";
+  }
+
+  function channelOf(source) {
+    const key = String(source || "").toLowerCase();
+    return CHANNEL_BY_KEY[key]
+      || { key: key || "other", label: key ? key.replace(/_/g, " ") : "Other",
+           icon: "•" };
+  }
+
   // ---- markdown -------------------------------------------------------
   //
   // Block-level: fenced code, headings, ordered and unordered lists (nested by
@@ -329,6 +365,9 @@
                 border: "none", background: "transparent", color: "inherit", font: "inherit",
                 display: "block", width: "100%" },
     sideItemActive: { background: "rgba(90,130,190,0.14)" },
+    sideGroup: { display: "flex", justifyContent: "space-between", alignItems: "center",
+                 fontSize: "10.5px", textTransform: "uppercase", letterSpacing: "0.08em",
+                 fontWeight: 700, opacity: 0.5, padding: "12px 9px 4px" },
     sideTitle: { fontSize: "13px", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden",
                  textOverflow: "ellipsis" },
 
@@ -393,6 +432,56 @@
               fontSize: "12.5px", fontWeight: 600, minWidth: "92px" },
     palWhat: { fontSize: "12.5px", opacity: 0.72 },
 
+    // A pending question: the only thing on the page the agent is waiting on, so
+    // it carries the accent rather than sitting in the same grey as everything else.
+    ask: { display: "flex", flexDirection: "column", gap: "9px",
+           padding: "14px 16px", borderRadius: "8px",
+           background: "rgba(90,130,190,0.08)",
+           border: "1px solid rgba(90,130,190,0.35)" },
+    askDanger: { display: "flex", flexDirection: "column", gap: "9px",
+                 padding: "14px 16px", borderRadius: "8px",
+                 background: "rgba(200,60,60,0.10)",
+                 border: "1px solid rgba(200,60,60,0.45)" },
+    askHead: { fontSize: "10.5px", textTransform: "uppercase", letterSpacing: "0.08em",
+               fontWeight: 700, opacity: 0.6 },
+    askQ: { fontSize: "14.5px", lineHeight: 1.45, fontWeight: 600 },
+    askRows: { display: "flex", flexDirection: "column", gap: "6px" },
+    askBtn: { display: "flex", alignItems: "center", gap: "9px", width: "100%",
+              textAlign: "left", font: "inherit", fontSize: "13.5px", cursor: "pointer",
+              padding: "9px 12px", borderRadius: "6px",
+              background: "var(--card, rgba(128,128,128,0.08))",
+              border: "1px solid rgba(128,128,128,0.3)" },
+    askBtnOn: { borderColor: "rgb(90,130,190)", background: "rgba(90,130,190,0.16)" },
+    askBox: { display: "inline-flex", alignItems: "center", justifyContent: "center",
+              width: "15px", height: "15px", flex: "0 0 auto", fontSize: "11px",
+              borderRadius: "3px", border: "1px solid rgba(128,128,128,0.55)" },
+    askSend: { alignSelf: "flex-start", font: "inherit", fontSize: "13px", cursor: "pointer",
+               padding: "7px 14px", borderRadius: "6px", border: "none", color: "#fff",
+               background: "rgb(90,130,190)" },
+
+    // Shell, as shell: monospace, its own ground, and scrollable rather than
+    // pushing the conversation sideways.
+    actShell: { fontSize: "12px", whiteSpace: "pre-wrap", wordBreak: "break-all",
+                background: "transparent", padding: 0 },
+    shellWrap: { display: "flex", flexDirection: "column", gap: "4px",
+                 margin: "2px 0 6px 21px" },
+    shellToggle: { alignSelf: "flex-start", border: "none", background: "transparent",
+                   font: "inherit", fontSize: "11.5px", opacity: 0.6, cursor: "pointer",
+                   padding: 0 },
+    shellOut: { margin: 0, maxHeight: "240px", overflow: "auto", fontSize: "11.5px",
+                lineHeight: 1.5, padding: "8px 10px", borderRadius: "5px",
+                whiteSpace: "pre-wrap", wordBreak: "break-word",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+                background: "rgba(128,128,128,0.10)",
+                border: "1px solid rgba(128,128,128,0.2)" },
+
+    readonly: { display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "5px",
+                fontSize: "13px", padding: "11px 14px", borderRadius: "6px",
+                background: "rgba(128,128,128,0.10)",
+                border: "1px solid rgba(128,128,128,0.25)" },
+    linkBtn: { border: "none", background: "transparent", color: "rgb(90,130,190)",
+               font: "inherit", fontSize: "13px", cursor: "pointer", padding: 0,
+               textDecoration: "underline" },
     warn: { background: "rgba(200,140,40,0.12)", borderLeft: "3px solid rgb(180,120,30)",
             color: "rgb(180,120,30)", padding: "10px 14px", borderRadius: "0 4px 4px 0",
             fontSize: "13px" },
@@ -452,25 +541,141 @@
   }
 
   function Sessions(props) {
+    const groups = [];
+    const seen = {};
+    for (const session of props.sessions || []) {
+      const channel = channelOf(session.source);
+      if (!seen[channel.key]) {
+        seen[channel.key] = { channel: channel, rows: [] };
+        groups.push(seen[channel.key]);
+      }
+      seen[channel.key].rows.push(session);
+    }
+    // Known channels in declared order, anything unrecognised after them.
+    groups.sort(function (a, b) {
+      const ai = CHANNELS.findIndex(function (c) { return c.key === a.channel.key; });
+      const bi = CHANNELS.findIndex(function (c) { return c.key === b.channel.key; });
+      return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+    });
+
     return h("div", { style: C.side },
       h("button", { style: C.newBtn, onClick: props.onNew }, "+  New chat"),
       h("div", { style: C.sideList },
-        (props.sessions || []).length === 0
+        groups.length === 0
           ? h("div", { style: Object.assign({}, C.meta, { padding: "8px 4px" }) },
               "No conversations yet.")
-          : props.sessions.map(function (s) {
-              const active = s.id === props.activeId;
-              return h("button", {
-                key: s.id,
-                onClick: function () { props.onOpen(s.id); },
-                style: Object.assign({}, C.sideItem, active ? C.sideItemActive : {}),
-                title: s.preview || s.title || s.id,
-              },
-                h("div", { style: C.sideTitle }, s.title || "Untitled"),
-                h("div", { style: C.meta },
-                  ago(s.last_activity_at || s.started_at)
-                  + (s.message_count ? "  ·  " + s.message_count + " msgs" : "")));
+          : groups.map(function (group) {
+              return h("div", { key: group.channel.key },
+                h("div", { style: C.sideGroup },
+                  h("span", null, group.channel.icon + "  " + group.channel.label),
+                  h("span", { style: { opacity: 0.6 } }, String(group.rows.length))),
+                group.rows.map(function (session) {
+                  const active = session.id === props.activeId;
+                  // Who it was with, where the channel records it.
+                  const who = session.display_name
+                            || (session.chat_type === "group" ? "group chat" : "")
+                            || session.user_id || "";
+                  return h("button", {
+                    key: session.id,
+                    onClick: function () { props.onOpen(session.id, session.source); },
+                    style: Object.assign({}, C.sideItem, active ? C.sideItemActive : {}),
+                    title: session.preview || session.title || session.id,
+                  },
+                    h("div", { style: C.sideTitle }, session.title || "Untitled"),
+                    h("div", { style: C.meta },
+                      (who ? who + "  ·  " : "")
+                      + ago(session.last_activity_at || session.started_at)
+                      + (session.message_count ? "  ·  " + session.message_count + " msgs" : "")));
+                }));
             })));
+  }
+
+  // Tools whose argument is a command, so it reads as one.
+  const SHELL_TOOLS = { terminal: 1, execute_code: 1, read_terminal: 1 };
+
+  // "Running npm test" -> "npm test". The verb is already carried by the row.
+  function stripVerb(label) {
+    return String(label || "").replace(/^(Running code|Running)\s+/, "");
+  }
+
+  // Shell output, folded. Open while short: the common case is three lines you
+  // want to see without asking, not a build log.
+  function ShellOutput(props) {
+    const text = String(props.text || "").replace(/\s+$/, "");
+    const lines = text ? text.split("\n") : [];
+    const [open, setOpen] = useState(lines.length <= 12);
+    if (!text) return null;
+    return h("div", { style: C.shellWrap },
+      h("button", {
+        style: C.shellToggle, onClick: function () { setOpen(!open); },
+        title: open ? "Hide the output" : "Show the output",
+      }, (open ? "▾ " : "▸ ") + lines.length + " line"
+         + (lines.length === 1 ? "" : "s") + " of output"),
+      open ? h("pre", { style: C.shellOut }, text) : null);
+  }
+
+  // Words that make a question a credential request. The agent is forbidden to
+  // ask for these, so one arriving means something upstream talked it into it.
+  const SECRET_RE = new RegExp(
+    [
+      /\b(pass[\s_-]?(word|wd|phrase)|api[\s_-]?key|secret[\s_-]?key|private[\s_-]?key)\b/.source,
+      /\b((access|refresh|bearer)[\s_-]?token|credit[\s_-]?card|card[\s_-]?number)\b/.source,
+      /\b(cvv|cvc|pin[\s_-]?code|otp|one[\s_-]?time[\s_-]?(code|password)|2fa|mfa[\s_-]?code)\b/.source,
+      /\b(seed[\s_-]?phrase|recovery[\s_-]?(code|phrase)|credential(s)?|login[\s_-]?details)\b/.source,
+    ].join("|"), "i");
+
+  // A question the agent is blocked on. Choices are buttons because options
+  // written into the question text are prose nobody can click.
+  function Ask(props) {
+    const ask = props.ask;
+    if (SECRET_RE.test(ask.question || "")) {
+      // Deliberately no input of any kind: the safe answer is not a careful one.
+      return h("div", { style: C.askDanger },
+        h("div", { style: C.askHead }, "Blocked — this question asks for a secret"),
+        h("div", { style: C.askQ }, ask.question),
+        h("div", { style: { fontSize: "13px", lineHeight: 1.5 } },
+          "Ettok is not allowed to take passwords, keys or card numbers in a "
+          + "conversation, so it should never have asked. Do not type it here or "
+          + "anywhere else in this chat. Treat it as a sign the agent read "
+          + "something that tried to steer it, and tell whoever runs the agent. "
+          + "Credentials go in the dashboard's own settings, never to the agent."),
+        h("button", { style: C.linkBtn, onClick: function () { props.onDismiss(); } },
+          "Dismiss this question"));
+    }
+    const picked = props.picked || [];
+    const choices = ask.choices || [];
+    function toggle(choice) {
+      props.onPick(picked.indexOf(choice) < 0
+        ? picked.concat([choice])
+        : picked.filter(function (c) { return c !== choice; }));
+    }
+    return h("div", { style: C.ask },
+      h("div", { style: C.askHead }, "The agent is asking"),
+      h("div", { style: C.askQ }, ask.question),
+      choices.length
+        ? h("div", { style: C.askRows },
+            choices.map(function (choice, i) {
+              const on = picked.indexOf(choice) >= 0;
+              return h("button", {
+                key: i,
+                style: Object.assign({}, C.askBtn, on ? C.askBtnOn : {}),
+                onClick: function () { ask.multi ? toggle(choice) : props.onAnswer(choice); },
+              },
+                ask.multi ? h("span", { style: C.askBox }, on ? "✓" : "") : null,
+                h("span", null, choice));
+            }))
+        : null,
+      ask.multi && choices.length
+        ? h("button", {
+            style: Object.assign({}, C.askSend, picked.length ? {} : { opacity: 0.45 }),
+            disabled: !picked.length,
+            onClick: function () { props.onAnswer(picked); },
+          }, "Send " + (picked.length || "no") + " answer" + (picked.length === 1 ? "" : "s"))
+        : null,
+      h("div", { style: C.meta },
+        choices.length
+          ? "Or type your own answer below."
+          : "Type your answer below."));
   }
 
   // What the agent is doing, while it does it. Dropping these is what makes a
@@ -481,11 +686,18 @@
     const running = tools.filter(function (t) { return !t.done; });
     return h("div", { style: C.act },
       tools.slice(-6).map(function (t, i) {
-        return h("div", { key: t.id || i, style: C.actRow },
-          h("span", { className: t.done ? "" : "ettok-live",
-                      style: { fontSize: "13px" } }, t.done ? "✓" : (t.emoji || "•")),
-          h("span", { style: Object.assign({}, C.actLabel, t.done ? { opacity: 0.55 } : {}) },
-            t.label || t.tool || "working"));
+        return h("div", { key: t.id || i },
+          h("div", { style: C.actRow },
+            h("span", { className: t.done ? "" : "ettok-live",
+                        style: { fontSize: "13px" } }, t.done ? "✓" : (t.emoji || "•")),
+            SHELL_TOOLS[t.tool]
+              ? h("code", { className: "ettok-code",
+                            style: Object.assign({}, C.actShell,
+                                                 t.done ? { opacity: 0.6 } : {}) },
+                  "$ " + stripVerb(t.label || t.tool))
+              : h("span", { style: Object.assign({}, C.actLabel, t.done ? { opacity: 0.55 } : {}) },
+                  t.label || t.tool || "working")),
+          t.output ? h(ShellOutput, { text: t.output }) : null);
       }),
       running.length > 1
         ? h("div", { style: C.meta }, running.length + " running")
@@ -529,6 +741,10 @@
     const [health, setHealth] = useState(null);
     const [model, setModel] = useState(null);
     const [sessions, setSessions] = useState([]);
+    // The channel the open conversation belongs to. A Telegram thread can be
+    // read here but not answered: a reply goes back over this page's stream and
+    // never reaches Telegram, so the composer is closed rather than pretending.
+    const [sessionChannel, setSessionChannel] = useState("api_server");
     const [sessionId, setSessionId] = useState(function () {
       try { return window.localStorage.getItem(LAST_SESSION_KEY) || null; }
       catch (e) { return null; }
@@ -555,6 +771,8 @@
     const [turnSpend, setTurnSpend] = useState(0);
     const [lastTurn, setLastTurn] = useState(null);   // {ms, tools}
     const [queued, setQueued] = useState([]);         // "by the way" messages
+    const [ask, setAsk] = useState(null);             // a question the agent is blocked on
+    const [picked, setPicked] = useState([]);         // multi-select, before it is sent
     const [palIndex, setPalIndex] = useState(0);
     const logRef = useRef(null);
     const fileRef = useRef(null);
@@ -571,7 +789,11 @@
     useEffect(function () { setPalIndex(0); }, [draft]);
 
     const loadSessions = useCallback(function () {
-      SDK.fetchJSON("/api/sessions?limit=30&order=recent&source=api_server&min_messages=1")
+      // Every channel the agent talks on, newest first. Cron runs are excluded
+      // rather than listed: they are scheduled work with no human on the other
+      // end, and they have their own page.
+      SDK.fetchJSON("/api/sessions?limit=80&order=recent&min_messages=1"
+                    + "&exclude_sources=cron")
         .then(function (d) { setSessions((d && d.sessions) || []); })
         .catch(function () { /* the list is a convenience; chat still works */ });
     }, []);
@@ -622,10 +844,13 @@
 
     useEffect(function () { return stopPolling; }, [stopPolling]);
 
-    const openSession = useCallback(function (id) {
+    const openSession = useCallback(function (id, source) {
       const mine = bump();
       stopPolling();
       setSessionId(id);
+      if (source !== undefined) setSessionChannel(String(source || "api_server"));
+      setAsk(null);
+      setPicked([]);
       setMessages([{ role: "assistant", content: "_Loading…_" }]);
       SDK.fetchJSON("/api/sessions/" + encodeURIComponent(id) + "/messages?limit=200&order=oldest")
         .then(function (d) {
@@ -691,13 +916,24 @@
     useEffect(function () {
       if (restored.current) return;
       restored.current = true;
-      if (sessionId) openSession(sessionId);
+      if (sessionId) {
+        // The remembered id carries no channel, so look it up before deciding
+        // whether the composer should be open.
+        SDK.fetchJSON("/api/sessions/" + encodeURIComponent(sessionId))
+          .then(function (d) { openSession(sessionId, d && (d.source || (d.session || {}).source)); })
+          .catch(function () { openSession(sessionId, "api_server"); });
+      }
     }, [sessionId, openSession]);
 
     const newChat = useCallback(function () {
       bump();
       stopPolling();
       setSessionId(null);
+      setSessionChannel("api_server");
+      // A question belongs to the turn that asked it. Carrying it into another
+      // conversation would answer something nobody is looking at.
+      setAsk(null);
+      setPicked([]);
       setMessages([]);
       setUsedTokens(0);
       setTurnSpend(0);
@@ -800,12 +1036,20 @@
               if (parsed.event === "hermes.tool.progress") {
                 if (obj.status === "running") {
                   tools = tools.concat([{ id: obj.toolCallId, emoji: obj.emoji,
+                                          tool: obj.tool,
                                           label: obj.label || obj.tool, done: false }]);
                 } else {
                   tools = tools.map(function (t) {
-                    return t.id === obj.toolCallId ? Object.assign({}, t, { done: true }) : t;
+                    return t.id === obj.toolCallId
+                      ? Object.assign({}, t, { done: true, output: obj.output || t.output })
+                      : t;
                   });
                 }
+              } else if (parsed.event === "hermes.clarify") {
+                setAsk({ id: obj.clarifyId, question: obj.question,
+                         choices: obj.choices || null, multi: !!obj.multiSelect });
+              } else if (parsed.event === "hermes.clarify.done") {
+                setAsk(function (a) { return a && a.id === obj.clarifyId ? null : a; });
               } else if (obj.session_id) {
                 landed = obj.session_id;
                 if (!sessionId) setSessionId(obj.session_id);
@@ -884,6 +1128,32 @@
       return false;   // /scan, /doctor, /status and friends go to the agent
     }, [newChat]);
 
+    // Send an answer to the pending question. The turn is still open; this goes
+    // on a request of its own because the thread that asked is parked on it.
+    const answer = useCallback(function (value) {
+      const current = ask;
+      if (!current) return;
+      const text = Array.isArray(value) ? value.join(", ") : String(value || "").trim();
+      if (!text) return;
+      setAsk(null);
+      setPicked([]);
+      setMessages(function (list) {
+        return list.concat([{ role: "user", content: text }]);
+      });
+      SDK.fetchJSON(API + "/chat/clarify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clarify_id: current.id, response: text }),
+      }).catch(function (err) {
+        setMessages(function (list) {
+          return list.concat([{
+            role: "assistant",
+            content: "**That answer did not reach the agent.** " + reason(err),
+          }]);
+        });
+      });
+    }, [ask]);
+
     const send = useCallback(function (override) {
       const text = (override != null ? override : draft).trim();
       const usable = attachments.filter(function (a) { return a.dataUrl; });
@@ -891,6 +1161,16 @@
 
       // A command that the page can answer never reaches the agent.
       if (!usable.length && text.charAt(0) === "/" && runSlash(text.split(/\s+/)[0])) {
+        setDraft("");
+        return;
+      }
+
+      // A pending question outranks the queue: the agent is blocked on it, so a
+      // queued answer would wait for the turn that is waiting for the answer.
+      if (ask) {
+        // A blocked question is answered by nobody, including the composer --
+        // the banner is the whole response.
+        if (!SECRET_RE.test(ask.question || "")) answer(text);
         setDraft("");
         return;
       }
@@ -922,18 +1202,18 @@
       setDraft("");
       setAttachments([]);
       runTurn(history, content, shown);
-    }, [draft, busy, messages, attachments, runTurn, runSlash]);
+    }, [draft, busy, messages, attachments, runTurn, runSlash, ask, answer]);
 
     sendRef.current = send;
 
     // Drain the queue the moment the agent is free.
     useEffect(function () {
-      if (busy || !queued.length) return;
+      if (busy || ask || !queued.length) return;
       const next = queued[0];
       setQueued(function (q) { return q.slice(1); });
       const t = setTimeout(function () { sendRef.current(next); }, 120);
       return function () { clearTimeout(t); };
-    }, [busy, queued]);
+    }, [busy, queued, ask]);
 
     const stop = useCallback(function () {
       const controller = abortRef.current;
@@ -966,6 +1246,8 @@
     }, [palette, palIndex, send, runSlash]);
 
     const unavailable = health && health.available === false;
+    const chan = channelOf(sessionChannel);
+    const readOnly = Boolean(sessionId) && sessionChannel !== "api_server";
     const caps = (model && model.capabilities) || {};
     const vision = Boolean(caps.supports_vision);
     const reasoning = Boolean(caps.supports_reasoning);
@@ -1032,6 +1314,11 @@
                     : null);
               })),
 
+        ask
+          ? h(Ask, { ask: ask, picked: picked, onPick: setPicked, onAnswer: answer,
+                     onDismiss: function () { setAsk(null); setPicked([]); } })
+          : null,
+
         queued.length
           ? h("div", { style: C.queued },
               h("span", null, "↑"),
@@ -1072,7 +1359,15 @@
             })
           : null,
 
-        h("div", { style: C.row },
+        readOnly
+          ? h("div", { style: C.readonly },
+              h("strong", null, chan.icon + "  " + chan.label + " conversation — read only."),
+              " Replying here would answer on this page, not on "
+              + chan.label + ", so the composer is closed. ",
+              h("button", {
+                style: C.linkBtn, onClick: props.onNew || newChat,
+              }, "Start a dashboard chat instead"))
+          : h("div", { style: C.row },
           h("input", {
             type: "file", multiple: true, ref: fileRef, style: { display: "none" },
             onChange: function (e) { addFiles(e.target.files); e.target.value = ""; },

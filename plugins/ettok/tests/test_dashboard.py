@@ -23,6 +23,7 @@ HERE = Path(__file__).parent
 PLUGINS = HERE.parent.parent
 PANEL = PLUGINS / 'ettok' / 'dashboard'
 CHAT = PLUGINS / 'ettok-chat' / 'dashboard'
+REPO = PLUGINS.parent
 
 
 def test_panel_owns_its_own_tab():
@@ -49,6 +50,19 @@ def test_chat_replaces_the_built_in_terminal():
 def test_chat_bundle_parsers():
     result = subprocess.run(
         [shutil.which('node'), str(HERE / 'bundle_check.js')],
+        capture_output=True, text=True, encoding='utf-8', errors='replace',
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+
+
+@pytest.mark.skipif(shutil.which('node') is None, reason='Node not installed')
+def test_clarify_prompt_refuses_to_collect_a_secret():
+    """A clarify prompt carries the agent's authority, which makes it a far more
+    convincing place to ask for a password than a chat bubble. The agent is
+    forbidden to ask, so a question like that means something steered it."""
+    result = subprocess.run(
+        [shutil.which('node'), str(HERE / 'secret_guard_check.js')],
         capture_output=True, text=True, encoding='utf-8', errors='replace',
         timeout=60,
     )
@@ -146,3 +160,55 @@ def test_context_meter_is_not_fed_cumulative_spend():
     # It is counted in both places a conversation changes size: when one is
     # opened, and when a turn completes.
     assert source.count('recount(') >= 2
+
+
+def test_chat_lists_every_channel_not_just_its_own():
+    """The sidebar asked for source=api_server, so a Telegram conversation with
+    the same agent, in the same database, was invisible on the dashboard."""
+    source = (CHAT / 'dist' / 'index.js').read_text(encoding='utf-8')
+    assert 'source=api_server' not in source, 'the sidebar is back to one channel'
+    assert 'exclude_sources=cron' in source, 'scheduled runs belong on their own page'
+    for channel in ('telegram', 'whatsapp', 'discord', 'signal'):
+        assert '"%s"' % channel in source, '%s has no channel entry' % channel
+
+
+def test_other_channels_are_read_only():
+    """A reply typed here returns over this page's stream. It does not reach the
+    Telegram thread it appears to answer, so the composer must not offer to."""
+    source = (CHAT / 'dist' / 'index.js').read_text(encoding='utf-8')
+    assert 'readOnly' in source
+    assert 'sessionChannel !== "api_server"' in source, 'nothing decides what is answerable'
+    assert 'read only' in source.lower(), 'the page never says why it cannot reply'
+
+
+def test_agent_can_ask_the_user_a_question():
+    """clarify had no callback on this surface: the tool returned "unavailable"
+    and the agent guessed instead of asking."""
+    routes = (REPO / 'gateway' / 'platforms' / 'api_server.py').read_text(encoding='utf-8')
+    assert '/v1/clarify/{clarify_id}' in routes, 'no route to answer on'
+    assert 'agent.clarify_callback = clarify_callback' in routes
+
+    stream = (REPO / 'gateway' / 'platforms' / 'api_server_openai_routes.py').read_text(encoding='utf-8')
+    assert 'clarify_callback=_on_clarify' in stream, 'the callback is never wired to the turn'
+    assert '"hermes.clarify"' in stream, 'the question never reaches the wire'
+    assert 'wait_for_response' in stream, 'the agent does not wait for the answer'
+
+    source = (CHAT / 'dist' / 'index.js').read_text(encoding='utf-8')
+    assert 'hermes.clarify' in source, 'the page ignores the question'
+    assert '/chat/clarify' in source, 'the page has no way to answer'
+    # A pending question blocks the agent, so a typed answer must not queue
+    # behind the turn that is waiting for it.
+    assert 'if (ask) {' in source
+    assert 'if (busy || ask || !queued.length) return;' in source
+
+
+def test_shell_output_is_shown_not_discarded():
+    """"Running npm test" with the output dropped is the agent working where
+    nobody can see it."""
+    stream = (REPO / 'gateway' / 'platforms' / 'api_server_openai_routes.py').read_text(encoding='utf-8')
+    assert '_OUTPUT_TOOLS' in stream and 'terminal' in stream
+    assert 'frame["output"] = _clip_output(function_result)' in stream
+
+    source = (CHAT / 'dist' / 'index.js').read_text(encoding='utf-8')
+    assert 'ShellOutput' in source
+    assert 'SHELL_TOOLS' in source

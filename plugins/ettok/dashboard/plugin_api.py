@@ -698,6 +698,40 @@ def vault_remove(item_id: str) -> dict:
 _PASSTHROUGH_FIELDS = ('reasoning_effort', 'temperature', 'max_tokens')
 
 
+@router.post('/chat/clarify')
+async def chat_clarify(payload: dict) -> dict:
+    """Answer a question the agent asked mid-turn.
+
+    A separate request on purpose: the turn that asked is still streaming, and
+    the thread that asked is blocked waiting for exactly this.
+    """
+    import httpx
+    from fastapi import HTTPException
+
+    clarify_id = str(payload.get('clarify_id') or '').strip()
+    answer = payload.get('response')
+    if isinstance(answer, list):
+        answer = ', '.join(str(a) for a in answer)
+    answer = str(answer or '').strip()
+    if not clarify_id or not answer:
+        raise HTTPException(status_code=400, detail='clarify_id and response are required')
+
+    url = f'{_gateway_url()}/v1/clarify/{clarify_id}'
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
+            response = await client.post(url, json={'response': answer},
+                                         headers=_gateway_headers())
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f'the agent could not be reached: {exc}')
+    if response.status_code == 404:
+        raise HTTPException(
+            status_code=409,
+            detail='That question is no longer waiting — it was answered or it timed out.')
+    if response.status_code >= 400:
+        raise HTTPException(status_code=502, detail='the agent refused the answer')
+    return {'ok': True}
+
+
 @router.post('/chat')
 async def chat(payload: dict) -> Any:
     """Stream one exchange through the gateway.
