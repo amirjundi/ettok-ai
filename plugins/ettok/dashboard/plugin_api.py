@@ -259,7 +259,18 @@ def reports() -> dict:
 # ---------------------------------------------------------------------------
 
 GATEWAY_DEFAULT_PORT = 8642
-_CHAT_TIMEOUT_SECONDS = 300.0
+# A chat turn is a stream, not a request/response, so the useful limit is how
+# long to wait for the NEXT chunk rather than for the whole thing. httpx applies
+# one number to connect, read, write and pool, so a flat 300.0 meant a turn died
+# after five minutes of quiet -- which is an ordinary length for one browser
+# navigation or a scan, and the symptom is a reply that stops mid-sentence with
+# no error anywhere.
+#
+# Connect stays short: a gateway that is not listening should fail immediately,
+# not hang the page. Read is generous but finite -- unbounded would leak a task
+# against a wedged gateway, and the operator can always press Stop.
+_CHAT_CONNECT_SECONDS = 10.0
+_CHAT_READ_SECONDS = 900.0
 
 
 def _gateway_url() -> str:
@@ -739,7 +750,11 @@ async def chat(payload: dict) -> Any:
     async def pump():
         """Read the gateway to the end, whether or not anyone is listening."""
         try:
-            async with httpx.AsyncClient(timeout=_CHAT_TIMEOUT_SECONDS) as client:
+            timeout = httpx.Timeout(
+                connect=_CHAT_CONNECT_SECONDS, read=_CHAT_READ_SECONDS,
+                write=60.0, pool=_CHAT_CONNECT_SECONDS,
+            )
+            async with httpx.AsyncClient(timeout=timeout) as client:
                 async with client.stream('POST', url, json=body,
                                           headers=headers) as response:
                     if response.status_code >= 400:

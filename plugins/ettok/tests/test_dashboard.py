@@ -128,9 +128,21 @@ def test_context_meter_is_not_fed_cumulative_spend():
         'usage must feed the spend readout'
     assert 'setUsedTokens(obj.usage' not in source, \
         'usage must never feed the context meter'
-    # Occupancy is summed from message token counts, in two places: on opening a
-    # session and after a turn completes.
-    assert source.count('token_count') >= 2
-    assert 'refreshOccupancy' in source
-    # And the meter refuses an impossible value rather than printing it.
-    assert 'if (raw > limit) return null;' in source
+    # Occupancy is ESTIMATED from the message text, not read from token_count.
+    #
+    # The runtime declares that column and never writes it -- every row on a
+    # live install is NULL -- so summing it produced a meter that read zero for
+    # ever. A meter stuck at zero is worse than none: it reports "plenty of
+    # room" with the same confidence whatever is true, right up to the
+    # compaction nobody was warned about.
+    #
+    # An estimate can be wrong; it cannot be confidently wrong in one direction,
+    # and it is labelled with a "≈" so the reader knows which kind of number it
+    # is.
+    assert 'estimateTokens' in source, 'occupancy must be measured from the text'
+    # Not read anywhere. The comment explaining why it is not read stays.
+    assert '.token_count' not in source,         'token_count is never written by the runtime; reading it yields a meter stuck at zero'
+    assert '"≈"' in source, 'an estimate must be presented as one'
+    # It is counted in both places a conversation changes size: when one is
+    # opened, and when a turn completes.
+    assert source.count('recount(') >= 2
