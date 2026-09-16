@@ -213,3 +213,35 @@ class TestKillStaleDashboardProcesses:
         assert len(taskkill_calls) == 1
         assert result["killed"] == [12345]
         assert result["failed"] == []
+
+
+class TestOwnProcessesAreManageable:
+    """The guard must not refuse the processes this product actually ships as.
+
+    `pyproject` installs one console script, `ettok`; the `hermes*` aliases were
+    removed deliberately. Accepting only a "hermes" token meant a dashboard or
+    gateway started as `ettok serve` was judged "not hermes-owned", so the
+    updater could not restart it and reported exit 1 for an update that worked.
+    """
+
+    def test_the_shipped_binary_is_recognised(self):
+        assert _subprocess_compat._text_names_hermes(
+            r"C:\proj\ettok-ai\.venv\Scripts\ettok.exe serve --port 8777"
+        ) is True
+        assert _subprocess_compat._text_names_hermes(
+            "/opt/ettok-ai/venv/bin/ettok serve"
+        ) is True
+
+    def test_the_upstream_name_still_matches(self):
+        # The runtime home (%LOCALAPPDATA%\hermes) and module tree keep it.
+        assert _subprocess_compat._text_names_hermes(
+            r"C:\Users\x\AppData\Local\hermes\bin\gateway.cmd"
+        ) is True
+
+    def test_unrelated_processes_are_still_refused(self):
+        # Same token-boundary rule as before: a name that merely contains the
+        # letters is not ours to kill.
+        for text in (r"c:\users\shermesa\app.exe",
+                     r"c:\users\bob\settokens\app.exe",
+                     r"C:\Windows\System32\notepad.exe"):
+            assert _subprocess_compat._text_names_hermes(text) is False, text

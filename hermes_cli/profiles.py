@@ -960,17 +960,23 @@ _HERMES_ARGV_MARKERS = ("hermes_cli.main", "hermes-gateway", "tui_gateway")
 # OS-reported argv[0] is the interpreter, not "hermes".
 _PYTHON_INTERPRETER_RE = re.compile(r"^python[\d.]*w?(\.exe)?$")
 # Console-script entry points this project ships (pyproject.toml [project.scripts]).
-# argv[1] is matched against exact names, not ``startswith("hermes")``: with a bare
+# argv[1] is matched against exact names, not ``startswith(...)``: with a bare
 # interpreter argv[0], argv[1] can be ANY user script ("hermes-notes.py").
-_HERMES_CONSOLE_SCRIPT_NAMES = frozenset({"hermes", "hermes-agent", "hermes-acp"})
+# The `ettok*` names are what is installed today; the `hermes*` ones are kept so an
+# install predating the rename is still recognised rather than silently orphaned.
+_HERMES_CONSOLE_SCRIPT_NAMES = frozenset({
+    "ettok", "ettok-agent", "ettok-acp", "hermes", "hermes-agent", "hermes-acp"})
 
 
 def _is_hermes_argv(argv: list) -> bool:
-    """True for a Ettok process: entrypoint marker in argv, executable named ``hermes*``,
-    or a python interpreter directly exec'ing a known ``hermes`` console-script shim."""
+    """True for a Ettok process: entrypoint marker in argv, executable named after this
+    product, or a python interpreter directly exec'ing a known console-script shim."""
+    from hermes_cli._subprocess_compat import _OWN_NAME_PREFIXES
+
     joined = " ".join(argv)
     exe_name = os.path.basename(argv[0]).lower()
-    if any(marker in joined for marker in _HERMES_ARGV_MARKERS) or exe_name.startswith("hermes"):
+    if any(marker in joined for marker in _HERMES_ARGV_MARKERS) \
+            or exe_name.startswith(_OWN_NAME_PREFIXES):
         return True
     if len(argv) >= 2 and _PYTHON_INTERPRETER_RE.match(exe_name):
         script_name = os.path.basename(str(argv[1])).lower()

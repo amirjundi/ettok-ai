@@ -51,6 +51,13 @@ _ACTION_LOG_TAIL_INITIAL_CHUNK_BYTES = 8 * 1024
 _ACTION_LOG_TAIL_MAX_CHUNK_BYTES = 64 * 1024
 
 _UPDATE_ACTION_COMPLETED_RE = re.compile(r"^=== hermes-update completed ([0-9a-f]{32}) ===$")
+# Two writers share update.log and spell the start marker differently: a dashboard
+# -triggered run is stamped with its action label ("hermes-update", see
+# web_server_gateway._spawn), a CLI run with the product name (main_dashboard).
+# Matching only one left last_start at -1 for every dashboard update, so any older
+# completion satisfied "completed after the last start" — the stale success this
+# function exists to rule out.
+_UPDATE_STARTED_PREFIXES = ("=== ettok update started ", "=== hermes-update started ")
 
 _MANAGED_EXTERNALLY_MESSAGE = "Ettok updates are managed outside this dashboard in containerized environments."
 
@@ -126,7 +133,7 @@ def _durable_completed_update_action_id(lines: List[str]) -> Optional[str]:
     last_start = last_completed = -1
     completed_action_id: Optional[str] = None
     for index, line in enumerate(lines):
-        if line.startswith("=== ettok update started "):
+        if line.startswith(_UPDATE_STARTED_PREFIXES):
             last_start = index
         match = _UPDATE_ACTION_COMPLETED_RE.fullmatch(line.strip())
         if match:

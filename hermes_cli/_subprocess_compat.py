@@ -289,13 +289,22 @@ def _process_start_time(pid: int) -> int | None:
         return None
 
 
+# Every name this product legitimately runs under. The shipped console script is
+# `ettok` — pyproject installs no `hermes` alias — while the runtime home
+# (%LOCALAPPDATA%\hermes) and the module tree (hermes_cli, hermes_constants) still
+# carry the upstream name. A process matching either is ours to manage. Accepting
+# only "hermes" meant refusing to restart our own dashboard, which is what made
+# `ettok update` from the dashboard report failure for an update that worked.
+_OWN_NAME_PREFIXES = ("hermes", ".hermes", "ettok", ".ettok")
+
+
 def _text_names_hermes(text: str) -> bool:
     r"""True when *text* names Ettok at a path-segment / token boundary.
 
     A bare ``"hermes" in text`` substring test would also match unrelated processes whose paths
     merely contain the letters (``...\shermesa\...``) — the false-positive class this prevents.
     """
-    return any(token.startswith(("hermes", ".hermes"))
+    return any(token.startswith(_OWN_NAME_PREFIXES)
                for token in re.split(r"[\\/\s=,;\"']+", text.lower()))
 
 

@@ -1187,3 +1187,39 @@ class TestResolveProfileEnvSpelling:
         assert Path(resolve_profile_env("default")) == _get_default_hermes_home()
 
 
+
+
+class TestIsHermesArgvRecognisesTheShippedBinary:
+    """Profile-bound backend discovery has to recognise the binary we install.
+
+    `pyproject [project.scripts]` ships `ettok`, `ettok-agent` and `ettok-acp`;
+    the `hermes*` aliases were removed. This predicate still looked for the old
+    names, so a gateway or dashboard started as `ettok serve` was not counted as
+    one of ours -- the same class of miss that made `ettok update` refuse to
+    restart the dashboard and exit 1.
+    """
+
+    def test_the_shipped_binary_is_recognised(self):
+        assert profiles._is_hermes_argv(
+            [r"C:\p\.venv\Scripts\ettok.exe", "serve", "--port", "8777"]) is True
+        assert profiles._is_hermes_argv(
+            [r"C:\p\.venv\Scripts\ettok.exe", "gateway", "start"]) is True
+
+    def test_an_interpreter_exec_ing_the_shim_is_recognised(self):
+        assert profiles._is_hermes_argv(
+            [r"C:\p\.venv\Scripts\python.exe", r"C:\p\.venv\Scripts\ettok.exe", "serve"]) is True
+
+    def test_the_legacy_name_still_works(self):
+        # An install predating the rename must not be orphaned.
+        assert profiles._is_hermes_argv([r"C:\p\.venv\Scripts\hermes.exe", "serve"]) is True
+        assert profiles._is_hermes_argv(
+            [r"C:\p\.venv\Scripts\python.exe", "-m", "hermes_cli.main", "serve"]) is True
+
+    def test_an_unrelated_user_script_is_not_ours(self):
+        # The exact-name rule for argv[1] is the guard that makes the bare
+        # interpreter case safe; broadening argv[0] must not weaken it.
+        assert profiles._is_hermes_argv(
+            [r"C:\p\python.exe", r"C:\Users\me\ettok-notes.py"]) is False
+        assert profiles._is_hermes_argv(
+            [r"C:\p\python.exe", r"C:\Users\me\hermes-notes.py"]) is False
+        assert profiles._is_hermes_argv([r"C:\Windows\System32\notepad.exe"]) is False
