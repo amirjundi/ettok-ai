@@ -118,6 +118,27 @@ async function mount(name) {
   return host.innerHTML;
 }
 
+// Mount, then click the first button whose text contains `label`, and return
+// what the page looks like afterwards. Opening a conversation is a render path
+// of its own and nothing here reached it before.
+async function mountAndClick(name, label) {
+  const host = dom.window.document.createElement("div");
+  dom.window.document.body.appendChild(host);
+  const root = createRoot(host);
+  await act(async () => { root.render(React.createElement(registered[name])); });
+  for (let i = 0; i < 5; i++) await act(async () => { await Promise.resolve(); });
+
+  const target = Array.from(host.querySelectorAll("button"))
+    .find((b) => (b.textContent || "").indexOf(label) !== -1);
+  if (!target) return { html: host.innerHTML, clicked: false };
+
+  await act(async () => {
+    target.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+  });
+  for (let i = 0; i < 5; i++) await act(async () => { await Promise.resolve(); });
+  return { html: host.innerHTML, clicked: true };
+}
+
 function expect(name, html, needle, what) {
   if (html.indexOf(needle) === -1) failures.push(name + ": " + what);
 }
@@ -159,6 +180,40 @@ function expect(name, html, needle, what) {
       expect(name, html, "Dashboard", "the dashboard's own group heading is missing");
       expect(name, html, "Nineb", "the sidebar does not say who the conversation was with");
     }
+  }
+
+  // Opening someone else's conversation: the page must survive it and say why
+  // it cannot be replied to. This is the branch that shipped broken.
+  try {
+    const opened = await mountAndClick("ettok-chat", "Report from Bashiqa");
+    if (!opened.clicked) {
+      failures.push("ettok-chat: no clickable Telegram session in the sidebar");
+    } else if (!opened.html || opened.html.length < 60) {
+      failures.push("ettok-chat: opening a Telegram session blanked the page");
+    } else {
+      expect("ettok-chat", opened.html, "read only",
+             "an other-channel session did not say it is read-only");
+      expect("ettok-chat", opened.html, "Start a dashboard chat",
+             "no way out of a read-only conversation");
+      if (opened.html.indexOf("<textarea") !== -1) {
+        failures.push("ettok-chat: the composer is still offered on a channel "
+                      + "this page cannot reply to");
+      }
+    }
+  } catch (e) {
+    failures.push("ettok-chat: threw while opening a Telegram session — "
+                  + (e && e.message));
+  }
+
+  // And the dashboard's own conversation must still be answerable.
+  try {
+    const opened = await mountAndClick("ettok-chat", "Sinjar sweep");
+    if (opened.clicked && opened.html.indexOf("<textarea") === -1) {
+      failures.push("ettok-chat: opening a dashboard session removed the composer");
+    }
+  } catch (e) {
+    failures.push("ettok-chat: threw while opening its own session — "
+                  + (e && e.message));
   }
 
   if (failures.length) {

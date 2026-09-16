@@ -1365,7 +1365,7 @@
               " Replying here would answer on this page, not on "
               + chan.label + ", so the composer is closed. ",
               h("button", {
-                style: C.linkBtn, onClick: props.onNew || newChat,
+                style: C.linkBtn, onClick: newChat,
               }, "Start a dashboard chat instead"))
           : h("div", { style: C.row },
           h("input", {
