@@ -207,6 +207,30 @@ def evidence_dir() -> Path:
     return path
 
 
+
+def _drop_stale_tables(conn) -> None:
+    """Remove tables an older build shaped differently, before the schema runs.
+
+    Both of these are rebuilt rather than migrated, and both can afford it:
+
+    `seen_item` is a memory of hashes and nothing else. The digest formula now
+    covers more fields, so every hash an older build wrote is stale and cannot
+    match anything this build computes. The cost is one re-collection pass, and
+    the platform deduplicates on its own side.
+
+    `classification` held only a foreign key into a table nothing has ever
+    written, and no build ever inserted a row into it, so there is nothing to
+    carry over.
+
+    A table that does not exist yet reports no columns, so a fresh database
+    falls straight through.
+    """
+    for table, required in (('seen_item', 'case_id'), ('classification', 'content_hash')):
+        columns = {row['name'] for row in conn.execute(f'PRAGMA table_info({table})')}
+        if columns and required not in columns:
+            conn.execute(f'DROP TABLE {table}')
+
+
 def connect() -> sqlite3.Connection:
     """Open the plugin database, creating the schema on first use.
 
@@ -219,25 +243,15 @@ def connect() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA journal_mode=WAL')
     conn.execute('PRAGMA foreign_keys=ON')
+
+    # Stale tables go BEFORE the schema script, never after. `_TABLES` creates
+    # an index on `classification(content_hash)`, and on a database from an
+    # older build that column does not exist yet -- so the whole script raises
+    # on the index, the connection never opens, and every page of the dashboard
+    # answers 500. A migration that runs after the thing it is fixing is not a
+    # migration.
+    _drop_stale_tables(conn)
     conn.executescript(_TABLES)
-
-    # seen_item gained a case dimension, and the digest it stores is now built
-    # from more fields, so every hash an older build wrote is stale: it cannot
-    # match anything this build computes. The table is a memory of hashes and
-    # nothing else, so it is rebuilt rather than migrated -- the cost is one
-    # re-collection pass, and the platform deduplicates on its own side anyway.
-    columns = {row['name'] for row in conn.execute('PRAGMA table_info(seen_item)')}
-    if columns and 'case_id' not in columns:
-        conn.execute('DROP TABLE seen_item')
-        conn.executescript(_TABLES)
-
-    # `classification` became self-contained rather than a foreign key into a
-    # table nothing writes. Rebuilt rather than migrated because no build has
-    # ever inserted a row into it, so there is nothing to carry over.
-    columns = {row['name'] for row in conn.execute('PRAGMA table_info(classification)')}
-    if columns and 'content_hash' not in columns:
-        conn.execute('DROP TABLE classification')
-        conn.executescript(_TABLES)
 
     conn.execute(
         'INSERT INTO schema_meta(key, value) VALUES (?, ?) '

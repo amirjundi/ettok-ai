@@ -336,7 +336,7 @@ def judgements(limit: int = 100, only: str = '', case_id: str = '') -> dict:
 
     totals = conn.execute(
         'SELECT COUNT(*) AS read, '
-        'SUM(CASE WHEN why_flagged != '' THEN 1 ELSE 0 END) AS matched, '
+        "SUM(CASE WHEN why_flagged != '' THEN 1 ELSE 0 END) AS matched, "
         'SUM(is_hate_speech) AS judged_hate FROM classification'
     ).fetchone()
 
