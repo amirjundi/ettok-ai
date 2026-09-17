@@ -71,8 +71,36 @@ def active_profile_may_override_home(hermes_root: str) -> bool:
     return bool(active and active != "default")
 
 
+# The agent's own directory name. `.hermes` is the upstream project this was
+# forked from, and it is the name a user sees in their home folder -- on a
+# volunteer's laptop that is another product's name, for software they were
+# handed as Ettok.
+#
+# Renaming it outright is not safe: about a hundred places in the codebase build
+# `~/.hermes` themselves rather than calling this, and a fresh install that
+# answered `.ettok` here while a sandbox rule elsewhere still guarded `.hermes`
+# would be broken in ways that only appear at runtime.
+#
+# So the choice is made from what is already on disk, and never moves anything:
+#   * `.ettok` exists      -> use it (somebody ran the migration)
+#   * else `.hermes` exists -> use it (every machine installed before this)
+#   * neither              -> `.ettok` for a fresh install
+#
+# `ettok home migrate` is what converts the first case into the second, and it
+# leaves a link behind so the hardcoded paths keep resolving.
+HOME_DIR_NAME = ".ettok"
+LEGACY_HOME_DIR_NAME = ".hermes"
+
+
 def _default_home() -> str:
-    return os.path.join(os.path.expanduser("~"), ".hermes")
+    user_home = os.path.expanduser("~")
+    preferred = os.path.join(user_home, HOME_DIR_NAME)
+    if os.path.isdir(preferred):
+        return preferred
+    legacy = os.path.join(user_home, LEGACY_HOME_DIR_NAME)
+    if os.path.isdir(legacy):
+        return legacy
+    return preferred
 
 
 def _resolved_home() -> str:

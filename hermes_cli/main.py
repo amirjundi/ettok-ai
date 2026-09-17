@@ -3143,6 +3143,61 @@ def _advertise_agent_env() -> None:
     os.environ.setdefault("HERMES_AGENT", "true")
 
 
+
+def build_home_parser(subparsers) -> None:
+    """`ettok home` -- where this agent keeps its state, and moving it.
+
+    A command rather than something that happens at startup. The directory is
+    moved on disk and a link is left behind for the hundred-odd paths in this
+    codebase that still name the old one; that is a deliberate act an operator
+    chooses, on a machine they have stopped, not a surprise on an upgrade.
+    """
+    home_parser = subparsers.add_parser(
+        'home', help="Where this agent keeps its state, and moving it to its own name",
+    )
+    home_sub = home_parser.add_subparsers(dest='home_command')
+
+    show = home_sub.add_parser('show', help='Print the state directory in use')
+    show.set_defaults(func=_cmd_home_show)
+
+    migrate = home_sub.add_parser(
+        'migrate',
+        help="Move the state directory out of the upstream project name",
+    )
+    migrate.add_argument(
+        '--force', action='store_true',
+        help='Migrate even though something looks like it is running. '
+             'Moving the directory under a live gateway corrupts its database.',
+    )
+    migrate.set_defaults(func=_cmd_home_migrate)
+
+    home_parser.set_defaults(func=_cmd_home_show)
+
+
+def _cmd_home_show(args) -> int:
+    from hermes_cli import home_migration
+
+    state = home_migration.status()
+    print(f"in use : {state['current'] if not state['already_migrated'] else state['target']}")
+    if state['already_migrated']:
+        print(f"legacy : {state['current']}"
+              + (' (link)' if state['compat_link_present'] else ' (gone)'))
+        return 0
+    if state['current_exists']:
+        print(f"would move to: {state['target']}")
+        print("Run `ettok home migrate` to move it. Nothing is deleted, and a link is "
+              "left behind so paths naming the old directory keep working.")
+    return 0
+
+
+def _cmd_home_migrate(args) -> int:
+    from hermes_cli import home_migration
+
+    ok, message = home_migration.migrate(force=bool(getattr(args, 'force', False)))
+    print(message)
+    return 0 if ok else 1
+
+
 def _attach_plugin_cli_command(subparsers, cmd_info) -> None:
     """Register one plugin-provided top-level command from its descriptor."""
     plugin_parser = subparsers.add_parser(
@@ -3213,6 +3268,7 @@ def _build_cli_parser():
     # OUTBOUND egress firewall; ``ettok proxy`` (gateway group) is the INBOUND one.
     build_egress_parser(subparsers)
     build_migrate_parser(subparsers)
+    build_home_parser(subparsers)
     build_gateway_parser(
         subparsers, cmd_gateway=cmd_gateway, cmd_proxy=cmd_proxy, cmd_gateway_enroll=cmd_gateway_enroll
     )

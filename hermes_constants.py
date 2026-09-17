@@ -42,13 +42,40 @@ def get_hermes_home_override() -> str | None:
     return str(override) if override is not _UNSET and override else None
 
 
+# The directory this agent keeps its state in. "hermes" is the upstream project
+# this was forked from, and it is the name the operator sees in their own home
+# folder -- on a volunteer's laptop, another product's name for software they
+# were handed as Ettok.
+#
+# Renaming it outright is not safe. Around a hundred places in this codebase
+# build the legacy path themselves rather than calling this, including sandbox
+# rules in agent/file_safety.py, and a fresh install that answered "ettok" here
+# while those still guarded "hermes" would break in ways that only appear at
+# runtime, on somebody else's machine.
+#
+# So nothing is ever moved, and the answer is read off the disk:
+#   * the ettok directory exists   -> use it (the migration was run)
+#   * else the legacy one exists   -> use it (every machine installed until now)
+#   * neither                      -> ettok, for a fresh install
+HOME_DIR_NAME = "ettok"
+LEGACY_HOME_DIR_NAME = "hermes"
+
+
 def _get_platform_default_hermes_home() -> Path:
     """Return the platform-native default Ettok home path."""
     if sys.platform == "win32":
         local_appdata = os.environ.get("LOCALAPPDATA", "").strip()
         base = Path(local_appdata) if local_appdata else Path.home() / "AppData" / "Local"
-        return base / "hermes"
-    return Path.home() / ".hermes"
+        preferred, legacy = base / HOME_DIR_NAME, base / LEGACY_HOME_DIR_NAME
+    else:
+        home = Path.home()
+        preferred, legacy = home / f".{HOME_DIR_NAME}", home / f".{LEGACY_HOME_DIR_NAME}"
+
+    if preferred.is_dir():
+        return preferred
+    if legacy.is_dir():
+        return legacy
+    return preferred
 
 
 def _warn_profile_fallback_once() -> None:
