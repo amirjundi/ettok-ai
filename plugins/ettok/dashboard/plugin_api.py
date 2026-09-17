@@ -116,7 +116,128 @@ def status() -> dict:
         'runs': runs,
         'evidence_pending': evidence_pending,
         'alerts': _alerts(queue, accounts, runs, cfg),
+        'now': _now(conn, queue, accounts, cfg),
+        'by_case': _by_case(conn),
     }
+
+
+def _now(conn, queue: dict, accounts: list, cfg) -> dict:
+    """One paragraph answering what an operator opens this page to ask.
+
+    Which case it is on, whether anything is happening, when something last
+    reached the platform, and what to do next. All four existed already --
+    spread over four tabs, in the vocabulary of the table each came from, so
+    assembling them was the reader's job every time.
+    """
+    open_run = conn.execute(
+        'SELECT * FROM case_run WHERE ended_at IS NULL ORDER BY id DESC LIMIT 1'
+    ).fetchone()
+    last_run = conn.execute(
+        'SELECT * FROM case_run WHERE ended_at IS NOT NULL ORDER BY id DESC LIMIT 1'
+    ).fetchone()
+    run = open_run or last_run
+
+    delivered_at = conn.execute(
+        "SELECT MAX(delivered_at) FROM outbox WHERE state = 'delivered'"
+    ).fetchone()[0]
+
+    if open_run:
+        doing = 'Collecting now'
+        detail = (f"Case {open_run['platform_case_id'] or '--'}, "
+                  f"{open_run['posts_scanned']} posts read so far, "
+                  f"{open_run['items_flagged']} flagged.")
+    elif last_run:
+        doing = 'Idle'
+        detail = (f"Nothing running. The last run ended "
+                  f"{_stop_phrase(last_run['stop_reason'])}.")
+    else:
+        doing = 'Has never run'
+        detail = 'This agent has not collected anything yet.'
+
+    return {
+        'doing': doing,
+        'detail': detail,
+        'case_id': run['platform_case_id'] if run else None,
+        'group': run['target_group_slug'] if run else '',
+        'since': (run['started_at'] if open_run else
+                  (last_run['ended_at'] if last_run else None)),
+        'last_delivery_at': delivered_at,
+        'next_action': _next_action(queue, accounts, cfg, open_run, delivered_at),
+    }
+
+
+def _stop_phrase(reason: str) -> str:
+    return {
+        'budget': 'because it reached its spending limit',
+        'deadline': 'because the case deadline passed',
+        'exhausted': 'because it had read everything it could find',
+        'quarantined': 'because the account it was using was quarantined',
+        'error': 'with an error',
+    }.get(reason or '', f'({reason or "no reason recorded"})')
+
+
+def _next_action(queue: dict, accounts: list, cfg, open_run, delivered_at) -> str:
+    """What a person should do, or that there is nothing to do.
+
+    Deliberately one sentence and deliberately sometimes empty: a panel that
+    always has an instruction on it trains people to stop reading it.
+    """
+    if not cfg.is_paired:
+        return 'Pair this agent with the platform: run `ettok connect`.'
+    if queue.get('failed_permanent'):
+        return 'Look at the submissions that failed permanently: `ettok outbox failed`.'
+    if any(a['state'] == 'auth_lost' for a in accounts):
+        return ('Sign in again, yourself, on the account that was signed out. '
+                'The agent will not do it.')
+    if accounts and all(a['state'] in ('quarantined', 'auth_lost') for a in accounts):
+        return 'Every account is unavailable; nothing can be collected until one is back.'
+    if not accounts:
+        return 'Add a monitoring account under Detection and accounts.'
+    if open_run:
+        return ''
+    if queue.get('pending'):
+        return ''
+    return 'Nothing needs you. Start a run when a case is due.'
+
+
+def _by_case(conn) -> list:
+    """Per case: runs, what was read, what was judged, when it last ran.
+
+    The Cases tab listed what the platform had opened and the run list showed
+    activity with a case id in it, and nothing connected the two -- so "has
+    anything actually happened on this case" was a question you answered by
+    reading two tables side by side.
+    """
+    rows = {}
+    for row in conn.execute(
+        'SELECT platform_case_id AS case_id, COUNT(*) AS runs, '
+        'SUM(posts_scanned) AS scanned, SUM(items_flagged) AS flagged, '
+        'MAX(COALESCE(ended_at, started_at)) AS last_at '
+        'FROM case_run GROUP BY platform_case_id'
+    ).fetchall():
+        rows[str(row['case_id'] or '')] = {
+            'case_id': row['case_id'],
+            'runs': row['runs'],
+            'scanned': row['scanned'] or 0,
+            'flagged': row['flagged'] or 0,
+            'last_at': row['last_at'],
+            'judged': 0,
+            'hate': 0,
+        }
+
+    for row in conn.execute(
+        'SELECT case_id, COUNT(*) AS judged, '
+        'SUM(is_hate_speech) AS hate FROM classification GROUP BY case_id'
+    ).fetchall():
+        key = str(row['case_id'] or '')
+        entry = rows.setdefault(key, {
+            'case_id': row['case_id'], 'runs': 0, 'scanned': 0,
+            'flagged': 0, 'last_at': None,
+        })
+        entry['judged'] = row['judged']
+        entry['hate'] = row['hate'] or 0
+
+    return sorted(rows.values(), key=lambda r: (r['last_at'] or ''), reverse=True)
 
 
 def _alerts(queue: dict, accounts: list, runs: list, cfg) -> list:

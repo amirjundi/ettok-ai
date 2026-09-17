@@ -190,6 +190,48 @@
       })));
   }
 
+  // What it is doing, for which case, whether anything has reached the platform,
+  // and whether a person is needed. Those four answers lived on four tabs, each
+  // in the vocabulary of the table it came from, and assembling them was the
+  // reader's job on every visit.
+  //
+  // "Last reached the platform" is separate from "delivered" on purpose: a
+  // delivered count that stopped moving three days ago looks identical to one
+  // that moved a minute ago, and those are opposite situations.
+  function Now(props) {
+    const now = props.now || {};
+    const running = now.doing === "Collecting now";
+
+    return h("div", {
+      style: {
+        border: "1px solid rgba(128,128,128,0.25)", borderRadius: "6px",
+        padding: "14px 16px", display: "flex", flexDirection: "column", gap: "6px",
+      },
+    },
+      h("div", { style: { display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" } },
+        h("span", { style: S.pill(running) }, now.doing || "unknown"),
+        now.case_id
+          ? h("span", { style: { fontSize: "14px", fontWeight: 600 } },
+              "Case " + now.case_id + (now.group ? " · " + now.group : ""))
+          : null,
+        now.since
+          ? h("span", { style: Object.assign({}, S.label, { marginLeft: "auto" }) },
+              (running ? "started " : "ended ") + ago(now.since))
+          : null),
+
+      h("div", { style: { fontSize: "13px" } }, now.detail || ""),
+
+      h("div", { style: S.label },
+        now.last_delivery_at
+          ? "Last reached the platform " + ago(now.last_delivery_at) + "."
+          : "Nothing has ever reached the platform from this machine."),
+
+      now.next_action
+        ? h("div", { style: Object.assign({}, S.alert("warning"), { marginTop: "4px" }) },
+            now.next_action)
+        : null);
+  }
+
   function Runs(props) {
     const rows = props.runs || [];
     if (!rows.length) {
@@ -237,6 +279,15 @@
 
   function Cases(props) {
     const cases = (props.knowledge && props.knowledge.cases_detail) || [];
+    // This machine's own record of what it has done per case, so a row says
+    // whether anything has actually happened on it rather than only what the
+    // platform intends. Keyed by id as a string: the platform sends a number,
+    // SQLite gives back whatever was stored.
+    const activity = {};
+    (props.byCase || []).forEach(function (row) {
+      activity[String(row.case_id)] = row;
+    });
+
     if (!cases.length) {
       return h("div", { style: S.muted },
         "No case is open. The agent has nothing to work until a case manager opens one "
@@ -244,15 +295,22 @@
     }
     return h("table", { style: S.table },
       h("thead", null, h("tr", null,
-        ["Case", "State", "Communities", "Items left", "Budget left", ""].map(function (t, i) {
+        ["Case", "State", "Communities", "Read here", "Flagged", "Last run",
+         "Items left", "Budget left", ""].map(function (t, i) {
           return h("th", { key: i, style: S.th }, t);
         }))),
       h("tbody", null, cases.map(function (c) {
         const lim = c.limits || {};
+        const did = activity[String(c.id)] || {};
         return h("tr", { key: c.id },
           h("td", { style: S.td }, c.title),
           h("td", { style: S.td }, h("span", { style: S.pill(c.state === "active") }, c.state)),
           h("td", { style: S.td }, (c.groups || []).join(", ") || "—"),
+          h("td", { style: S.td }, did.scanned || 0),
+          h("td", { style: S.td },
+            (did.flagged || 0)
+            + (did.judged ? " of " + did.judged + " judged" : "")),
+          h("td", { style: S.td }, did.last_at ? ago(did.last_at) : "never run here"),
           // Remaining rather than total: a subtraction the reader should not do.
           h("td", { style: S.td },
             lim.items_remaining === null || lim.items_remaining === undefined
@@ -807,7 +865,8 @@
       })),
 
       view === "work"
-        ? h("div", null,
+        ? h("div", { style: S.section },
+            h(Now, { now: status.now }),
             h(Goals, null),
             h("div", { style: S.section },
               h("h2", { style: S.h2 }, "Delivery"),
@@ -830,7 +889,7 @@
             h("p", { style: S.sub },
               "Opened and closed on the platform, never here. An agent that could "
               + "close its own case could also decide it had looked long enough."),
-            h(Cases, { knowledge: knowledge }))
+            h(Cases, { knowledge: knowledge, byCase: status.by_case }))
         : null,
 
       view === "collected"
