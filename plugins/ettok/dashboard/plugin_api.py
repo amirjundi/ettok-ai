@@ -221,6 +221,89 @@ def knowledge() -> dict:
     return payload
 
 
+@router.get('/threads')
+def threads(limit: int = 40, case_id: str = '') -> dict:
+    """What this agent read, grouped the way the platform shows it.
+
+    Case, then post, then the comments under it -- because that is the unit a
+    person judges: a comment is read against what it replies to, and the same
+    words under a different post are a different finding. A flat list ordered by
+    arrival scatters one pile-on across forty unrelated rows.
+
+    Built from this machine's own records, so it works with no network and shows
+    what THIS agent saw, which is the question an operator brings to the agent's
+    own dashboard rather than to the platform's.
+    """
+    conn = _db()
+    params = []
+    clause = ''
+    if case_id:
+        clause = ' WHERE case_id = ?'
+        params.append(case_id)
+
+    rows = conn.execute(
+        'SELECT * FROM classification' + clause + ' ORDER BY created_at DESC LIMIT ?',
+        (*params, max(1, min(int(limit), 500)) * 40),
+    ).fetchall()
+
+    # Grouped on the comment's own page rather than the post text: the same post
+    # read again next week comes back edited or truncated.
+    posts = {}
+    for row in rows:
+        key = (row['case_id'], row['url'] or '(no url)')
+        post = posts.setdefault(key, {
+            'case_id': row['case_id'],
+            'case': row['case_title'],
+            'url': row['url'],
+            'post': row['parent_excerpt'],
+            'collected': 0,
+            'matched': 0,
+            'judged_hate': 0,
+            'last_seen': row['created_at'],
+            'comments': [],
+        })
+        post['collected'] += 1
+        if row['why_flagged']:
+            post['matched'] += 1
+        if row['is_hate_speech']:
+            post['judged_hate'] += 1
+        if not post['post'] and row['parent_excerpt']:
+            post['post'] = row['parent_excerpt']
+        post['comments'].append({
+            'at': row['created_at'],
+            'text': row['excerpt'],
+            'is_hate_speech': bool(row['is_hate_speech']),
+            'why_flagged': row['why_flagged'],
+            'reason': row['reason'],
+            'category': row['category'],
+            'severity': row['severity'],
+            'tier': row['tier'],
+        })
+
+    # Newest first, then the busiest thread to the top. Two passes because a
+    # timestamp cannot be negated inside one sort key, and a single tuple sort
+    # would have put the OLDEST post first among equally busy ones.
+    grouped = sorted(posts.values(), key=lambda p: p['last_seen'], reverse=True)
+    grouped.sort(key=lambda p: -p['matched'])
+    for post in grouped:
+        post['share'] = (
+            round(post['matched'] * 100 / post['collected']) if post['collected'] else 0
+        )
+
+    cases = {}
+    for post in grouped:
+        case = cases.setdefault(post['case_id'], {
+            'id': post['case_id'], 'title': post['case'] or 'No case',
+            'collected': 0, 'matched': 0, 'judged_hate': 0, 'posts': [],
+        })
+        case['posts'].append(post)
+        case['collected'] += post['collected']
+        case['matched'] += post['matched']
+        case['judged_hate'] += post['judged_hate']
+
+    return {'cases': list(cases.values())}
+
+
 @router.get('/judgements')
 def judgements(limit: int = 100, only: str = '', case_id: str = '') -> dict:
     """What this agent decided, and why, held on this machine.

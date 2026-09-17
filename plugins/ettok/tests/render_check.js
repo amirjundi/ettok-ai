@@ -182,6 +182,30 @@ function expect(name, html, needle, what) {
     }
   }
 
+  // Every view behind the sub-navigation. A tab that throws or blanks is
+  // invisible from a mount of the default view, which is exactly how the
+  // Telegram-session blank screen below reached a release.
+  for (const [label, needle, what] of [
+    ["Cases", "case", "the cases view rendered nothing recognisable"],
+    ["Collected", "collected", "the collected view rendered nothing recognisable"],
+    ["What it decided", "judge", "the decided view rendered nothing recognisable"],
+    ["On the platform", "Unavailable", "the platform view did not explain itself unpaired"],
+    ["Detection and accounts", "detect", "the setup view rendered nothing recognisable"],
+  ]) {
+    try {
+      const opened = await mountAndClick("ettok", label);
+      if (!opened.clicked) {
+        failures.push("ettok: no sub-navigation button labelled " + JSON.stringify(label));
+      } else if (!opened.html || opened.html.length < 200) {
+        failures.push("ettok: the " + label + " view blanked the page");
+      } else if (opened.html.toLowerCase().indexOf(needle.toLowerCase()) === -1) {
+        failures.push("ettok: " + what);
+      }
+    } catch (e) {
+      failures.push("ettok: threw opening the " + label + " view — " + (e && e.message));
+    }
+  }
+
   // Opening someone else's conversation: the page must survive it and say why
   // it cannot be replied to. This is the branch that shipped broken.
   try {

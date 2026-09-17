@@ -579,12 +579,102 @@
             + "what fired and why it decided as it did."));
   }
 
+  // The corpus as a thread: case, then post, then the comments under it.
+  //
+  // The same shape the platform shows, built from this machine's own records,
+  // so it works with no network and answers what THIS agent saw -- which is the
+  // question somebody brings to the agent's dashboard rather than to the
+  // platform's.
+  //
+  // Three numbers per post, kept apart: collected is the denominator, matched
+  // is why a comment was read, and judged is what the agent concluded. Only a
+  // person on the platform can turn the third into a finding.
+  function Threads() {
+    const [data, error] = useEndpoint("/threads?limit=40", 0);
+    const [openPost, setOpenPost] = useState(null);
+
+    if (error) return h("div", { style: S.muted }, "Could not read them — " + error);
+    if (!data) return h("div", { style: S.muted }, "Loading…");
+
+    const cases = data.cases || [];
+    if (!cases.length) {
+      return h("div", { style: S.muted },
+        "Nothing collected yet. Once a run reads a page, its comments appear here "
+        + "grouped under the post they replied to.");
+    }
+
+    return h("div", null, cases.map(function (c) {
+      return h("div", { key: c.id || "none", style: S.section },
+        h("h3", { style: S.h2 }, c.title),
+        h("div", { style: S.muted },
+          c.collected + " collected · " + c.matched + " matched a rule · "
+          + c.judged_hate + " judged hate speech"),
+
+        (c.posts || []).map(function (post) {
+          const key = (c.id || "none") + "|" + (post.url || "");
+          const open = openPost === key;
+          const tone = post.share >= 50 ? "rgb(159,18,57)"
+            : post.share >= 20 ? "rgb(180,83,9)" : "rgb(51,65,85)";
+          return h("div", {
+            key: key,
+            style: { borderTop: "1px solid rgba(0,0,0,.08)", padding: "10px 0" },
+          },
+            h("div", {
+              style: { display: "flex", gap: "10px", alignItems: "baseline", cursor: "pointer" },
+              onClick: function () { setOpenPost(open ? null : key); },
+            },
+              h("span", { style: { fontSize: "18px", fontWeight: 700, color: tone } },
+                post.share + "%"),
+              h("span", { style: S.muted },
+                post.matched + " of " + post.collected + " comments matched a rule"),
+              post.judged_hate
+                ? h("span", { style: S.pill(false) }, post.judged_hate + " judged hate speech")
+                : null,
+              h("span", { style: Object.assign({}, S.muted, { marginLeft: "auto" }) },
+                ago(post.last_seen))),
+
+            h("div", { style: Object.assign({}, S.muted, { marginTop: "4px" }), dir: "auto" },
+              post.post
+                ? "under a post saying: " + post.post
+                : "No parent post was captured — context-dependent hate cannot be judged without it."),
+
+            open
+              ? h("div", { style: { marginTop: "8px" } },
+                  (post.comments || []).map(function (comment, i) {
+                    return h("div", {
+                      key: i,
+                      style: {
+                        padding: "8px 0 8px 12px",
+                        borderLeft: "2px solid rgba(0,0,0,.08)",
+                        opacity: comment.why_flagged ? 1 : 0.6,
+                      },
+                    },
+                      h("div", { dir: "auto", style: { fontSize: "14px" } }, comment.text),
+                      h("div", { style: Object.assign({}, S.muted, { marginTop: "4px" }) },
+                        h("span", { style: S.pill(comment.is_hate_speech) },
+                          comment.is_hate_speech ? "hate speech" : "not hate speech"),
+                        " ",
+                        comment.why_flagged || "nothing fired — kept as the denominator"),
+                      comment.reason
+                        ? h("div", { style: S.muted }, comment.reason)
+                        : null);
+                  }),
+                  post.url
+                    ? h("a", { href: post.url, target: "_blank", rel: "noopener noreferrer" },
+                        "open the page")
+                    : null)
+              : null);
+        }));
+    }));
+  }
+
   // ---- page -----------------------------------------------------------
 
   function EttokPage() {
     const [status, statusErr] = useEndpoint("/status", POLL_MS);
     const [knowledge] = useEndpoint("/knowledge", POLL_MS * 4);
     const [reports] = useEndpoint("/reports", POLL_MS * 2);
+    const [view, setView] = useState("work");
 
     if (statusErr) {
       return h("div", { style: S.page },
@@ -595,6 +685,25 @@
     if (!status) return h("div", { style: S.page }, h("div", { style: S.muted }, "Loading…"));
 
     const q = status.queue || {};
+
+    // Sub-navigation inside this one tab, rather than four entries in the host
+    // agent's sidebar. That sidebar belongs to the agent and is shared with its
+    // own pages and every other plugin: filling it with Ettok would make a
+    // general-purpose agent look single-purpose, and it would mean editing core
+    // navigation to add a product screen.
+    //
+    // Alerts and the connection state stay above the navigation on every view.
+    // They are the two things that mean "nothing below this is running", and a
+    // reader who has navigated away from an overview must not lose them.
+    const VIEWS = [
+      ["work", "What it is doing"],
+      ["cases", "Cases"],
+      ["collected", "Collected"],
+      ["decided", "What it decided"],
+      ["platform", "On the platform"],
+      ["setup", "Detection and accounts"],
+    ];
+
     return h("div", { style: S.page },
       h("div", null,
         h("h1", { style: S.h1 }, "Ettok AI"),
@@ -605,50 +714,91 @@
       h(Alerts, { alerts: status.alerts }),
       h(Connection, { status: status }),
 
-      h(Goals, null),
+      h("div", {
+        style: {
+          display: "flex", flexWrap: "wrap", gap: "4px",
+          margin: "16px 0 4px", borderBottom: "1px solid rgba(0,0,0,.1)",
+        },
+      }, VIEWS.map(function (entry) {
+        const active = view === entry[0];
+        return h("button", {
+          key: entry[0],
+          onClick: function () { setView(entry[0]); },
+          style: {
+            background: "none", border: "none", cursor: "pointer",
+            padding: "8px 12px", fontSize: "14px",
+            fontWeight: active ? 700 : 400,
+            borderBottom: active ? "2px solid currentColor" : "2px solid transparent",
+            opacity: active ? 1 : 0.7,
+          },
+        }, entry[1]);
+      })),
 
-      h("div", { style: S.section },
-        h("h2", { style: S.h2 }, "Delivery"),
-        h("div", { style: S.grid },
-          h(Stat, { label: "waiting to send", value: q.pending || 0 }),
-          h(Stat, { label: "delivered", value: q.delivered || 0 }),
-          h(Stat, {
-            label: "failed permanently", value: q.failed_permanent || 0,
-            tone: (q.failed_permanent ? "rgb(200,70,50)" : null),
-          }),
-          h(Stat, { label: "evidence held locally", value: status.evidence_pending || 0 }))),
+      view === "work"
+        ? h("div", null,
+            h(Goals, null),
+            h("div", { style: S.section },
+              h("h2", { style: S.h2 }, "Delivery"),
+              h("div", { style: S.grid },
+                h(Stat, { label: "waiting to send", value: q.pending || 0 }),
+                h(Stat, { label: "delivered", value: q.delivered || 0 }),
+                h(Stat, {
+                  label: "failed permanently", value: q.failed_permanent || 0,
+                  tone: (q.failed_permanent ? "rgb(200,70,50)" : null),
+                }),
+                h(Stat, { label: "evidence held locally", value: status.evidence_pending || 0 }))),
+            h("div", { style: S.section },
+              h("h2", { style: S.h2 }, "Recent runs"),
+              h(Runs, { runs: status.runs })))
+        : null,
 
-      h("div", { style: S.section },
-        h("h2", { style: S.h2 }, "Open cases"),
-        h(Cases, { knowledge: knowledge })),
+      view === "cases"
+        ? h("div", { style: S.section },
+            h("h2", { style: S.h2 }, "Open cases"),
+            h("p", { style: S.sub },
+              "Opened and closed on the platform, never here. An agent that could "
+              + "close its own case could also decide it had looked long enough."),
+            h(Cases, { knowledge: knowledge }))
+        : null,
 
-      h("div", { style: S.section },
-        h("h2", { style: S.h2 }, "What this agent decided"),
-        h("p", { style: S.sub },
-          "Its own judgements, kept on this machine. The platform re-judges "
-          + "everything and its verdict is the one that stands — these are here "
-          + "so a disagreement between the two is visible rather than silent."),
-        h(Judgements, null)),
+      view === "collected"
+        ? h("div", { style: S.section },
+            h("h2", { style: S.h2 }, "Everything collected"),
+            h("p", { style: S.sub },
+              "Case, then post, then the comments under it — the same shape the "
+              + "platform shows, built from this machine's own records, so it reads "
+              + "with no network at all."),
+            h(Threads, null))
+        : null,
 
-      h("div", { style: S.section },
-        h("h2", { style: S.h2 }, "Findings on the platform"),
-        h(Reports, { reports: reports })),
+      view === "decided"
+        ? h("div", { style: S.section },
+            h("h2", { style: S.h2 }, "What this agent decided"),
+            h("p", { style: S.sub },
+              "Its own judgements, kept on this machine. The platform re-judges "
+              + "everything and its verdict is the one that stands — these are here "
+              + "so a disagreement between the two is visible rather than silent."),
+            h(Judgements, null))
+        : null,
 
-      h("div", { style: S.section },
-        h("h2", { style: S.h2 }, "What it can detect"),
-        h(Knowledge, { knowledge: knowledge })),
+      view === "platform"
+        ? h("div", { style: S.section },
+            h("h2", { style: S.h2 }, "Findings on the platform"),
+            h(Reports, { reports: reports }))
+        : null,
 
-      h("div", { style: S.section },
-        h("h2", { style: S.h2 }, "Monitoring accounts"),
-        h(Accounts, { accounts: status.accounts })),
-
-      h("div", { style: S.section },
-        h("h2", { style: S.h2 }, "Account vault"),
-        h(Vault, null)),
-
-      h("div", { style: S.section },
-        h("h2", { style: S.h2 }, "Recent runs"),
-        h(Runs, { runs: status.runs })));
+      view === "setup"
+        ? h("div", null,
+            h("div", { style: S.section },
+              h("h2", { style: S.h2 }, "What it can detect"),
+              h(Knowledge, { knowledge: knowledge })),
+            h("div", { style: S.section },
+              h("h2", { style: S.h2 }, "Monitoring accounts"),
+              h(Accounts, { accounts: status.accounts })),
+            h("div", { style: S.section },
+              h("h2", { style: S.h2 }, "Account vault"),
+              h(Vault, null)))
+        : null);
   }
 
   // Accounts the agent can sign in with.
