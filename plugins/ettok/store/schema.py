@@ -23,7 +23,7 @@ from pathlib import Path
 
 PLUGIN_NAME = 'ettok'
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 _TABLES = """
 -- One attempt at working a case. Written before collection starts, so a crash
@@ -42,46 +42,19 @@ CREATE TABLE IF NOT EXISTS case_run (
     errors             TEXT    NOT NULL DEFAULT '[]'
 );
 
--- A comment with the post it replies to, captured as one unit. An item without
--- parent_post_text cannot be judged for context-dependent hate, and an item
--- without evidence cannot be reported once the original is deleted.
---
--- NOT YET WRITTEN. Nothing inserts into this table: a run hashes an item,
--- submits it and keeps only the hash. It is the local half of the evidence
--- archive, which does not exist yet -- the platform holds the only copy of a
--- finding today, and a deleted original is gone. post_id and comment_id are
--- part of that unbuilt half too; they are declared here and written nowhere.
--- Read this table as a design note, not as storage anything relies on.
-CREATE TABLE IF NOT EXISTS collected_item (
-    id                INTEGER PRIMARY KEY AUTOINCREMENT,
-    case_run_id       INTEGER REFERENCES case_run(id) ON DELETE SET NULL,
-    content_hash      TEXT    NOT NULL,
-    platform          TEXT    NOT NULL DEFAULT '',
-    url               TEXT    NOT NULL DEFAULT '',
-    post_id           TEXT    NOT NULL DEFAULT '',
-    comment_id        TEXT    NOT NULL DEFAULT '',
-    text              TEXT    NOT NULL DEFAULT '',
-    normalized_text   TEXT    NOT NULL DEFAULT '',
-    parent_post_text  TEXT    NOT NULL DEFAULT '',
-    parent_media_text TEXT    NOT NULL DEFAULT '',
-    thread_context    TEXT    NOT NULL DEFAULT '',
-    author_handle     TEXT    NOT NULL DEFAULT '',
-    author_id         TEXT    NOT NULL DEFAULT '',
-    lang_hint         TEXT    NOT NULL DEFAULT '',
-    requires_visual   INTEGER NOT NULL DEFAULT 0,
-    collected_at      TEXT    NOT NULL,
-    evidence_id       INTEGER,
-    submitted_at      TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_item_hash ON collected_item(content_hash);
-CREATE INDEX IF NOT EXISTS idx_item_run  ON collected_item(case_run_id);
+-- collected_item was here. Nothing ever wrote to it: a run hashes an item,
+-- submits it and keeps only the hash, and the evidence archive it was meant to
+-- be the local half of now lives on the platform, where a deleted original is
+-- still recoverable. A table that has never held a row and now has nothing to
+-- hold is a claim about the design that is no longer true, so it is gone rather
+-- than documented.
 
 -- Captured at the moment of collection, before an item counts as collected.
 -- Hate speech posts get deleted, often within hours of being reported, and
 -- evidence that was not captured is evidence you do not have.
 CREATE TABLE IF NOT EXISTS evidence_artifact (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    collected_item_id INTEGER REFERENCES collected_item(id) ON DELETE CASCADE,
+    collected_item_id INTEGER,
     screenshot_path  TEXT NOT NULL DEFAULT '',
     archive_path     TEXT NOT NULL DEFAULT '',
     source_url       TEXT NOT NULL DEFAULT '',
@@ -229,6 +202,13 @@ def _drop_stale_tables(conn) -> None:
         columns = {row['name'] for row in conn.execute(f'PRAGMA table_info({table})')}
         if columns and required not in columns:
             conn.execute(f'DROP TABLE {table}')
+
+    # collected_item is gone from the schema. An agent installed before this
+    # still has the table on disk, empty -- nothing ever wrote to it -- and
+    # leaving it there would keep the claim it makes about the design alive in
+    # every future reader's head.
+    if conn.execute('PRAGMA table_info(collected_item)').fetchall():
+        conn.execute('DROP TABLE IF EXISTS collected_item')
 
 
 def connect() -> sqlite3.Connection:

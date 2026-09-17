@@ -135,7 +135,11 @@ def test_storage_lives_outside_the_plugin_directory(hermes_home):
     tables = {row[0] for row in conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table'"
     )}
-    assert {'outbox', 'collected_item', 'evidence_artifact', 'seen_item'} <= tables
+    assert {'outbox', 'evidence_artifact', 'seen_item', 'classification'} <= tables
+    # collected_item was declared and never written to, and the archive it was
+    # the local half of now lives on the platform. Asserted absent so nobody
+    # reintroduces a table that documents a design decision that was reversed.
+    assert 'collected_item' not in tables
 
     data_dir = schema.data_dir()
     assert 'plugin-data' in str(data_dir)

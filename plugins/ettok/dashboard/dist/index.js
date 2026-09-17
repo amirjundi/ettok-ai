@@ -139,14 +139,34 @@
 
   function Connection(props) {
     const s = props.status;
+    // Paired and connected are different claims and this panel used to make
+    // only the first while looking like the second. Pairing is a key on this
+    // disk; reaching the platform is a thing that either happened recently or
+    // did not. An operator reading a green pill through an outage is being told
+    // the opposite of what is true.
+    const reached = props.reachedAt || null;
+    const failure = props.reachError || null;
     return h("div", { style: S.card },
-      h("div", { style: { display: "flex", alignItems: "center", gap: "10px" } },
+      h("div", { style: { display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" } },
         h("span", { style: S.pill(s.paired) }, s.paired ? "PAIRED" : "NOT PAIRED"),
+        (s.paired
+          ? h("span", { style: S.pill(!failure && !!reached) },
+              failure ? "CANNOT REACH THE PLATFORM"
+                      : (reached ? "REACHED" : "NOT REACHED YET"))
+          : null),
         h("span", { style: { fontSize: "13px" } }, s.platform_url)),
       s.agent_id
         ? h("div", { style: Object.assign({}, S.label, { marginTop: "6px" }) }, "as " + s.agent_id)
         : h("div", { style: Object.assign({}, S.label, { marginTop: "6px" }) },
-            "Run `ettok connect` to request access."));
+            "Run `ettok connect` to request access."),
+      failure
+        ? h("div", { style: Object.assign({}, S.alert("warning"), { marginTop: "8px" }) },
+            "The key on this machine is fine; the platform did not answer — "
+            + failure + ". Anything shown below was read locally and may be out of date.")
+        : (reached
+            ? h("div", { style: Object.assign({}, S.label, { marginTop: "6px" }) },
+                "last reached " + ago(reached))
+            : null));
   }
 
   function Accounts(props) {
@@ -246,6 +266,37 @@
       })));
   }
 
+
+  // The platform's review vocabulary, in its words rather than ours. Every
+  // status except false_positive used to render in the positive colour, so
+  // "new" -- which means nobody has looked at it -- read exactly like a
+  // confirmation. A status this agent does not recognise gets a neutral pill
+  // and its raw name: inventing a colour for it would be guessing about
+  // somebody's finding.
+  const STATUS = {
+    "new": ["awaiting review", "neutral"],
+    "reviewed": ["confirmed", "positive"],
+    "escalated": ["escalated", "positive"],
+    "false_positive": ["false positive", "negative"],
+    "dismissed": ["dismissed", "negative"],
+  };
+
+  function statusLabel(status) {
+    const known = STATUS[status];
+    return known ? known[0] : (status || "unknown");
+  }
+
+  function statusStyle(status) {
+    const known = STATUS[status];
+    const tone = known ? known[1] : "neutral";
+    if (tone === "neutral") {
+      return Object.assign({}, S.pill(false), {
+        background: "rgba(128,128,128,0.15)", color: "inherit", opacity: 0.8,
+      });
+    }
+    return S.pill(tone === "positive");
+  }
+
   function Reports(props) {
     const r = props.reports;
     if (!r) return h("div", { style: S.muted }, "Loading…");
@@ -258,9 +309,9 @@
     const counts = r.counts || {};
     return h("div", { style: S.section },
       h("div", { style: S.grid },
-        h(Stat, { label: "awaiting review", value: counts["new"] || 0 }),
-        h(Stat, { label: "reviewed", value: counts["reviewed"] || 0 }),
-        h(Stat, { label: "dismissed", value: counts["false_positive"] || 0 }),
+        h(Stat, { label: "nobody has looked", value: counts["new"] || 0 }),
+        h(Stat, { label: "confirmed", value: (counts["reviewed"] || 0) + (counts["escalated"] || 0) }),
+        h(Stat, { label: "dismissed", value: (counts["false_positive"] || 0) + (counts["dismissed"] || 0) }),
         h(Stat, {
           label: "agent disagreed", value: r.disagreements || 0,
           tone: (r.disagreements ? "rgb(180,120,30)" : null),
@@ -282,8 +333,8 @@
                 h("td", { style: Object.assign({}, S.td, { maxWidth: "320px" }) }, row.excerpt),
                 h("td", { style: S.td }, row.target_group || "—"),
                 h("td", { style: S.td }, row.severity || "—"),
-                h("td", { style: S.td },
-                  h("span", { style: S.pill(row.status !== "false_positive") }, row.status)),
+                h("td", { style: S.td }, h("span", { style: statusStyle(row.status) },
+                  statusLabel(row.status))),
                 h("td", { style: S.td },
                   h("span", { style: S.pill(row.had_context) },
                     row.had_context ? "yes" : "none")));
@@ -727,7 +778,13 @@
           + "This agent collects and reports; the platform decides.")),
 
       h(Alerts, { alerts: status.alerts }),
-      h(Connection, { status: status }),
+      h(Connection, {
+        status: status,
+        // Whether the platform actually answered, taken from the call that
+        // crosses the network rather than from what is stored on disk.
+        reachedAt: (knowledge && knowledge.available) ? knowledge.fetched_at : null,
+        reachError: (knowledge && knowledge.available === false) ? knowledge.reason : null,
+      }),
 
       h("div", {
         style: {

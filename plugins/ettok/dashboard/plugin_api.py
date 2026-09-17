@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from datetime import datetime, timezone
 import time
 from typing import Any, Dict, Optional
 
@@ -198,6 +199,10 @@ def knowledge() -> dict:
         know = knowledge_mod.fetch(PlatformClient(cfg))
         payload = {
             'available': True,
+            # When the platform actually answered. The connection panel showed
+            # "PAIRED" off stored configuration, which says a key exists on this
+            # disk and nothing about whether anything is reachable now.
+            'fetched_at': datetime.now(timezone.utc).isoformat(),
             'terms': len(know.terms),
             'tropes': len(know.tropes),
             'cases': len(know.cases),
