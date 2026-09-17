@@ -278,6 +278,22 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
     if submit:
         outbox_mod.reclaim_in_flight(conn)
         summary['delivery'] = outbox_mod.drain(conn, client)
+
+        # The captures, after the findings. A page's artefact is worth nothing
+        # without the item it supports, and the platform links the two by the
+        # comment's own digest -- so the item has to arrive first.
+        from .collect import evidence as evidence_mod
+
+        item_hash_for = {}
+        for finding in findings:
+            page = finding.get('parent_post_url') or finding.get('url') or ''
+            if page:
+                item_hash_for.setdefault(page, finding['content_hash'])
+        summary['evidence'] = evidence_mod.deliver(
+            conn, client,
+            case_id=case.case_id if case is not None else None,
+            item_hash_for=item_hash_for,
+        )
     summary['queue'] = outbox_mod.status(conn)
 
     if 'stop_reason' not in summary:

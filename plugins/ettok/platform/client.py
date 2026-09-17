@@ -85,7 +85,8 @@ class PlatformClient:
 
     # -- plumbing ---------------------------------------------------------
 
-    def _headers(self, idempotency_key: Optional[str] = None) -> dict:
+    def _headers(self, idempotency_key: Optional[str] = None,
+                 *, content_type: Optional[str] = 'application/json') -> dict:
         if not self._config.is_paired:
             raise NotPairedError(
                 'This machine is not paired with a platform. Run `ettok connect`.'
@@ -93,9 +94,13 @@ class PlatformClient:
         headers = {
             'Authorization': f'Bearer {self._config.agent_key}',
             'X-Agent-Id': self._config.agent_id,
-            'Content-Type': 'application/json',
             'Accept': 'application/json',
         }
+        if content_type:
+            headers['Content-Type'] = content_type
+        # A multipart upload passes content_type=None on purpose: httpx writes
+        # the header itself, with the boundary it generated. Setting it here
+        # would hand the server a boundary that does not match the body.
         if idempotency_key:
             headers['Idempotency-Key'] = idempotency_key
         return headers
@@ -128,6 +133,8 @@ class PlatformClient:
         *,
         payload: Optional[Mapping[str, Any]] = None,
         params: Optional[Mapping[str, Any]] = None,
+        data: Optional[Mapping[str, Any]] = None,
+        files: Optional[Mapping[str, Any]] = None,
         idempotency_key: Optional[str] = None,
         attempts: int = MAX_ATTEMPTS,
         sleep=time.sleep,
@@ -142,14 +149,22 @@ class PlatformClient:
         body = json.dumps(payload, ensure_ascii=False).encode('utf-8') if payload is not None else None
         last: Optional[PlatformError] = None
 
+        # A multipart request carries its own encoding, so the JSON body and the
+        # JSON content type both step aside.
+        multipart = files is not None or data is not None
         for attempt in range(1, max(1, attempts) + 1):
             try:
                 with self._client() as client:
                     response = client.request(
                         method, url,
-                        content=body,
+                        content=None if multipart else body,
+                        data=dict(data or {}) if multipart else None,
+                        files=dict(files) if files else None,
                         params=dict(params or {}),
-                        headers=self._headers(idempotency_key),
+                        headers=self._headers(
+                            idempotency_key,
+                            content_type=None if multipart else 'application/json',
+                        ),
                     )
                 self._classify(response)
                 try:
@@ -231,6 +246,36 @@ class PlatformClient:
         return self.request(
             'POST', 'cookies/', payload={'accounts': accounts}, idempotency_key=idempotency_key,
         )
+
+    def upload_evidence(self, *, page_hash: str, source_url: str, captured_at: str,
+                        item_content_hash: str = '', case_id=None,
+                        screenshot: Optional[bytes] = None,
+                        archive: Optional[bytes] = None) -> Response:
+        """Send one capture to the platform.
+
+        Multipart rather than JSON: a screenshot base64'd into a JSON body is a
+        third larger, on a residential uplink that is already the slowest part
+        of a run. Retries are safe -- the platform keys on `page_hash` and
+        confirms an upload it already holds rather than storing it twice, which
+        is what lets this machine delete its own copy afterwards.
+        """
+        files = {}
+        if screenshot:
+            files['screenshot'] = ('screenshot.png', screenshot, 'image/png')
+        if archive:
+            files['archive'] = ('archive.html', archive, 'text/html')
+        if not files:
+            raise PermanentError('nothing to upload: no artefact was captured')
+
+        data = {
+            'page_hash': page_hash,
+            'source_url': source_url,
+            'captured_at': captured_at,
+            'item_content_hash': item_content_hash,
+        }
+        if case_id is not None:
+            data['case_id'] = str(case_id)
+        return self.request('POST', 'evidence/', data=data, files=files)
 
 
 def new_idempotency_key() -> str:

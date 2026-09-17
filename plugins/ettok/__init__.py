@@ -273,12 +273,23 @@ def _make_tools(ctx):
         if account_id:
             session_mod.record_success(conn, account_id)
 
+        # Recorded, not just written to disk. `capture()` has always written the
+        # files; nothing ever wrote the row, so the archive had no index, the
+        # platform never received a copy, and the captures accumulated on the
+        # operator's machine until the disk filled.
         evidence = result.evidence
+        evidence_id = None
+        if evidence is not None and evidence.is_complete:
+            from .collect import evidence as evidence_mod
+
+            evidence_id = evidence_mod.store(conn, None, evidence)
+
         return _tool_result(
             url=url,
             items=result.items,
             count=len(result.items),
             evidence_captured=bool(evidence and evidence.is_complete),
+            evidence_id=evidence_id,
             evidence_hash=(evidence.content_hash if evidence else ''),
             selectors_in_use=('learned' if learned else 'default'),
             note=('Each item carries the post it replies to. Pass them to ettok_scan.'

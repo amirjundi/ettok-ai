@@ -138,6 +138,77 @@ def discard_delivered(conn, *, before_iso: Optional[str] = None) -> int:
     return removed
 
 
+def pending(conn, limit: int = 50) -> list:
+    """Captures that still exist only on this machine."""
+    return conn.execute(
+        'SELECT * FROM evidence_artifact WHERE delivered_at IS NULL '
+        "AND (screenshot_path != '' OR archive_path != '') "
+        'ORDER BY captured_at LIMIT ?',
+        (limit,),
+    ).fetchall()
+
+
+def deliver(conn, client, *, case_id=None, item_hash_for=None, limit: int = 50) -> dict:
+    """Upload what has not reached the platform, then delete the local copy.
+
+    The order is the whole point. Upload, wait for the platform to say it holds
+    it, and only then remove the file -- because this is the only copy, and a
+    machine that deletes on optimism loses the evidence permanently. A capture
+    that fails to upload stays on disk and is retried by the next run, which is
+    why the row is the queue and no separate outbox entry is needed.
+
+    `item_hash_for` maps a captured page URL to the deduplication digest of a
+    comment on it, so the platform can file the artefact against the item. It is
+    optional: an artefact that matches nothing is still worth holding.
+    """
+    from ..platform import client as client_mod
+
+    summary = {'uploaded': 0, 'failed': 0, 'removed': 0, 'errors': []}
+    rows = pending(conn, limit)
+    if not rows:
+        return summary
+
+    delivered = []
+    for row in rows:
+        try:
+            screenshot = _read(row['screenshot_path'])
+            archive = _read(row['archive_path'])
+            if not screenshot and not archive:
+                # The files are gone from disk but the row says undelivered.
+                # Nothing to send and nothing to keep waiting for.
+                delivered.append(row['id'])
+                continue
+            client.upload_evidence(
+                page_hash=row['content_hash'],
+                source_url=row['source_url'],
+                captured_at=row['captured_at'],
+                item_content_hash=(item_hash_for or {}).get(row['source_url'], ''),
+                case_id=case_id,
+                screenshot=screenshot,
+                archive=archive,
+            )
+            delivered.append(row['id'])
+            summary['uploaded'] += 1
+        except client_mod.PlatformError as exc:
+            # Kept on disk. A failed upload is the case this design exists for.
+            summary['failed'] += 1
+            summary['errors'].append(f'evidence {row["id"]}: {exc}')
+
+    mark_delivered(conn, delivered)
+    summary['removed'] = discard_delivered(conn)
+    return summary
+
+
+def _read(path: str) -> Optional[bytes]:
+    if not path:
+        return None
+    try:
+        return Path(path).read_bytes()
+    except OSError:
+        log.warning('ettok: evidence file missing on disk: %s', path)
+        return None
+
+
 def mark_delivered(conn, evidence_ids: list) -> None:
     if not evidence_ids:
         return
