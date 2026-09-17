@@ -135,3 +135,28 @@ class TestPerCaseActivity:
 
         assert row['judged'] == 2
         assert row['hate'] == 1
+
+
+class TestItDoesNotClaimTheCuratorsAreFinished:
+    """The panel said "Knowledge looks complete", which this agent cannot know.
+
+    It sees whether the required fields are populated. Whether the lexicon
+    covers what people are actually saying is a curator's judgement, and an
+    agent asserting otherwise is how an under-curated lexicon passes for a
+    quiet week -- the same confusion the three-empty-runs alert exists to catch.
+    """
+
+    def test_the_completeness_claim_is_gone(self):
+        from pathlib import Path
+        bundle = Path(__file__).resolve().parents[1] / 'dashboard' / 'dist' / 'index.js'
+        text = bundle.read_text(encoding='utf-8')
+        assert 'Every required field is filled in' in text
+        # Present only inside the comment explaining what it replaced.
+        assert text.count('Knowledge looks complete') <= 1
+
+    def test_the_release_is_stamped_for_the_reader(self):
+        from pathlib import Path
+        bundle = Path(__file__).resolve().parents[1] / 'dashboard' / 'dist' / 'index.js'
+        text = bundle.read_text(encoding='utf-8')
+        assert 'Release: ' in text
+        assert 'Fetched from the platform' in text

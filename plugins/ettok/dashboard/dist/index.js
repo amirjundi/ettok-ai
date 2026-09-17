@@ -274,7 +274,29 @@
             k.gaps.map(function (g, i) {
               return h("div", { key: i, style: S.alert("warning") }, g);
             }))
-        : h("div", { style: S.alert("info") }, "Knowledge looks complete."));
+        // It said "Knowledge looks complete", which is a claim this agent is in
+        // no position to make: it can see that the required fields are present
+        // and nothing about whether the curators are finished. It now says what
+        // it actually checked, and stamps the release and the time it was
+        // fetched -- without those, two runs that judged the same comment
+        // differently are indistinguishable from here.
+        : h("div", { style: S.alert("info") },
+            "Every required field is filled in. Whether the lexicon is complete "
+            + "is a curator's judgement, not something visible from here."));
+  }
+
+  function Release(props) {
+    const k = props.knowledge;
+    if (!k || !k.available) return null;
+    const versions = k.versions || {};
+    const parts = Object.keys(versions).map(function (name) {
+      return name + " " + versions[name];
+    });
+    return h("div", { style: S.label },
+      parts.length ? "Release: " + parts.join(" · ") + ". " : "",
+      k.fetched_at
+        ? "Fetched from the platform " + ago(k.fetched_at) + "."
+        : "Not fetched in this session.");
   }
 
   function Cases(props) {
@@ -922,7 +944,8 @@
         ? h("div", null,
             h("div", { style: S.section },
               h("h2", { style: S.h2 }, "What it can detect"),
-              h(Knowledge, { knowledge: knowledge })),
+              h(Knowledge, { knowledge: knowledge }),
+              h(Release, { knowledge: knowledge })),
             h("div", { style: S.section },
               h("h2", { style: S.h2 }, "Monitoring accounts"),
               h(Accounts, { accounts: status.accounts })),

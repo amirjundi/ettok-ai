@@ -328,6 +328,10 @@ def knowledge() -> dict:
             'tropes': len(know.tropes),
             'cases': len(know.cases),
             'gaps': _knowledge_gaps(know),
+            # The release this agent is holding, so "what could it detect when
+            # it judged that" is answerable from the panel rather than only
+            # from a classification row.
+            'versions': know.versions,
             'cases_detail': [
                 {
                     'id': c.get('id'),
