@@ -27,10 +27,25 @@
   function ago(iso) {
     if (!iso) return "never";
     const secs = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-    if (secs < 60) return Math.round(secs) + "s ago";
-    if (secs < 3600) return Math.round(secs / 60) + "m ago";
-    if (secs < 86400) return Math.round(secs / 3600) + "h ago";
-    return Math.round(secs / 86400) + "d ago";
+    return span(secs) + " ago";
+  }
+
+  // A scheduled time is in the future, and `ago` clamps at zero -- so the next
+  // run of a job six hours away read "0s ago", which says the opposite of what
+  // is true. Future, overdue and unscheduled are three different states and
+  // each says which it is.
+  function when(iso) {
+    if (!iso) return "not scheduled";
+    const secs = (new Date(iso).getTime() - Date.now()) / 1000;
+    if (secs > 0) return "in " + span(secs);
+    return "overdue by " + span(-secs);
+  }
+
+  function span(secs) {
+    if (secs < 60) return Math.round(secs) + "s";
+    if (secs < 3600) return Math.round(secs / 60) + "m";
+    if (secs < 86400) return Math.round(secs / 3600) + "h";
+    return Math.round(secs / 86400) + "d";
   }
 
   const S = {
@@ -441,7 +456,7 @@
                                                               { marginLeft: "6px" }) }, "paused") : null),
                   h("td", { style: S.td }, scheduleLabel(j)),
                   h("td", { style: S.td }, ago(j.last_run_at)),
-                  h("td", { style: S.td }, paused ? "—" : ago(j.next_run_at)),
+                  h("td", { style: S.td }, paused ? "—" : when(j.next_run_at)),
                   h("td", { style: Object.assign({}, S.td, { whiteSpace: "nowrap" }) },
                     h("button", { style: S.linkBtn, onClick: function () { act(j.id, "/trigger"); } },
                       "run now"),
