@@ -336,3 +336,38 @@ def test_a_context_row_records_which_knowledge_read_it(home):
     assert submitted['why_flagged'] == '', 'this is a context row, not a finding'
     assert submitted['agent_verdict']['versions']['lexicon']
     assert submitted['agent_verdict']['tier'] == 'context'
+
+
+def test_a_case_that_is_not_due_collects_nothing(home):
+    """`pick` returns None for two different situations and only one of them
+    means "go ahead".
+
+    Found by the first live collection pass. A second run, minutes after the
+    first, found no case due -- correctly, the rota had set the next scan an
+    hour out -- and then collected anyway, submitting five observations attached
+    to no case. Orphaned evidence is invisible on the case screen and has nothing
+    to group it under anywhere else, and running regardless also defeats the
+    rota, whose whole purpose is stopping one case from taking every run.
+    """
+    not_due = FakeKnowledge().cases
+    not_due[0]['due'] = False
+
+    result = scan_mod.run(Ctx(FakeKnowledge(cases=not_due)), items=_items(3),
+                          classify=False, submit=False)
+
+    assert result['stop_reason'] == 'not_due'
+    assert result['scanned'] == 0
+    assert result['flagged'] == 0
+    assert 'belong to no case' in result['note']
+
+
+def test_an_operator_naming_a_case_overrides_the_rota(home):
+    """Asking for a case by name is a person deciding, not the schedule."""
+    not_due = FakeKnowledge().cases
+    not_due[0]['due'] = False
+
+    result = scan_mod.run(Ctx(FakeKnowledge(cases=not_due)), items=_items(1),
+                          case_id=1, classify=False, submit=False)
+
+    assert result['case'] == 'Sinjar anniversary backlash'
+    assert result['scanned'] == 1

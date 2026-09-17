@@ -235,6 +235,29 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
     if case is not None:
         summary['readiness'] = case.readiness()
 
+    # `pick` returns None for two situations that are not the same thing, and
+    # collapsing them submitted evidence attached to no case at all -- invisible
+    # on the case screen, and with nothing to group it under anywhere else.
+    #
+    #   no cases exist        -- a valid deployment with nothing to attribute to.
+    #                            Collecting is fine; the operator asked for it.
+    #   cases exist, none due -- the rota saying "not this one, not yet". Running
+    #                            anyway both orphans the evidence and defeats the
+    #                            rota, which exists so one case cannot starve the
+    #                            others.
+    #
+    # Found by the first live pass: a second run, minutes after the first, went
+    # through the whole pipeline and produced five orphaned observations.
+    if case is None and case_id is None and (know.cases or []):
+        cases_mod.finish_run(conn, run_id, stop_reason='not_due', spend=0.0)
+        summary['stop_reason'] = 'not_due'
+        summary['note'] = (
+            'No case is due yet. Nothing was collected: evidence gathered now '
+            'would belong to no case, and the wait is what stops one case '
+            'taking every run.'
+        )
+        return summary
+
     budget = case.budget if case else cases_mod.Budget()
     findings = []
     # Hashes waiting on a durable delivery record. Nothing is marked seen until
