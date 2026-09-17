@@ -317,3 +317,22 @@ def test_nothing_is_marked_seen_until_it_is_queued(home):
     ).fetchone()
     assert seen == 3
     assert len(json.loads(queued['payload'])['items']) == 3
+
+
+def test_a_context_row_records_which_knowledge_read_it(home):
+    """A row saying "examined, matched nothing" carried an empty verdict, so a
+    curator adding a term later could not tell whether this comment had been
+    read by a lexicon that already had it."""
+    quiet = [{'text': 'تعليق عادي', 'parent_post_text': 'منشور عادي', 'platform': 'facebook'}]
+    scan_mod.run(Ctx(), items=quiet, classify=False, submit=False)
+
+    from plugins.ettok.store import schema
+    conn = schema.connect()
+    row = conn.execute(
+        "SELECT payload FROM outbox WHERE endpoint = 'flagged-items/'"
+    ).fetchone()
+    submitted = json.loads(row['payload'])['items'][0]
+
+    assert submitted['why_flagged'] == '', 'this is a context row, not a finding'
+    assert submitted['agent_verdict']['versions']['lexicon']
+    assert submitted['agent_verdict']['tier'] == 'context'

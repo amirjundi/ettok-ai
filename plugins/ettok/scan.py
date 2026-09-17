@@ -113,7 +113,7 @@ def remember(conn, digests, case_key: str = '') -> None:
     conn.commit()
 
 
-def _finding(item: dict, result, verdict, case, digest: str) -> dict:
+def _finding(item: dict, result, verdict, case, digest: str, versions=None) -> dict:
     """One submission row, for a finding or for the context around it.
 
     `verdict` is None for a comment that matched nothing: there is no judgement
@@ -141,7 +141,15 @@ def _finding(item: dict, result, verdict, case, digest: str) -> dict:
         'author_id': item.get('author_id', '') or '',
         'author_url': item.get('author_url', '') or '',
         'why_flagged': result.explain() if result.matched else '',
-        'agent_verdict': verdict.as_payload(result) if verdict is not None else {},
+        # A context row carried an empty verdict, so nothing recorded which
+        # knowledge had read it. That is the row that says "this comment was
+        # examined and matched nothing" -- and without a version stamp, a later
+        # curator cannot tell whether it was examined by the lexicon that has
+        # the term they just added, or by one from six weeks earlier.
+        'agent_verdict': (
+            verdict.as_payload(result) if verdict is not None
+            else {'tier': 'context', 'is_hate_speech': False, 'versions': versions or {}}
+        ),
     }
 
 
@@ -230,7 +238,7 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         # Only findings go on to classification, so the expensive tier is
         # unchanged.
         if not result.matched:
-            findings.append(_finding(item, result, None, case, digest))
+            findings.append(_finding(item, result, None, case, digest, know.versions))
             collected_digests[digest] = None
             continue
         summary['flagged'] += 1

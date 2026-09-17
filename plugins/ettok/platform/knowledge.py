@@ -13,11 +13,33 @@ version, and an audit chain with a hole in it is not an audit chain.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
 log = logging.getLogger(__name__)
+
+
+
+def _release_id(rows: list, fields: tuple) -> str:
+    """A stable identifier for one body of knowledge.
+
+    Order-independent, because the platform does not promise one and a
+    re-ordered response is not a new release. Only the fields that change a
+    verdict are hashed: an edit to a description that no matcher reads should
+    not invalidate every classification made under it.
+    """
+    digests = sorted(
+        hashlib.sha256(
+            json.dumps([row.get(field) for field in fields],
+                       ensure_ascii=False, sort_keys=True, default=str).encode('utf-8')
+        ).hexdigest()
+        for row in (rows or [])
+    )
+    combined = hashlib.sha256(''.join(digests).encode('utf-8')).hexdigest()[:8]
+    return f'{len(rows or [])}@{combined}'
 
 
 class KnowledgeError(RuntimeError):
@@ -39,14 +61,23 @@ class Knowledge:
     def versions(self) -> dict:
         """Recorded on every classification, so a verdict can be reproduced.
 
-        There is no version endpoint, so this is derived from what arrived. Counts
-        change whenever a curator adds or edits anything, which is enough to tell
-        two runs apart when a reviewer asks why they disagreed.
+        A digest of the content, not a count of it. The count was wrong in the
+        one case it most needed to be right: a curator who edits a term, or
+        replaces one with another, leaves the count unchanged, so two runs with
+        different detection knowledge carried the same version string and a
+        reviewer asking why the agent changed its mind was told nothing had.
+
+        Counted length stays in the string as a readable prefix -- "42@a1b2c3d4"
+        says at a glance how much knowledge was loaded -- but the digest after it
+        is what actually identifies the release.
         """
         return {
-            'lexicon': f'{len(self.terms)}-terms',
-            'tropes': f'{len(self.tropes)}-tropes',
-            'cases': f'{len(self.cases)}-cases',
+            'lexicon': _release_id(self.terms, ('id', 'term', 'variants', 'never_flag_when',
+                                                'severity_weight', 'category', 'is_regex',
+                                                'target_group_slug')),
+            'tropes': _release_id(self.tropes, ('id', 'name', 'surface_forms', 'description',
+                                                'severity_weight', 'target_group_slug')),
+            'cases': _release_id(self.cases, ('id', 'title', 'state', 'target_groups')),
         }
 
     def tropes_for(self, group_slug: str) -> list:
