@@ -456,6 +456,129 @@
               }))));
   }
 
+  // What this agent decided, held on this machine.
+  //
+  // "Findings on the platform" answers what the platform made of a submission.
+  // This is the other half and the half nobody could see: the agent's own
+  // verdict and its reasoning. Without it, "the agent is judging badly" could
+  // only be checked by logging into somebody else's database, and a run made
+  // while unpaired left no visible trace of its reasoning at all.
+  //
+  // Read, matched and judged are three different numbers and the difference
+  // between them is the whole point: a rule firing is why a comment was read,
+  // not a verdict on it.
+  function Judgements() {
+    const [only, setOnly] = useState("matched");
+    const [caseId, setCaseId] = useState("");
+    const query = "/judgements?limit=100&only=" + only
+      + (caseId ? "&case_id=" + encodeURIComponent(caseId) : "");
+    const [data, error] = useEndpoint(query, 0);
+    const [openId, setOpenId] = useState(null);
+
+    if (error) return h("div", { style: S.muted }, "Could not read them — " + error);
+    if (!data) return h("div", { style: S.muted }, "Loading…");
+
+    const rows = data.judgements || [];
+    const totals = data.totals || {};
+
+    function filterBtn(value, label) {
+      return h("button", {
+        key: value,
+        style: Object.assign({}, S.linkBtn,
+          only === value ? { fontWeight: 700, textDecoration: "underline" } : {}),
+        onClick: function () { setOnly(value); },
+      }, label);
+    }
+
+    return h("div", { style: S.section },
+      h("div", { style: S.grid },
+        h(Stat, { label: "comments read", value: totals.read || 0 }),
+        h(Stat, { label: "a rule fired", value: totals.matched || 0 }),
+        h(Stat, { label: "judged hate speech", value: totals.judged_hate || 0 })),
+
+      h("div", { style: { margin: "8px 0" } },
+        filterBtn("matched", "a rule fired"),
+        filterBtn("hate", "judged hate speech"),
+        filterBtn("clear", "judged not hate speech"),
+        filterBtn("", "everything read"),
+        (data.cases || []).length
+          ? h("select", {
+              style: { marginLeft: "12px" },
+              value: caseId,
+              onChange: function (e) { setCaseId(e.target.value); },
+            },
+            [h("option", { key: "", value: "" }, "every case")].concat(
+              (data.cases || []).map(function (c) {
+                return h("option", { key: c.id, value: c.id },
+                  (c.title || "case " + c.id) + " (" + c.count + ")");
+              })))
+          : null),
+
+      rows.length
+        ? h("div", null, rows.map(function (row) {
+            const open = openId === row.id;
+            return h("div", {
+              key: row.id,
+              style: {
+                borderTop: "1px solid rgba(0,0,0,.08)", padding: "10px 0",
+              },
+            },
+              h("div", {
+                style: { display: "flex", gap: "10px", alignItems: "baseline", cursor: "pointer" },
+                onClick: function () { setOpenId(open ? null : row.id); },
+              },
+                h("span", { style: S.pill(row.is_hate_speech) },
+                  row.is_hate_speech ? "hate speech" : "not hate speech"),
+                h("span", { style: { flex: 1, minWidth: 0 }, dir: "auto" },
+                  (row.excerpt || "").slice(0, 160)),
+                h("span", { style: S.muted }, ago(row.at))),
+
+              open
+                ? h("div", { style: { padding: "8px 0 4px", fontSize: "13px" } },
+                    row.parent_excerpt
+                      ? h("div", { style: S.muted, dir: "auto" },
+                          "under a post saying: " + row.parent_excerpt)
+                      : h("div", { style: S.alert("warning") },
+                          "No parent post was captured. Context-dependent hate cannot be "
+                          + "judged without it, and this verdict is weaker for it."),
+                    row.why_flagged
+                      ? h("div", null, h("b", null, "what fired: "), row.why_flagged)
+                      : h("div", { style: S.muted },
+                          "Nothing fired. Kept as the denominator: findings without the "
+                          + "number of comments they came out of cannot be turned into a rate."),
+                    row.reason
+                      ? h("div", null, h("b", null, "why: "), row.reason)
+                      : null,
+                    row.category || row.severity
+                      ? h("div", { style: S.muted },
+                          (row.category || "uncategorised")
+                          + (row.severity ? " · severity " + row.severity : ""))
+                      : null,
+                    row.exemption_applied
+                      ? h("div", { style: S.muted },
+                          "exemption applied: " + row.exemption_applied)
+                      : null,
+                    row.tier === "matched_only"
+                      ? h("div", { style: S.muted },
+                          "Decided by the rules alone — there was no budget for a model "
+                          + "call on that run.")
+                      : null,
+                    h("div", { style: S.muted },
+                      "knowledge: "
+                      + Object.keys(row.versions || {}).map(function (k) {
+                          return k + " " + row.versions[k];
+                        }).join(", ")),
+                    row.url
+                      ? h("a", { href: row.url, target: "_blank", rel: "noopener noreferrer" },
+                          "open the comment")
+                      : null)
+                : null);
+          }))
+        : h("div", { style: S.muted },
+            "Nothing recorded yet. Every comment this agent reads is kept here, with "
+            + "what fired and why it decided as it did."));
+  }
+
   // ---- page -----------------------------------------------------------
 
   function EttokPage() {
@@ -498,6 +621,14 @@
       h("div", { style: S.section },
         h("h2", { style: S.h2 }, "Open cases"),
         h(Cases, { knowledge: knowledge })),
+
+      h("div", { style: S.section },
+        h("h2", { style: S.h2 }, "What this agent decided"),
+        h("p", { style: S.sub },
+          "Its own judgements, kept on this machine. The platform re-judges "
+          + "everything and its verdict is the one that stands — these are here "
+          + "so a disagreement between the two is visible rather than silent."),
+        h(Judgements, null)),
 
       h("div", { style: S.section },
         h("h2", { style: S.h2 }, "Findings on the platform"),

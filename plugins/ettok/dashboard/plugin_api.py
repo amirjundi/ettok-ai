@@ -221,6 +221,83 @@ def knowledge() -> dict:
     return payload
 
 
+@router.get('/judgements')
+def judgements(limit: int = 100, only: str = '', case_id: str = '') -> dict:
+    """What this agent decided, and why, held on this machine.
+
+    Separate from /reports, which asks the platform what became of a submission.
+    This is the other half of the same question and the half nobody could see:
+    an operator could read the platform's verdict and never their own agent's,
+    so "the agent is judging badly" was a claim that could only be checked by
+    logging into somebody else's database -- and a run made while unpaired left
+    no trace of its reasoning at all.
+    """
+    conn = _db()
+    where, params = [], []
+    if only == 'hate':
+        where.append('is_hate_speech = 1')
+    elif only == 'clear':
+        where.append('is_hate_speech = 0')
+    elif only == 'matched':
+        # The agent read it and a rule fired, whatever the verdict was.
+        where.append("why_flagged != ''")
+    if case_id:
+        where.append('case_id = ?')
+        params.append(case_id)
+
+    clause = (' WHERE ' + ' AND '.join(where)) if where else ''
+    rows = conn.execute(
+        'SELECT * FROM classification' + clause + ' ORDER BY created_at DESC LIMIT ?',
+        (*params, max(1, min(int(limit), 500))),
+    ).fetchall()
+
+    totals = conn.execute(
+        'SELECT COUNT(*) AS read, '
+        'SUM(CASE WHEN why_flagged != '' THEN 1 ELSE 0 END) AS matched, '
+        'SUM(is_hate_speech) AS judged_hate FROM classification'
+    ).fetchone()
+
+    return {
+        'judgements': [
+            {
+                'id': row['id'],
+                'at': row['created_at'],
+                'case': row['case_title'],
+                'case_id': row['case_id'],
+                'platform': row['platform'],
+                'url': row['url'],
+                'excerpt': row['excerpt'],
+                'parent_excerpt': row['parent_excerpt'],
+                'is_hate_speech': bool(row['is_hate_speech']),
+                'why_flagged': row['why_flagged'],
+                'category': row['category'],
+                'severity': row['severity'],
+                'reason': row['reason'],
+                'terms': json.loads(row['fired_terms'] or '[]'),
+                'tropes': json.loads(row['fired_tropes'] or '[]'),
+                'exemption_applied': row['exemption_applied'],
+                # `context` means the agent read it and nothing fired;
+                # `matched_only` means no model was affordable on that run.
+                'tier': row['tier'],
+                'versions': json.loads(row['versions'] or '{}'),
+            }
+            for row in rows
+        ],
+        'totals': {
+            'read': totals['read'] or 0,
+            'matched': totals['matched'] or 0,
+            'judged_hate': totals['judged_hate'] or 0,
+        },
+        'cases': [
+            {'id': r['case_id'], 'title': r['case_title'], 'count': r['n']}
+            for r in conn.execute(
+                'SELECT case_id, case_title, COUNT(*) AS n FROM classification '
+                "WHERE case_id != '' GROUP BY case_id, case_title ORDER BY n DESC"
+            ).fetchall()
+        ],
+    }
+
+
 @router.get('/reports')
 def reports() -> dict:
     """The far end of the loop: what the platform made of what was sent.

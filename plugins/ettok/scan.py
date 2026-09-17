@@ -113,6 +113,53 @@ def remember(conn, digests, case_key: str = '') -> None:
     conn.commit()
 
 
+
+def record_judgement(conn, item: dict, result, verdict, case, digest: str) -> None:
+    """Keep this agent's own decision, on this machine.
+
+    The operator could see what the platform made of a submission and never what
+    their own agent decided or why -- the local table for it existed and nothing
+    wrote to it. So "the agent is judging badly" was a claim nobody could check
+    without a network round trip to somebody else's database, and a run made
+    while unpaired left no trace of its reasoning at all.
+
+    Advisory, and stored as such: the platform re-judges every item and its
+    verdict is the one that stands. This is kept so a disagreement between the
+    two is visible rather than silent.
+    """
+    payload = verdict.as_payload(result) if verdict is not None else {}
+    conn.execute(
+        'INSERT INTO classification(content_hash, case_id, case_title, platform, url, '
+        'excerpt, parent_excerpt, is_hate_speech, why_flagged, category, severity, '
+        'reason, fired_terms, fired_tropes, exemption_applied, tier, versions, '
+        'created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        (
+            digest,
+            str(case.case_id) if case is not None else '',
+            case.title if case is not None else '',
+            item.get('platform', '') or '',
+            item.get('url', '') or '',
+            # An excerpt, not the comment. This is a laptop on a residential
+            # connection; the full text of an attack on a named person does not
+            # need a second permanent home here.
+            (item.get('text', '') or '')[:400],
+            (item.get('parent_post_text', '') or '')[:200],
+            1 if payload.get('is_hate_speech') else 0,
+            result.explain() if result.matched else '',
+            payload.get('category', '') or '',
+            payload.get('severity'),
+            payload.get('reason', '') or '',
+            json.dumps([t.get('term') for t in result.fired_terms], ensure_ascii=False),
+            json.dumps([t.get('name') for t in result.fired_tropes], ensure_ascii=False),
+            payload.get('exemption_applied') or '',
+            payload.get('tier', 'context'),
+            json.dumps(payload.get('versions') or {}, ensure_ascii=False),
+            datetime.now(timezone.utc).isoformat(),
+        ),
+    )
+    conn.commit()
+
+
 def _finding(item: dict, result, verdict, case, digest: str, versions=None) -> dict:
     """One submission row, for a finding or for the context around it.
 
@@ -239,6 +286,7 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         # unchanged.
         if not result.matched:
             findings.append(_finding(item, result, None, case, digest, know.versions))
+            record_judgement(conn, item, result, None, case, digest)
             collected_digests[digest] = None
             continue
         summary['flagged'] += 1
@@ -261,6 +309,7 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             summary['match_only'] += 1
 
         findings.append(_finding(item, result, verdict, case, digest))
+        record_judgement(conn, item, result, verdict, case, digest)
         collected_digests[digest] = None
 
     # --- delivery: queued first, sent second ------------------------------

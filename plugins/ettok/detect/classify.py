@@ -97,14 +97,63 @@ def from_match_only(match, versions: dict) -> Verdict:
     )
 
 
+# The standard, written down. It used to exist nowhere: the model was told it
+# "classifies hate speech for a human rights monitoring system in Iraq" and left
+# to supply its own definition, which is why two runs, and the agent and the
+# platform, could reach different answers on the same comment.
+#
+# The exclusions are not softness. This system exists to produce evidence that
+# an outside body will act on, and a package that turns out to contain a
+# journalist quoting a slur, or a survivor reclaiming one, costs more than every
+# attack it missed that week.
+WHAT_COUNTS = """WHAT COUNTS AS HATE SPEECH HERE:
+- Dehumanising a community or its members: calling them animals, filth, a
+  disease, devil-worshippers, not real people.
+- Denying their identity, religion or history, or denying a massacre against
+  them, or saying they deserved it.
+- Calling for or endorsing violence, expulsion, exclusion or discrimination
+  against them.
+- Slurs and epithets aimed at the community, including coded or misspelt ones.
+- Asserting the community is collectively guilty, disloyal, or a danger.
+
+WHAT DOES NOT COUNT, however offensive the words look:
+- Quoting, reporting, studying or refuting hate speech. A journalist, a
+  researcher or a survivor repeating a slur to condemn it is not attacking
+  anybody.
+- A member of the community using a term about themselves.
+- Ordinary religious language with no community as its subject. "I seek refuge
+  in God from the accursed devil" is common piety and becomes the devil-worship
+  libel only under content about Yazidis.
+- Criticism of a government, a party, an armed group, a policy or a named
+  individual. Attacking a politician is not attacking their community.
+- Disagreement, insult or rudeness aimed at one person for something they said,
+  with no reference to their community.
+- Discussion of the community that is merely negative, inaccurate or clumsy
+  without hostility.
+
+WHEN YOU CANNOT TELL, say it is not hate speech and give your doubt as the
+reason. A person reviews everything you mark; an unflagged comment they never
+see costs one observation, and a wrongly flagged one costs the credibility of
+every finding beside it."""
+
+
 def build_prompt(item: dict, match, group_background: str = '') -> str:
     """Assemble the classification prompt for one item.
 
     Everything here is either the item, or something that matched the item. The
     dictionary's size never enters into it.
+
+    What a curated trope actually says -- its description, its attested example,
+    the benign uses and the counter-speech -- is included. It used to send the
+    trope's *name* and nothing else, so the model was told that a pattern called
+    "Identity stripping" had fired and never what that means, while the platform
+    classifier judging the same comment had the full text. Two classifiers
+    working from different rules disagree, and the agent was the one guessing.
     """
     lines = [
         'Decide whether this social media comment attacks a minority community in Iraq.',
+        '',
+        WHAT_COUNTS,
         '',
         f'COMMENT: {item.get("text", "")}',
     ]
@@ -134,31 +183,65 @@ def build_prompt(item: dict, match, group_background: str = '') -> str:
             + ('' if t.get('is_explicit', True) else ' [counts only with this community as the subject]')
             for t in match.fired_terms
         ]
+        lines += [
+            'A term matching is not by itself the answer. It is why this comment was '
+            'read; you decide whether it is an attack.',
+        ]
 
     if match.fired_tropes:
         lines += ['', 'PATTERNS THAT FIRED:']
         for trope in match.fired_tropes:
-            lines.append(f'- {trope["name"]} -- {trope["activation_reason"]}')
-            for benign in (trope.get('negative_examples') or [])[:3]:
-                lines.append(f'    NEVER flag this use: "{benign}"')
+            lines += _trope_lines(trope)
+
+    if match.ungated_tropes:
+        lines += [
+            '',
+            'PATTERNS WITH NO CURATED CONDITION YET. These matched the words but nobody '
+            'has recorded what subject makes them an attack, so they are guidance and '
+            'never grounds on their own:',
+        ]
+        for trope in match.ungated_tropes:
+            lines += _trope_lines(trope)
 
     if match.exemption_hints:
         lines += [
             '',
             'THESE USES MUST NOT BE FLAGGED, whatever else matched: '
             + ', '.join(match.exemption_hints)
-            + '. Quoting hate speech in order to report, study, refute or reclaim it is '
-              'not hate speech, and flagging a journalist or a survivor costs more than '
-              'missing an attack.',
+            + '.',
         ]
 
     lines += [
         '',
+        'SEVERITY: 9-10 a direct threat or a call for violence; 6-8 dehumanisation, '
+        'an extreme slur, or denial of a massacre; 3-5 a derogatory stereotype or an '
+        'insult aimed at the community; 1-2 subtle bias or a divisive framing.',
+        '',
         'Answer as JSON: is_hate_speech (boolean), category, severity 1-10, reason '
-        '(one sentence), exemption_applied (which exemption applied, or empty), '
+        '(one sentence, naming what makes it an attack or why it is not), '
+        'exemption_applied (which exemption applied, or empty), '
         'requires_visual (true if the judgement depends on an image you cannot see).',
     ]
     return '\n'.join(lines)
+
+
+def _trope_lines(trope: dict) -> list:
+    """One curated pattern, with everything the curator wrote about it.
+
+    Counter-speech is listed separately from the benign uses because it is the
+    harder case and the commonest false positive: somebody quoting or arguing
+    against the attack, in language that looks exactly like the attack.
+    """
+    out = [f'- {trope["name"]} -- {trope.get("activation_reason", "")}']
+    if trope.get('description'):
+        out.append(f'    what it is: {trope["description"]}')
+    if trope.get('example'):
+        out.append(f'    attested example: "{trope["example"]}"')
+    for benign in (trope.get('negative_examples') or [])[:3]:
+        out.append(f'    NEVER flag this use: "{benign}"')
+    for counter in (trope.get('counter_speech_examples') or [])[:3]:
+        out.append(f'    NOT an attack -- this is somebody opposing it: "{counter}"')
+    return out
 
 
 def classify(ctx, item: dict, match, *, versions: dict, group_background: str = '') -> Verdict:
@@ -173,7 +256,8 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
     try:
         result = ctx.llm.complete_structured(
             instructions=(
-                'You classify hate speech for a human rights monitoring system in Iraq. '
+                'You classify hate speech for a human rights monitoring system in Iraq, '
+                'against the written standard in the prompt and not against your own. '
                 'Your judgement is advisory: a platform re-evaluates it and a human '
                 'reviews it before anything is reported. Never claim more confidence '
                 'than the evidence supports, and judge the comment together with the '

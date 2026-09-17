@@ -35,6 +35,9 @@ class Match:
 
     fired_terms: list = field(default_factory=list)
     fired_tropes: list = field(default_factory=list)
+    # Patterns that matched the words but have no curated activation condition.
+    # Guidance for the classifier, never grounds for a finding on their own.
+    ungated_tropes: list = field(default_factory=list)
     topic_groups: list = field(default_factory=list)
     skipped_terms: list = field(default_factory=list)
     exemption_hints: list = field(default_factory=list)
@@ -188,7 +191,7 @@ def match_tropes(text: str, tropes: list, *, groups_in_context: list, parent_tex
                 'id': trope.get('id'), 'name': trope.get('name', ''),
                 'ungated': True, 'activation_reason': 'no activation topics curated yet',
                 'severity_weight': trope.get('severity_weight', 5),
-                'negative_examples': trope.get('negative_examples') or [],
+                **_trope_guidance(trope),
             })
             continue
         else:
@@ -207,10 +210,32 @@ def match_tropes(text: str, tropes: list, *, groups_in_context: list, parent_tex
             'ungated': False,
             'activation_reason': reason,
             'severity_weight': trope.get('severity_weight', 5),
-            'negative_examples': trope.get('negative_examples') or [],
+            **_trope_guidance(trope),
         })
 
     return fired
+
+
+def _trope_guidance(trope: dict) -> dict:
+    """What a curator wrote about this pattern, carried to the classifier.
+
+    `description` is the field whose whole purpose is to tell a classifier what
+    to look for -- the platform's own help text says so -- and it was fetched
+    from the platform, shipped to this machine, and then dropped here, so the
+    model was told that a pattern called "Identity stripping" had fired and
+    never what that means. `example` and `counter_speech_examples` were shipped
+    and read by nothing at all.
+
+    Counter-speech is the most valuable of the three for precision: it is a list
+    of people arguing *against* the hate, in language that looks exactly like
+    it.
+    """
+    return {
+        'description': (trope.get('description') or '').strip(),
+        'example': (trope.get('example') or '').strip(),
+        'negative_examples': trope.get('negative_examples') or [],
+        'counter_speech_examples': trope.get('counter_speech_examples') or [],
+    }
 
 
 def in_scope(row: dict, case_id=None) -> bool:
@@ -270,6 +295,13 @@ def evaluate(item: dict, knowledge, case_id=None) -> Match:
     return Match(
         fired_terms=terms,
         fired_tropes=[t for t in tropes if not t.get('ungated')],
+        # An ungated trope must not flag anything by itself -- without its
+        # condition it cannot tell piety from a libel -- but its description and
+        # its examples are still the best guidance available on what this kind
+        # of attack looks like. `match_tropes` has always said these "reach the
+        # classifier as guidance"; until now they were filtered out here and
+        # reached nothing.
+        ungated_tropes=[t for t in tropes if t.get('ungated')],
         topic_groups=groups,
         skipped_terms=skipped,
         exemption_hints=hints,

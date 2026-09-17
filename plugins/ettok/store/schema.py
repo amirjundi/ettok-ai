@@ -23,7 +23,7 @@ from pathlib import Path
 
 PLUGIN_NAME = 'ettok'
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _TABLES = """
 -- One attempt at working a case. Written before collection starts, so a crash
@@ -92,9 +92,23 @@ CREATE TABLE IF NOT EXISTS evidence_artifact (
 
 -- Advisory. The platform re-evaluates every item and its verdict is the one that
 -- stands; this is kept so a disagreement is visible rather than silent.
+-- Self-contained on purpose. It used to hold only a foreign key to
+-- collected_item, which nothing has ever written, so a row here could not be
+-- displayed without the platform -- and the operator's own machine could not
+-- answer "what did my agent decide, and why" without a network round trip to
+-- somebody else's database.
 CREATE TABLE IF NOT EXISTS classification (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
-    collected_item_id INTEGER REFERENCES collected_item(id) ON DELETE CASCADE,
+    collected_item_id INTEGER,
+    content_hash      TEXT NOT NULL DEFAULT '',
+    case_id           TEXT NOT NULL DEFAULT '',
+    case_title        TEXT NOT NULL DEFAULT '',
+    platform          TEXT NOT NULL DEFAULT '',
+    url               TEXT NOT NULL DEFAULT '',
+    excerpt           TEXT NOT NULL DEFAULT '',
+    parent_excerpt    TEXT NOT NULL DEFAULT '',
+    is_hate_speech    INTEGER NOT NULL DEFAULT 0,
+    why_flagged       TEXT NOT NULL DEFAULT '',
     category          TEXT NOT NULL DEFAULT '',
     severity          INTEGER,
     reason            TEXT NOT NULL DEFAULT '',
@@ -105,6 +119,8 @@ CREATE TABLE IF NOT EXISTS classification (
     versions          TEXT NOT NULL DEFAULT '{}',
     created_at        TEXT NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_classification_hash ON classification(content_hash);
+CREATE INDEX IF NOT EXISTS idx_classification_made ON classification(created_at);
 
 -- The most important table. A residential connection drops mid-submit and must
 -- lose nothing and duplicate nothing; the idempotency key is what lets a retry be
@@ -213,6 +229,14 @@ def connect() -> sqlite3.Connection:
     columns = {row['name'] for row in conn.execute('PRAGMA table_info(seen_item)')}
     if columns and 'case_id' not in columns:
         conn.execute('DROP TABLE seen_item')
+        conn.executescript(_TABLES)
+
+    # `classification` became self-contained rather than a foreign key into a
+    # table nothing writes. Rebuilt rather than migrated because no build has
+    # ever inserted a row into it, so there is nothing to carry over.
+    columns = {row['name'] for row in conn.execute('PRAGMA table_info(classification)')}
+    if columns and 'content_hash' not in columns:
+        conn.execute('DROP TABLE classification')
         conn.executescript(_TABLES)
 
     conn.execute(
