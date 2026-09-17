@@ -31,6 +31,19 @@ log = logging.getLogger(__name__)
 # estimate that runs out early downgrades a run, one that runs out late overspends.
 ESTIMATED_CLASSIFY_COST_USD = 0.002
 
+# Field separator inside the identity digest. A control character, so no comment
+# text can contain it and shift the boundary between two fields.
+UNIT_SEPARATOR = '\x1f'
+
+# Every field the rest of the run reads by name, so a collector that omits one
+# does not raise a KeyError halfway through a batch. Anything else the collector
+# supplies travels through untouched -- the platform stores what it recognises.
+_ITEM_FIELDS = {
+    'text': '', 'parent_post_text': '', 'parent_media_text': '',
+    'url': '', 'parent_post_url': '', 'platform': '',
+    'author_name': '', 'author_id': '', 'author_url': '',
+}
+
 
 def content_hash(item: dict) -> str:
     """Identity of a comment, for deduplication.
@@ -38,24 +51,64 @@ def content_hash(item: dict) -> str:
     Hashes the comment together with what it replies to, because the same words
     under a different post are a different finding -- that is the entire premise
     of context-dependent detection.
+
+    Author and platform are in it too. Without them, two people posting the same
+    short phrase under one post collapse into a single observation and the
+    second is dropped as a duplicate: exactly the pile-on the count exists to
+    measure, undercounted in proportion to how coordinated it is. The comment
+    permalink joins them when the page gave one, because it is the only identity
+    on the page that is genuinely stable.
     """
-    blob = (item.get('text', '') + '\x1f' + item.get('parent_post_text', '')).encode('utf-8')
-    return hashlib.sha256(blob).hexdigest()
+    permalink = item.get('url', '') or ''
+    if permalink == (item.get('parent_post_url', '') or ''):
+        # A page with no per-comment link hands back the post URL. That is the
+        # post's identity, not the comment's, so it adds nothing here.
+        permalink = ''
+    parts = (
+        item.get('text', '') or '',
+        item.get('parent_post_text', '') or '',
+        item.get('platform', '') or '',
+        item.get('author_id', '') or '',
+        permalink,
+    )
+    return hashlib.sha256(UNIT_SEPARATOR.join(parts).encode('utf-8')).hexdigest()
 
 
-def already_seen(conn, digest: str) -> bool:
+def already_seen(conn, digest: str, case_key: str = '') -> bool:
+    """Seen before *in this case*.
+
+    One comment can legitimately belong to two cases -- an anniversary watch and
+    a standing watch read the same thread, and each needs its own copy of the
+    evidence. Keyed on the hash alone, whichever case scanned first silently
+    starved the other.
+    """
     return conn.execute(
-        'SELECT 1 FROM seen_item WHERE content_hash = ?', (digest,)
+        'SELECT 1 FROM seen_item WHERE content_hash = ? AND case_id = ?',
+        (digest, case_key),
     ).fetchone() is not None
 
 
-def remember(conn, digest: str) -> None:
+def remember(conn, digests, case_key: str = '') -> None:
+    """Mark items seen, once their delivery record is durable.
+
+    Called after the outbox row is committed, never before. It used to run the
+    moment an item was hashed, so a crash in between lost the item permanently
+    -- it was marked seen, and no later run would look at it again -- and an
+    item that tripped the budget stop was marked seen without ever having been
+    collected at all.
+    """
+    if isinstance(digests, str):
+        digests = [digests]
+    digests = list(digests)
+    if not digests:
+        return
     now = datetime.now(timezone.utc).isoformat()
-    conn.execute(
-        'INSERT INTO seen_item(content_hash, first_seen_at, last_seen_at) VALUES (?, ?, ?) '
-        'ON CONFLICT(content_hash) DO UPDATE SET '
+    conn.executemany(
+        'INSERT INTO seen_item(content_hash, case_id, first_seen_at, last_seen_at) '
+        'VALUES (?, ?, ?, ?) '
+        'ON CONFLICT(content_hash, case_id) DO UPDATE SET '
         'last_seen_at = excluded.last_seen_at, times_seen = times_seen + 1',
-        (digest, now, now),
+        [(digest, case_key, now, now) for digest in digests],
     )
     conn.commit()
 
@@ -129,27 +182,27 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
 
     budget = case.budget if case else cases_mod.Budget()
     findings = []
+    # Hashes waiting on a durable delivery record. Nothing is marked seen until
+    # the outbox row for it is committed. A dict, so a comment repeated inside
+    # one batch is still caught as a duplicate without a scan of the list.
+    collected_digests = {}
+    case_key = str(case.case_id) if case is not None else ''
 
     for raw in items:
-        item = {
-            'text': raw.get('text', ''),
-            'parent_post_text': raw.get('parent_post_text', ''),
-            'parent_media_text': raw.get('parent_media_text', ''),
-            'url': raw.get('url', ''),
-            'platform': raw.get('platform', ''),
-            'author_name': raw.get('author_name', ''),
-            'author_id': raw.get('author_id', ''),
-        }
+        # The row as collected, not a seven-key copy of it. The copy dropped
+        # parent_post_url and author_url -- the field that groups comments by
+        # the post they hang under, and the one that makes a repeat account
+        # visible -- so every submission carried both of them empty.
+        item = {**_ITEM_FIELDS, **{k: v for k, v in raw.items() if v is not None}}
         if not item['text'].strip():
             continue
 
         summary['scanned'] += 1
 
         digest = content_hash(item)
-        if already_seen(conn, digest):
+        if digest in collected_digests or already_seen(conn, digest, case_key):
             summary['duplicates'] += 1
             continue
-        remember(conn, digest)
 
         if case is not None and not case.may_collect(summary['flagged']):
             cases_mod.finish_run(conn, run_id, stop_reason='item_budget',
@@ -178,6 +231,7 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         # unchanged.
         if not result.matched:
             findings.append(_finding(item, result, None, case, digest))
+            collected_digests[digest] = None
             continue
         summary['flagged'] += 1
 
@@ -199,10 +253,15 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             summary['match_only'] += 1
 
         findings.append(_finding(item, result, verdict, case, digest))
+        collected_digests[digest] = None
 
     # --- delivery: queued first, sent second ------------------------------
     if findings:
         outbox_mod.enqueue(conn, 'flagged-items/', {'items': findings})
+        # Only now. The outbox row is committed, so the work survives a crash
+        # here, and marking these seen can no longer lose an item that was never
+        # queued.
+        remember(conn, collected_digests, case_key)
 
     outbox_mod.enqueue(conn, 'scan-log/', {
         # The case this run worked. It is what lets the platform stamp the case

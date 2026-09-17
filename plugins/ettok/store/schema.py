@@ -23,7 +23,7 @@ from pathlib import Path
 
 PLUGIN_NAME = 'ettok'
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _TABLES = """
 -- One attempt at working a case. Written before collection starts, so a crash
@@ -45,6 +45,13 @@ CREATE TABLE IF NOT EXISTS case_run (
 -- A comment with the post it replies to, captured as one unit. An item without
 -- parent_post_text cannot be judged for context-dependent hate, and an item
 -- without evidence cannot be reported once the original is deleted.
+--
+-- NOT YET WRITTEN. Nothing inserts into this table: a run hashes an item,
+-- submits it and keeps only the hash. It is the local half of the evidence
+-- archive, which does not exist yet -- the platform holds the only copy of a
+-- finding today, and a deleted original is gone. post_id and comment_id are
+-- part of that unbuilt half too; they are declared here and written nowhere.
+-- Read this table as a design note, not as storage anything relies on.
 CREATE TABLE IF NOT EXISTS collected_item (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
     case_run_id       INTEGER REFERENCES case_run(id) ON DELETE SET NULL,
@@ -119,11 +126,17 @@ CREATE INDEX IF NOT EXISTS idx_outbox_state ON outbox(state, next_attempt_at);
 
 -- Hashes, not content. The agent needs to know it has seen a comment before; it
 -- does not need to keep the comment on the laptop in order to know that.
+-- Keyed on the case as well as the hash: one comment can legitimately belong to
+-- two cases -- an anniversary watch and a standing watch read the same thread --
+-- and each case needs its own copy of the evidence. Keyed on the hash alone,
+-- whichever case scanned first starved the other, silently.
 CREATE TABLE IF NOT EXISTS seen_item (
-    content_hash  TEXT PRIMARY KEY,
+    content_hash  TEXT NOT NULL,
+    case_id       TEXT NOT NULL DEFAULT '',
     first_seen_at TEXT NOT NULL,
     last_seen_at  TEXT NOT NULL,
-    times_seen    INTEGER NOT NULL DEFAULT 1
+    times_seen    INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (content_hash, case_id)
 );
 
 -- Unknown language recurring on target-group content. Counted across runs,
@@ -191,6 +204,17 @@ def connect() -> sqlite3.Connection:
     conn.execute('PRAGMA journal_mode=WAL')
     conn.execute('PRAGMA foreign_keys=ON')
     conn.executescript(_TABLES)
+
+    # seen_item gained a case dimension, and the digest it stores is now built
+    # from more fields, so every hash an older build wrote is stale: it cannot
+    # match anything this build computes. The table is a memory of hashes and
+    # nothing else, so it is rebuilt rather than migrated -- the cost is one
+    # re-collection pass, and the platform deduplicates on its own side anyway.
+    columns = {row['name'] for row in conn.execute('PRAGMA table_info(seen_item)')}
+    if columns and 'case_id' not in columns:
+        conn.execute('DROP TABLE seen_item')
+        conn.executescript(_TABLES)
+
     conn.execute(
         'INSERT INTO schema_meta(key, value) VALUES (?, ?) '
         'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
