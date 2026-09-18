@@ -66,6 +66,15 @@ class EttokConfig:
     def api(self, path: str) -> str:
         return f"{self.platform_url.rstrip('/')}/api/hermes/{path.lstrip('/')}"
 
+    def agents_api(self, path: str) -> str:
+        """The job endpoints, which sit under their own prefix.
+
+        Monitoring talks to /api/hermes/; claiming and reporting a unit of work
+        talks to /api/agents/. Two prefixes, one key, and a caller that splices
+        the difference together by hand gets it wrong once and silently.
+        """
+        return f"{self.platform_url.rstrip('/')}/api/agents/{path.lstrip('/')}"
+
 
 def normalise_platform_url(raw: str) -> str:
     """Make an operator-typed platform address into something requests can use.

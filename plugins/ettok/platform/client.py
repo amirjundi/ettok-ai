@@ -133,6 +133,7 @@ class PlatformClient:
         *,
         payload: Optional[Mapping[str, Any]] = None,
         params: Optional[Mapping[str, Any]] = None,
+        agents_api: bool = False,
         data: Optional[Mapping[str, Any]] = None,
         files: Optional[Mapping[str, Any]] = None,
         idempotency_key: Optional[str] = None,
@@ -145,7 +146,8 @@ class PlatformClient:
         that is the entire point of it. Generating a fresh one per attempt would
         turn one finding into five.
         """
-        url = self._config.api(path)
+        url = (self._config.agents_api(path) if agents_api
+               else self._config.api(path))
         body = json.dumps(payload, ensure_ascii=False).encode('utf-8') if payload is not None else None
         last: Optional[PlatformError] = None
 
@@ -193,6 +195,24 @@ class PlatformClient:
         raise last or TransientError('request failed with no further detail')
 
     # -- the contract -----------------------------------------------------
+
+    def claim_jobs(self, kind: str, limit: int = 5) -> dict:
+        """Take ownership of pending work of one kind.
+
+        Claiming is what stops two machines doing the same job twice: the
+        platform hands it to one agent and marks it claimed.
+        """
+        return self.request('POST', 'jobs/claim/', agents_api=True,
+                            payload={'kind': kind, 'limit': limit}).data
+
+    def report_job(self, job_id: int, status: str, result: Optional[dict] = None) -> dict:
+        """Say what happened to a claimed job.
+
+        A claimed job never reported is worse than a failed one: the platform
+        believes a machine is working on it, so nobody else picks it up.
+        """
+        return self.request('POST', f'jobs/{job_id}/report/', agents_api=True,
+                            payload={'status': status, 'result': result or {}}).data
 
     def heartbeat(self, status: Mapping[str, Any]) -> dict:
         """Announce liveness and carry what this agent is doing.
