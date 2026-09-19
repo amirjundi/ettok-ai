@@ -54,6 +54,36 @@ def _guard(fn):
     return wrapper
 
 
+def _case_arg(args: dict, know):
+    """The case this call is about, validated. Returns (case_id, problem).
+
+    The scan path takes a case and narrows the vocabulary to general plus that
+    case's own. These helpers took no case at all, so a term or trope curated
+    for the episode being worked was invisible to them -- an operator checking
+    why a comment did not flag was answered by a different rulebook than the
+    one that had judged it.
+
+    An id naming no available case is refused rather than ignored, for the same
+    reason the scan refuses it: silently falling back to general vocabulary
+    gives a confident answer to a question nobody asked.
+    """
+    raw = args.get('case_id')
+    if raw in (None, ''):
+        return None, ''
+    try:
+        case_id = int(raw)
+    except (TypeError, ValueError):
+        return None, f'case_id has to be a number. Got {raw!r}.'
+    available = {c.get('id') for c in (know.cases or [])}
+    if case_id not in available:
+        return None, (
+            f'No case {case_id} is available. Either the id is wrong, or that '
+            f'case is closed, past its deadline or out of budget -- the platform '
+            f'only sends cases that may run. Use ettok_case_status for the list.'
+        )
+    return case_id, ''
+
+
 def _learned_selectors(ctx, platform: str):
     """Selectors the agent worked out on a previous run, if any."""
     try:
@@ -141,7 +171,11 @@ def _make_tools(ctx):
             'parent_post_text': args.get('parent_post_text', ''),
             'parent_media_text': args.get('parent_media_text', ''),
         }
-        result = match_mod.evaluate(item, know)
+        case_id, problem = _case_arg(args, know)
+        if problem:
+            return _tool_error(problem)
+
+        result = match_mod.evaluate(item, know, case_id)
         return _tool_result(
             matched=result.matched,
             explanation=result.explain(),
@@ -168,7 +202,11 @@ def _make_tools(ctx):
             'parent_post_text': args.get('parent_post_text', ''),
             'parent_media_text': args.get('parent_media_text', ''),
         }
-        result = match_mod.evaluate(item, know)
+        case_id, problem = _case_arg(args, know)
+        if problem:
+            return _tool_error(problem)
+
+        result = match_mod.evaluate(item, know, case_id)
 
         background = ''
         for case in know.cases:
@@ -203,7 +241,11 @@ def _make_tools(ctx):
             'text': args.get('text', ''),
             'parent_post_text': args.get('parent_post_text', ''),
         }
-        result = match_mod.evaluate(item, know)
+        case_id, problem = _case_arg(args, know)
+        if problem:
+            return _tool_error(problem)
+
+        result = match_mod.evaluate(item, know, case_id)
 
         if result.matched:
             verdict = 'flagged'
@@ -392,6 +434,14 @@ def _make_tools(ctx):
             'type': 'string',
             'description': "Text read out of the parent post's image or video.",
         },
+        'case_id': {
+            'type': 'integer',
+            'description': (
+                'The case being worked. Adds the vocabulary curated for that '
+                'episode to the general lexicon, so this answers with the same '
+                'rules a scan would apply. Omit for general vocabulary only.'
+            ),
+        },
     }
 
     return [
@@ -570,7 +620,10 @@ def _make_tools(ctx):
                 ),
                 'parameters': {
                     'type': 'object',
-                    'properties': {k: _TEXT_ARGS[k] for k in ('text', 'parent_post_text')},
+                    'properties': {
+                        k: _TEXT_ARGS[k]
+                        for k in ('text', 'parent_post_text', 'case_id')
+                    },
                     'required': ['text'],
                 },
             },

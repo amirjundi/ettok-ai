@@ -302,6 +302,23 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
     #
     # Found by the first live pass: a second run, minutes after the first, went
     # through the whole pipeline and produced five orphaned observations.
+    # An id that names no available case is the third situation, and it was
+    # falling through both of the above: `case` is None, `case_id` is not, so
+    # the guard below did not fire and the run collected everything under no
+    # case at all. Reported as a stop rather than a quiet success, because a
+    # typo in an id and a case that finished are both things an operator needs
+    # told, and neither should cost a page of orphaned observations.
+    if case is None and case_id is not None:
+        cases_mod.finish_run(conn, run_id, stop_reason='unknown_case', spend=0.0)
+        summary['stop_reason'] = 'unknown_case'
+        summary['note'] = (
+            f'No case {case_id} is available to work. Nothing was collected. '
+            'Either the id is wrong, or that case is closed, past its deadline '
+            'or out of budget -- the platform only offers cases that may run. '
+            'Ask for the case list rather than trying another id.'
+        )
+        return summary
+
     if case is None and case_id is None and (know.cases or []):
         cases_mod.finish_run(conn, run_id, stop_reason='not_due', spend=0.0)
         summary['stop_reason'] = 'not_due'
