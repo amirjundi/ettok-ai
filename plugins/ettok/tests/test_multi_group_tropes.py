@@ -77,3 +77,33 @@ def test_the_topic_in_the_parent_post_still_wins_on_its_own():
     """The group route is the fallback; a curated topic in the post it replies
     to activates the trope whatever the case is about."""
     assert fire(TROPE, [], parent='sinjar anniversary')
+
+
+class TestTheFilterUpstreamOfTheGate:
+    """`tropes_for` runs first and hands the gate what survives it.
+
+    Fixing only the activation gate fixed nothing in practice: a trope aimed at
+    two communities was dropped here, for the second of them, before the gate
+    could ever see it.
+    """
+
+    def _know(self):
+        from plugins.ettok.platform.knowledge import Knowledge
+        know = Knowledge.__new__(Knowledge)
+        know.tropes = [TROPE]
+        return know
+
+    def test_the_second_community_still_gets_the_trope(self):
+        assert self._know().tropes_for('yazidi') == [TROPE]
+
+    def test_the_first_community_still_gets_it(self):
+        assert self._know().tropes_for('assyrian') == [TROPE]
+
+    def test_an_unrelated_community_does_not(self):
+        assert self._know().tropes_for('turkmen') == []
+
+    def test_a_trope_aimed_at_nobody_reaches_everyone(self):
+        from plugins.ettok.platform.knowledge import Knowledge
+        know = Knowledge.__new__(Knowledge)
+        know.tropes = [dict(TROPE, target_groups=[], target_group_slug='')]
+        assert len(know.tropes_for('turkmen')) == 1

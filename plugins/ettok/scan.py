@@ -326,7 +326,12 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             summary['duplicates'] += 1
             continue
 
-        if case is not None and not case.may_collect(summary['flagged']):
+        # Everything appended to `findings` is submitted and stored, matched
+        # or not, so the budget counts all of it. Counting only flagged items
+        # let a case with one item of budget left collect a whole page of
+        # context -- which is real work and real storage, and is now charged
+        # as such on the platform side too.
+        if case is not None and not case.may_collect(len(findings)):
             cases_mod.finish_run(conn, run_id, stop_reason='item_budget',
                                  scanned=summary['scanned'], flagged=summary['flagged'],
                                  spend=summary['spend_usd'])

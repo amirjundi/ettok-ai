@@ -88,8 +88,17 @@ class Knowledge:
         """
         out = []
         for trope in self.tropes:
-            slug = (trope.get('target_group_slug') or '').strip()
-            if not slug or slug == group_slug:
+            # Every group, not the first one. `target_group_slug` is the first
+            # element of `target_groups`, kept for rows predating the
+            # many-to-many table -- so filtering on it here dropped a trope
+            # curated against two communities from the second one's case
+            # before the activation gate could ever see it.
+            slugs = [str(g).strip() for g in (trope.get('target_groups') or [])
+                     if str(g).strip()]
+            if not slugs:
+                single = (trope.get('target_group_slug') or '').strip()
+                slugs = [single] if single else []
+            if not slugs or group_slug in slugs:
                 out.append(trope)
         return out
 
