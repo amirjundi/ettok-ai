@@ -165,13 +165,21 @@ def test_arabic_survives_the_round_trip(tmp_path):
     assert 'اخبار من سنجار' in report['parent_post_excerpt']
 
 
-def test_the_extracted_text_carries_the_author_name_and_timestamp(tmp_path):
-    """Worth knowing before reading any output: innerText on a comment node
-    includes its children, so the name and the "2h" stamp sit in front of the
-    words. Substring matching is unaffected, but a person reading the evidence
-    sees them, and so does anything measuring comment length."""
-    path = _write(tmp_path, _page(['اليزيديون يعبدون الشيطان']))
+def test_the_extracted_text_is_only_what_the_person_wrote(tmp_path):
+    """This test used to assert the opposite, and was right to describe what it
+    saw: innerText on a comment node includes its children, so the author name
+    and the "2h" stamp sat in front of the words.
+
+    That was not harmless. The name is a person's identity pasted into the
+    content of a finding about them, it lands in the referral CSV and the
+    evidence a prosecutor reads, it inflates every length measure, and a
+    display name containing a lexicon term would flag its owner for something
+    somebody else wrote. Fixed in the extractor (ARCH-06); the assertion is
+    inverted rather than deleted so the old behaviour cannot come back quietly.
+    """
+    comment = 'اليزيديون يعبدون الشيطان'
+    path = _write(tmp_path, _page([comment]))
     extracted = selector_check.check(path)['samples'][0]
 
-    assert extracted.startswith('User 0')
-    assert extracted.endswith('اليزيديون يعبدون الشيطان')
+    assert extracted == comment
+    assert 'User 0' not in extracted

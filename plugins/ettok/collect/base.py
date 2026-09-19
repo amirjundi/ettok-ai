@@ -48,47 +48,116 @@ DEFAULT_EXTRACTORS = {
     },
 }
 
-_EXTRACT_JS = """
+_EXTRACT_JS = r"""
 (() => {
   const sel = %s;
+  // Bumped whenever this changes what "the comment" or "the post" means, so a
+  // stored observation can be read against the rules that produced it.
+  const EXTRACTION_VERSION = 2;
+  // Top-level posts only. A comment is an article too, so the post selector
+  // matches every comment on the page as well -- a plain count said four on a
+  // post with three comments, which would have read as a feed.
+  const posts = Array.from(document.querySelectorAll(sel.post)).filter(
+    (el) => !(el.parentElement && el.parentElement.closest(sel.post)));
+  const post = posts[0] || null;
+  // A page where nothing matched the post selector is refused for collection:
+  // comments without the post they answer cannot be judged for
+  // context-dependent hate, and handing them back anyway is exactly the quiet
+  // findings report this is meant to stop. The error says so.
+  //
+  // The comments are still gathered and returned beside it, because the
+  // selector tuning tool reads this same output and needs to see which half of
+  // a candidate set matched in order to say which half is wrong.
+  const scope = post || document;
+
+  // Anything nested inside a node that is itself an article is a comment or a
+  // reply, not part of that node's own body.
+  const nested = sel.nested || '[role="article"]';
+
+  // The body of one node, with its nested comments taken out.
+  //
+  // This is the whole of ARCH-06. The post selector matches an article and the
+  // comment selector matches articles inside it, so `post.innerText` carried
+  // every comment on the page. A topic marker written by one commenter then
+  // read as the subject of the post, which is the gate that decides whether
+  // context-dependent terms count -- so one person could switch on, or off,
+  // the detection applied to everybody else in the thread.
+  const bodyOf = (node) => {
+    const copy = node.cloneNode(true);
+    copy.querySelectorAll(nested).forEach((c) => c.remove());
+    // The author's name, the timestamp and the Like/Reply controls sit inside
+    // the same article as the comment and are not what the person wrote.
+    if (sel.author_link) copy.querySelectorAll(sel.author_link).forEach((a) => a.remove());
+    if (sel.permalink) copy.querySelectorAll(sel.permalink).forEach((a) => a.remove());
+    if (sel.text) {
+      const parts = [];
+      copy.querySelectorAll(sel.text).forEach((t) => {
+        const s = (t.innerText || '').trim();
+        if (s && parts.indexOf(s) === -1) parts.push(s);
+      });
+      if (parts.length) return parts.join('\n');
+    }
+    return (copy.innerText || '').trim();
+  };
+
+  const parentText = post ? bodyOf(post) : '';
+
+  // Scoped to this post. A document-wide search paired every comment on a feed
+  // with the first post's context, so a comment under post three was judged
+  // against what post one was about.
+  const found = Array.from(scope.querySelectorAll(sel.comment));
+  const MAX_COMMENTS = 200;
   const out = [];
-  const post = document.querySelector(sel.post);
-  const postText = post ? (post.innerText || '').slice(0, 4000) : '';
-  document.querySelectorAll(sel.comment).forEach((node, i) => {
-    const text = (node.innerText || '').trim();
-    if (!text) return;
+  found.slice(0, MAX_COMMENTS).forEach((node, i) => {
+    const body = bodyOf(node);
+    if (!body) return;
     const authorEl = node.querySelector(sel.author);
     const authorLink = sel.author_link ? node.querySelector(sel.author_link) : null;
     const permalink = sel.permalink ? node.querySelector(sel.permalink) : null;
+    // Whether this is a reply to another comment rather than to the post.
+    const parentComment = node.parentElement ? node.parentElement.closest(sel.comment) : null;
     out.push({
-      text: text.slice(0, 2000),
+      text: body.slice(0, 2000),
+      text_truncated: body.length > 2000,
       author_name: authorEl ? (authorEl.innerText || '').trim().slice(0, 200) : '',
       author_href: authorLink ? (authorLink.href || '') : '',
       permalink: permalink ? (permalink.href || '') : '',
+      is_reply: !!parentComment,
       index: i,
     });
   });
+
   // Does the post carry an image worth describing? Avatars, reaction icons and
   // tracking pixels are everywhere on a social page, so size is the filter: a
   // post image is displayed large, a profile picture is not.
   let mediaCount = 0;
-  if (post) {
-    post.querySelectorAll('img').forEach((im) => {
-      // Rendered size where the image has painted, intrinsic size where it has
-      // not: a feed lazy-loads, so an image below the fold measures 0x0 by
-      // rect while naturalWidth is already correct. Either one counts.
-      const r = im.getBoundingClientRect();
-      const w = Math.max(r.width, im.naturalWidth || 0);
-      const h = Math.max(r.height, im.naturalHeight || 0);
-      if (w >= 120 && h >= 120) mediaCount += 1;
-    });
-    mediaCount += post.querySelectorAll('video').length;
-  }
+  const media = post || document;
+  media.querySelectorAll('img').forEach((im) => {
+    // Rendered size where the image has painted, intrinsic size where it has
+    // not: a feed lazy-loads, so an image below the fold measures 0x0 by
+    // rect while naturalWidth is already correct. Either one counts.
+    const r = im.getBoundingClientRect();
+    const w = Math.max(r.width, im.naturalWidth || 0);
+    const h = Math.max(r.height, im.naturalHeight || 0);
+    if (w >= 120 && h >= 120) mediaCount += 1;
+  });
+  mediaCount += media.querySelectorAll('video').length;
+
   return JSON.stringify({
-    parent_post_text: postText,
+    error: post ? undefined : 'no element matched the post selector',
+    parent_post_text: parentText.slice(0, 4000),
+    parent_post_text_truncated: parentText.length > 4000,
     parent_post_url: location.href,
     parent_media_count: mediaCount,
-    comments: out.slice(0, 200),
+    // What was on the page versus what is being returned. Silent truncation
+    // turns "no hate found here" and "we stopped reading at two hundred" into
+    // the same answer.
+    posts_on_page: posts.length,
+    comments_loaded: found.length,
+    comments_returned: out.length,
+    comments_truncated: found.length > MAX_COMMENTS,
+    extraction_version: EXTRACTION_VERSION,
+    comments: out,
   });
 })()
 """
@@ -101,6 +170,13 @@ class CollectionResult:
     blocked: Optional[str] = None
     auth_lost: bool = False
     url: str = ''
+    # How much of the page this actually saw: posts on it, comments loaded,
+    # comments returned, what was cut. Empty when extraction did not run.
+    #
+    # Without it, "no hate speech under this post" and "we stopped reading at
+    # two hundred comments" are the same answer, and the first is the one
+    # anybody would assume.
+    coverage: dict = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:
@@ -211,7 +287,7 @@ class BrowserCollector:
                 log.debug('ettok: screenshot unavailable', exc_info=True)
             result.evidence = capture(url=url, page_text=page_text, screenshot_b64=screenshot)
 
-        result.items = self._extract(url, page_text)
+        result.items, result.coverage = self._extract(url, page_text)
         return result
 
     # A factual description, capped. Long enough for a flag, a gesture and a
@@ -292,18 +368,23 @@ class BrowserCollector:
             return ''
         return text[:self._MEDIA_DESCRIPTION_LIMIT]
 
-    def _extract(self, url: str, page_text: str) -> list:
-        """Pull comments and their parent post out of the loaded page."""
+    def _extract(self, url: str, page_text: str) -> tuple:
+        """Pull comments and their parent post out of the loaded page.
+
+        Returns (items, coverage). Coverage is how much of the page was seen,
+        and it travels with the items because an incomplete read that looks
+        complete is the failure this collector can least afford.
+        """
         selectors = self._selectors or self._extractors.get(self.platform)
         if not selectors:
-            return []
+            return [], {}
 
         expression = _EXTRACT_JS % json.dumps(selectors)
         try:
             payload = self._call('browser_console', {'expression': expression})
         except Exception:
             log.warning('ettok: extraction failed on %s', url, exc_info=True)
-            return []
+            return [], {}
 
         blob = payload.get('result') or payload.get('value') or payload.get('raw') or ''
         if isinstance(blob, str):
@@ -311,9 +392,36 @@ class BrowserCollector:
                 blob = json.loads(blob)
             except ValueError:
                 log.warning('ettok: extraction returned unusable output for %s', url)
-                return []
+                return [], {}
         if not isinstance(blob, dict):
-            return []
+            return [], {}
+
+        # A layout the selectors do not fit is an extraction failure. It used
+        # to return nothing, which reads identically to a post nobody replied
+        # to -- so a selector broken by a site redesign would have looked like
+        # weeks of quiet threads.
+        if blob.get('error'):
+            log.warning('ettok: %s on %s', blob['error'], url)
+            return [], {'error': blob['error'],
+                        'extraction_version': blob.get('extraction_version')}
+
+        coverage = {
+            'extraction_version': blob.get('extraction_version'),
+            'posts_on_page': blob.get('posts_on_page'),
+            'comments_loaded': blob.get('comments_loaded'),
+            'comments_returned': blob.get('comments_returned'),
+            'comments_truncated': bool(blob.get('comments_truncated')),
+            'parent_post_text_truncated': bool(blob.get('parent_post_text_truncated')),
+        }
+        if coverage['comments_truncated']:
+            log.warning('ettok: %s has more than %s comments; the rest were not read',
+                        url, coverage['comments_returned'])
+        if (coverage['posts_on_page'] or 0) > 1:
+            # Only the first post's comments were taken, which is correct --
+            # the alternative is filing them under the wrong parent -- but the
+            # rest of the page went unread and that should be visible.
+            log.info('ettok: %s holds %s posts; only the first was collected',
+                     url, coverage['posts_on_page'])
 
         parent = (blob.get('parent_post_text') or '').strip()
         media = self._describe_media(int(blob.get('parent_media_count') or 0))
@@ -345,8 +453,11 @@ class BrowserCollector:
                     comment.get('author_href') or '', self.platform,
                 ),
                 'author_url': _clean_url(comment.get('author_href') or ''),
+                # A reply to another comment, rather than to the post. It
+                # changes what the comment is answering, and so what it means.
+                'is_reply': bool(comment.get('is_reply')),
             })
-        return items
+        return items, coverage
 
 
 class FacebookCollector(BrowserCollector):
