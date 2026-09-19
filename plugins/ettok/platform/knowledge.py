@@ -23,22 +23,43 @@ log = logging.getLogger(__name__)
 
 
 
-def _release_id(rows: list, fields: tuple) -> str:
+# Bumped when the matcher, the normalizer or the rubric changes shape.
+#
+# A release ID has to move when the *meaning* of the knowledge moves, not only
+# when its content does. Two runs that classified the same comment differently
+# because this code changed in between otherwise carry the same version string,
+# and a reviewer asking why the agent changed its mind is told nothing did.
+SCHEMA_VERSION = '2026-09-19'
+
+
+def _release_id(rows: list, fields: tuple = None) -> str:
     """A stable identifier for one body of knowledge.
 
     Order-independent, because the platform does not promise one and a
-    re-ordered response is not a new release. Only the fields that change a
-    verdict are hashed: an edit to a description that no matcher reads should
-    not invalidate every classification made under it.
+    re-ordered response is not a new release.
+
+    Every field, unless a caller names a subset. The allowlist this replaces
+    was meant to keep cosmetic edits from invalidating past classifications,
+    and it omitted `is_explicit` and `case_id` on terms, and the activation
+    topics, plural target groups, negation rule, examples and visual status on
+    tropes. Every one of those decides whether something matches -- two probes
+    in the architecture review flipped a match from true to false while the
+    recorded version stayed identical. There is also no longer such a thing as
+    a field no matcher reads: descriptions, examples and counter-speech
+    examples are all in the prompt now.
+
+    An unnecessary version bump costs a reviewer a moment. A missed one is a
+    hole in the audit chain, so the default errs the other way.
     """
     digests = sorted(
         hashlib.sha256(
-            json.dumps([row.get(field) for field in fields],
+            json.dumps(row if fields is None else [row.get(field) for field in fields],
                        ensure_ascii=False, sort_keys=True, default=str).encode('utf-8')
         ).hexdigest()
         for row in (rows or [])
     )
-    combined = hashlib.sha256(''.join(digests).encode('utf-8')).hexdigest()[:8]
+    combined = hashlib.sha256(
+        (SCHEMA_VERSION + ''.join(digests)).encode('utf-8')).hexdigest()[:8]
     return f'{len(rows or [])}@{combined}'
 
 
@@ -72,11 +93,14 @@ class Knowledge:
         is what actually identifies the release.
         """
         return {
-            'lexicon': _release_id(self.terms, ('id', 'term', 'variants', 'never_flag_when',
-                                                'severity_weight', 'category', 'is_regex',
-                                                'target_group_slug')),
-            'tropes': _release_id(self.tropes, ('id', 'name', 'surface_forms', 'description',
-                                                'severity_weight', 'target_group_slug')),
+            'lexicon': _release_id(self.terms),
+            'tropes': _release_id(self.tropes),
+            # Cases keep a subset, and are the reason `fields` still exists: the
+            # payload carries the schedule and the remaining budget, which move
+            # on every run without changing what can be detected. Hashing those
+            # would give a version string that never repeats and so identifies
+            # nothing. `target_groups` is nested here, so the topic markers and
+            # background that do decide detection are already covered.
             'cases': _release_id(self.cases, ('id', 'title', 'state', 'target_groups')),
         }
 

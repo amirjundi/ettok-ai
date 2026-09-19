@@ -232,6 +232,16 @@ def _finding(item: dict, result, verdict, case, digest: str, versions=None) -> d
         'author_id': item.get('author_id', '') or '',
         'author_url': item.get('author_url', '') or '',
         'why_flagged': result.explain() if result.matched else '',
+        # Which communities this post is about, as this agent worked it out.
+        #
+        # It decides whether a context-dependent term counts: "dirty people" is
+        # ordinary abuse under most posts and a slur under one about Yazidis.
+        # The platform re-runs the lexicon over the same comment and had no way
+        # to know the answer, so it applied every context-dependent term
+        # unconditionally -- the gate the curator asked for existed on one side
+        # only. Sent rather than recomputed so both sides gate on the same
+        # reading of the post.
+        'topic_groups': list(result.topic_groups or []),
         # A context row carried an empty verdict, so nothing recorded which
         # knowledge had read it. That is the row that says "this comment was
         # examined and matched nothing" -- and without a version stamp, a later
