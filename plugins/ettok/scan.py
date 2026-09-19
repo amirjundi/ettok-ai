@@ -405,9 +405,23 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             verdict = classify_mod.classify(
                 ctx, item, result, versions=know.versions, group_background=background,
             )
-            budget.charge(ESTIMATED_CLASSIFY_COST_USD)
-            summary['spend_usd'] += ESTIMATED_CLASSIFY_COST_USD
+            # Reserve the estimate, settle on what it cost. The estimate is
+            # what the budget check above had to work from -- you cannot know
+            # the price before making the call -- but charging it afterwards
+            # made a case's reported spend a count of calls wearing a dollar
+            # sign. Arabic costs several times the tokens of the equivalent
+            # English, so the error was not random: it understated exactly the
+            # cases this system exists for.
+            spent = (verdict.cost_usd if verdict.cost_usd is not None
+                     else ESTIMATED_CLASSIFY_COST_USD)
+            budget.charge(spent)
+            summary['spend_usd'] += spent
+            summary['tokens'] = summary.get('tokens', 0) + verdict.total_tokens
             summary['classified'] += 1
+            if verdict.cost_usd is None:
+                # Worth knowing that a figure is an estimate rather than a
+                # measurement, because a budget built on estimates drifts.
+                summary['estimated_costs'] = summary.get('estimated_costs', 0) + 1
         else:
             verdict = classify_mod.from_match_only(result, know.versions)
             summary['match_only'] += 1

@@ -101,6 +101,11 @@ class Verdict:
     needs_context: bool = False
     tier: str = TIER_MATCHED_ONLY
     state: str = STATE_NOT_ASSESSED
+    # What this call actually cost, as the host measured it. None where nothing
+    # was spent (no model ran) or where the host could not say, which the
+    # caller has to tell apart from zero.
+    cost_usd: Optional[float] = None
+    total_tokens: int = 0
     versions: dict = field(default_factory=dict)
 
     def as_payload(self, match) -> dict:
@@ -332,6 +337,7 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
             purpose='ettok-classify',
         )
         parsed = result.parsed if isinstance(result.parsed, dict) else json.loads(result.parsed)
+        usage = getattr(result, 'usage', None)
     except Exception as exc:
         log.warning('ettok: classification unavailable, submitting match-only: %s', exc)
         return from_match_only(match, versions)
@@ -367,4 +373,10 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
         needs_context=needs_context,
         tier=TIER_CLASSIFIED,
         versions=versions,
+        # Measured, not assumed. The run charged a flat estimate per attempted
+        # classification, so the spend a case reported was a count of calls
+        # wearing a dollar sign -- and Arabic costs several times the tokens of
+        # the equivalent English, which is the direction that matters here.
+        cost_usd=getattr(usage, 'cost_usd', None),
+        total_tokens=getattr(usage, 'total_tokens', 0) or 0,
     )
