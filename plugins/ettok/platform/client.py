@@ -239,6 +239,31 @@ class PlatformClient:
     def accounts(self) -> dict:
         return self.request('GET', 'accounts/').data
 
+    def watchlist(self, *, everything: bool = False) -> dict:
+        """The accounts being observed, and which are due a sweep.
+
+        Not `accounts()`. That one serves the organisation's own login
+        credentials -- the accounts this agent signs in as -- and the two were
+        confused for long enough that marking somebody as watched on the
+        platform produced no collection at all.
+        """
+        params = {'all': '1'} if everything else None
+        return self.request('GET', 'watchlist/', params=params).data
+
+    def record_sweep(self, account_id: int, state: str, *,
+                     note: str = '', idempotency_key: str) -> Response:
+        """Say that a watched account was looked at, however it turned out.
+
+        A failed sweep is still a sweep. Without recording it, a blocked
+        account stays permanently due and takes every run, starving the ones
+        that can still be collected.
+        """
+        return self.request(
+            'POST', 'watchlist/swept/',
+            payload={'account_id': account_id, 'state': state, 'note': note},
+            idempotency_key=idempotency_key,
+        )
+
     def reports(self, *, limit: int = 20) -> dict:
         """What became of what was submitted.
 

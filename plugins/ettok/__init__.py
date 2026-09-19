@@ -135,6 +135,56 @@ def _make_tools(ctx):
         return _tool_result(reclaimed=reclaimed, **result, queue=outbox_mod.status(conn))
 
     @_guard
+    def watchlist(args: dict, **_) -> str:
+        """Accounts the organisation is watching, and which are due a look."""
+        _cfg, _conn, client = _services(ctx)
+        everything = bool(args.get('all'))
+        data = client.watchlist(everything=everything)
+        accounts = data.get('accounts') or []
+        return _tool_result(
+            accounts=accounts,
+            due=len(accounts),
+            watched_total=data.get('watched_total'),
+            note=(
+                'Open each profile_url with ettok_collect, passing the case_id '
+                'listed beside it, then call ettok_record_sweep for that account '
+                'whether it worked or not. An account whose sweep is never '
+                'recorded stays due forever and takes every later run.'
+                if accounts else
+                'Nothing is due. This is a real answer, not an empty one: it '
+                'means every watched account is inside its sweep interval.'
+            ),
+        )
+
+    @_guard
+    def record_sweep(args: dict, **_) -> str:
+        """Report what happened when a watched account was looked at."""
+        _cfg, _conn, client = _services(ctx)
+
+        raw = args.get('account_id')
+        try:
+            account_id = int(raw)
+        except (TypeError, ValueError):
+            return _tool_error(f'account_id has to be a number. Got {raw!r}.')
+
+        state = (args.get('state') or '').strip()
+        allowed = ('completed', 'partial', 'blocked', 'unavailable')
+        if state not in allowed:
+            return _tool_error(
+                f'state has to be one of {", ".join(allowed)}. Got {state!r}. '
+                f'Use "blocked" when the platform challenged the collector -- '
+                f'that is a detection to report, never an obstacle to work '
+                f'around -- and "unavailable" when the page is simply gone.'
+            )
+
+        import uuid
+        client.record_sweep(
+            account_id, state, note=(args.get('note') or '')[:2000],
+            idempotency_key=str(uuid.uuid4()),
+        )
+        return _tool_result(recorded=True, account_id=account_id, state=state)
+
+    @_guard
     def case_status(args: dict, **_) -> str:
         """What the agent is working on, and what it is waiting for."""
         cfg, conn, client = _services(ctx)
@@ -629,6 +679,67 @@ def _make_tools(ctx):
             },
             explain_item,
             '💡',
+        ),
+        (
+            'ettok_watchlist',
+            {
+                'name': 'ettok_watchlist',
+                'description': (
+                    'The accounts this organisation is watching that are due to be '
+                    'looked at. These are accounts being observed, not the accounts '
+                    'this agent signs in with -- ettok_collect opens their pages.'
+                ),
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'all': {
+                            'type': 'boolean',
+                            'description': 'Include accounts not yet due, for a coverage report.',
+                        },
+                    },
+                },
+            },
+            watchlist,
+            '👁',
+        ),
+        (
+            'ettok_record_sweep',
+            {
+                'name': 'ettok_record_sweep',
+                'description': (
+                    'Record that a watched account was looked at. Call this after every '
+                    'attempt, including one that failed: an account whose sweep is never '
+                    'recorded stays due forever and takes every later run, starving the '
+                    'accounts that can still be collected.'
+                ),
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'account_id': {
+                            'type': 'integer',
+                            'description': 'The id from ettok_watchlist.',
+                        },
+                        'state': {
+                            'type': 'string',
+                            'enum': ['completed', 'partial', 'blocked', 'unavailable'],
+                            'description': (
+                                'completed: the page was collected. partial: some of it '
+                                'was. blocked: the platform challenged the collector, '
+                                'which is a detection to report and not something to '
+                                'work around. unavailable: the page is gone, private or '
+                                'unreachable.'
+                            ),
+                        },
+                        'note': {
+                            'type': 'string',
+                            'description': 'What went wrong, for the person reading the coverage screen.',
+                        },
+                    },
+                    'required': ['account_id', 'state'],
+                },
+            },
+            record_sweep,
+            '✅',
         ),
         (
             'ettok_sync_knowledge',
