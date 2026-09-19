@@ -30,6 +30,11 @@ def home(monkeypatch):
 class FakeKnowledge:
     versions = {'lexicon': 'test'}
 
+    # The real Knowledge carries this; a run refuses to use one that has
+    # gone stale. A stub without it does not model the thing it stands in
+    # for, which is how it went unnoticed that nothing enforced freshness.
+    age_seconds = 0.0
+
     def __init__(self, cases=None):
         self.terms = [{
             'id': 12, 'term': 'عبدة الشيطان', 'is_explicit': True, 'is_regex': False,

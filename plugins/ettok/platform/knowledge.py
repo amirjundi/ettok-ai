@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -77,6 +78,16 @@ class Knowledge:
     accounts: list = field(default_factory=list)
     config: dict = field(default_factory=dict)
     skipped_terms: list = field(default_factory=list)
+    # When this came into existence, as a wall clock reading. Defaulted to now
+    # rather than zero so that age measures how long the object has been held,
+    # whatever made it -- which is the question being asked. A bundle built by
+    # hand and cached for three days is exactly as stale as a fetched one.
+    fetched_at: float = field(default_factory=time.time)
+
+    @property
+    def age_seconds(self) -> float:
+        """How long this knowledge has been in hand."""
+        return max(0.0, time.time() - self.fetched_at)
 
     @property
     def versions(self) -> dict:
@@ -146,27 +157,50 @@ def fetch(client, *, languages: Optional[list] = None) -> Knowledge:
     """Pull everything this run needs, in one place, before anything is collected."""
     try:
         heartbeat = client.heartbeat({'status': 'syncing'})
-        tasks = client.tasks()
-        lexicon = client.lexicon(languages=languages)
-        tropes = client.tropes()
         accounts = client.accounts()
+
+        # The three that have to agree with each other, read together.
+        #
+        # They used to be three separate requests, and a curator saving an edit
+        # between the first and the third gave the run a case list from before
+        # it and a lexicon from after. Neither half was wrong; the combination
+        # never existed on the server, and it is the combination that every
+        # finding's recorded knowledge release describes.
+        #
+        # Falling back rather than requiring it: the platform and this agent
+        # are released separately, and a sync that refuses to run against a
+        # server one version behind would be a worse failure than the one being
+        # fixed.
+        try:
+            bundle = client.bundle(languages=languages)
+            terms = bundle.get('terms') or []
+            trope_rows = bundle.get('tropes') or []
+            case_rows = bundle.get('cases') or []
+        except Exception:
+            log.info('ettok: no bundle endpoint; syncing the older way')
+            tasks = client.tasks()
+            lexicon = client.lexicon(languages=languages)
+            tropes = client.tropes()
+            terms = lexicon.get('terms', []) or []
+            # `lexicon/` carries the tropes array too. Prefer the dedicated
+            # endpoint and fall back to the embedded copy.
+            trope_rows = tropes.get('tropes') or lexicon.get('tropes') or []
+            case_rows = tasks.get('cases', []) or []
+    except KnowledgeError:
+        raise
     except Exception as exc:
         raise KnowledgeError(
             f'could not fetch detection knowledge: {exc}. The run is aborted rather '
             f'than collecting against knowledge of unknown age.'
         ) from exc
 
-    terms = lexicon.get('terms', []) or []
-    # `lexicon/` carries the tropes array too, so a run that wants both can make one
-    # call. Prefer the dedicated endpoint and fall back to the embedded copy.
-    trope_rows = tropes.get('tropes') or lexicon.get('tropes') or []
-
     knowledge = Knowledge(
         terms=terms,
         tropes=trope_rows,
-        cases=tasks.get('cases', []) or [],
+        cases=case_rows,
         accounts=accounts.get('accounts', accounts.get('monitoring_accounts', [])) or [],
         config=heartbeat.get('config', {}) or {},
+        fetched_at=time.time(),
     )
 
     ungated = sum(

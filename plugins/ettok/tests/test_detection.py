@@ -21,6 +21,11 @@ REFUGE = 'اعوذ بالله من الشيطان الرجيم'
 class FakeKnowledge:
     """Stands in for a run's fetched knowledge without a platform."""
 
+    # The real Knowledge carries this; a run refuses to use one that has
+    # gone stale. A stub without it does not model the thing it stands in
+    # for, which is how it went unnoticed that nothing enforced freshness.
+    age_seconds = 0.0
+
     def __init__(self, terms=None, tropes=None, markers=None):
         self.terms = terms or []
         self.tropes = tropes or []

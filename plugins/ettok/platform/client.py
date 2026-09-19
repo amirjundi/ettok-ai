@@ -239,6 +239,17 @@ class PlatformClient:
     def accounts(self) -> dict:
         return self.request('GET', 'accounts/').data
 
+    def bundle(self, languages=None) -> dict:
+        """Terms, tropes and cases as the platform held them at one instant.
+
+        One request instead of three, so a curator's edit cannot land between
+        them and give this run a case list from before it and a lexicon from
+        after -- a combination that never existed on the server, recorded
+        against every finding the run produces.
+        """
+        params = {'language': languages} if languages else None
+        return self.request('GET', 'bundle/', params=params).data
+
     def watchlist(self, *, everything: bool = False) -> dict:
         """The accounts being observed, and which are due a sweep.
 

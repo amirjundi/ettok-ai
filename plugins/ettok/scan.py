@@ -32,6 +32,15 @@ log = logging.getLogger(__name__)
 # estimate that runs out early downgrades a run, one that runs out late overspends.
 ESTIMATED_CLASSIFY_COST_USD = 0.002
 
+# How old the detection knowledge may be before a run refuses to use it.
+#
+# Fifteen minutes is short enough that a curator's edit reaches the next run and
+# that the case rota cannot have moved far, and long enough that a burst of runs
+# does not re-fetch the whole lexicon each time. A re-fetch costs one round trip;
+# scanning against knowledge of unknown age costs findings attributed to a
+# release that was not the one applied.
+MAX_KNOWLEDGE_AGE_SECONDS = 15 * 60
+
 # Field separator inside the identity digest. A control character, so no comment
 # text can contain it and shift the boundary between two fields.
 UNIT_SEPARATOR = '\x1f'
@@ -275,8 +284,17 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
     conn = schema.connect()
     client = PlatformClient(cfg)
 
+    # Re-fetched when it has gone stale, rather than trusted because it is
+    # there.
+    #
+    # ARCH-03. This held whatever was fetched the first time the agent synced,
+    # for as long as the conversation lasted -- and these conversations last
+    # days. A skill instruction to sync first is not enforcement: a chat opened
+    # on Monday would scan on Thursday against Monday's cases, Monday's
+    # lexicon, and a case rota that had moved on without it. Nothing said so,
+    # because stale knowledge produces confident findings.
     know = getattr(ctx, '_ettok_knowledge', None)
-    if know is None:
+    if know is None or know.age_seconds > MAX_KNOWLEDGE_AGE_SECONDS:
         know = knowledge_mod.fetch(client)
         ctx._ettok_knowledge = know
 
@@ -446,6 +464,9 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         'platforms_browsed': sorted({f['platform'] for f in findings}) or [],
         'posts_scanned': summary['scanned'],
         'items_flagged': summary['flagged'],
+        # Which release this run judged under. Without it a reviewer asking why
+        # two runs disagreed has to guess whether the knowledge changed.
+        'knowledge_versions': know.versions,
         'duration_seconds': 0,
         'errors': summary['errors'],
     })

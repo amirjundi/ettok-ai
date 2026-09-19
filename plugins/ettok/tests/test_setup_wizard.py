@@ -81,6 +81,11 @@ def test_an_interrupted_prompt_falls_back_to_the_default(terminal, monkeypatch):
 # ---------------------------------------------------------------------------
 
 class FakeKnowledge:
+    # The real Knowledge carries this; a run refuses to use one that has
+    # gone stale. A stub without it does not model the thing it stands in
+    # for, which is how it went unnoticed that nothing enforced freshness.
+    age_seconds = 0.0
+
     def __init__(self, terms=None, tropes=None, cases=None, markers=None):
         self.terms = terms if terms is not None else []
         self.tropes = tropes if tropes is not None else []
