@@ -424,7 +424,15 @@ class BrowserCollector:
                      url, coverage['posts_on_page'])
 
         parent = (blob.get('parent_post_text') or '').strip()
-        media = self._describe_media(int(blob.get('parent_media_count') or 0))
+        media_count = int(blob.get('parent_media_count') or 0)
+        media = self._describe_media(media_count)
+        # The post carries a picture that nothing has read: no vision model
+        # configured, or the call failed. Recorded rather than left as an empty
+        # description, because an unread image and a post with no image are the
+        # same empty string downstream -- and a quarter of the trope catalogue
+        # is visual, so treating them alike turns "we could not see it" into
+        # "there was nothing to see".
+        media_unread = bool(media_count) and not media
         # The page the comments hang under. This is the grouping key for
         # every per-post question -- how many comments were scanned here,
         # how many were findings -- so it has to be the same string for
@@ -441,6 +449,7 @@ class BrowserCollector:
                 # replies to cannot be judged for context-dependent hate.
                 'parent_post_text': parent,
                 'parent_media_text': media,
+                'parent_media_unread': media_unread,
                 # The comment's own permalink where the page offered one, and
                 # the page URL otherwise. Evidence has to be reachable again
                 # after the feed has moved on, and a page URL shared by two

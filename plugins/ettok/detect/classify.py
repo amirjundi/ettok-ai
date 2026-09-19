@@ -352,7 +352,20 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
     # and something waiting on an image is not a clearance -- both used to
     # arrive as `is_hate_speech=False`, which reads downstream as "a model read
     # this and found nothing wrong".
-    if requires_visual:
+    # A clearance decided without the picture is not a clearance.
+    #
+    # The post has an image nothing could read, and a quarter of the curated
+    # trope catalogue is visual -- donkey memes carrying the Assyrian flag,
+    # desecration video, doctored images of clergy. None of that is in the text
+    # the model just judged.
+    #
+    # Applied to negatives and undecided answers only. A positive reached from
+    # the words alone is still a positive; the direction that costs something
+    # here is a comment cleared on half the evidence, because a false clearance
+    # is never looked at again.
+    unread_image = bool(item.get('parent_media_unread'))
+
+    if requires_visual or (unread_image and verdict is not True):
         state = STATE_NEEDS_VISUAL
     elif needs_context or verdict is None:
         state = STATE_NEEDS_CONTEXT

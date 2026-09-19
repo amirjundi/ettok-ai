@@ -120,3 +120,53 @@ def test_the_state_travels_to_the_platform():
     payload = from_match_only(matched(), {}).as_payload(matched())
     assert payload['state'] == STATE_RULE_CANDIDATE
     assert payload['is_hate_speech'] is None
+
+
+class TestAnUnreadImageIsNotAClearance:
+    """ARCH-05's other half. The post carries a picture nothing could read --
+    no vision model configured, or the call failed -- and a quarter of the
+    curated trope catalogue is visual: donkey memes carrying the Assyrian flag,
+    desecration video, doctored images of clergy. None of that is in the text
+    the model just judged.
+
+    An unread image and a post with no image were the same empty string
+    downstream, which turns "we could not see it" into "there was nothing to
+    see".
+    """
+
+    def classify_with_image(self, reply, *, unread=True):
+        ctx = mock.MagicMock()
+        ctx.llm.complete_structured.return_value = mock.MagicMock(parsed=reply)
+        item = {'text': 't', 'parent_post_text': 'p', 'parent_media_unread': unread}
+        return classify_mod.classify(ctx, item, matched(), versions={})
+
+    def test_a_negative_becomes_needs_visual_review(self):
+        """The direction that costs something. A false clearance is never
+        looked at again."""
+        verdict = self.classify_with_image({'is_hate_speech': False, 'reason': 'r'})
+        assert verdict.state == STATE_NEEDS_VISUAL
+        assert verdict.is_hate_speech is None
+
+    def test_an_undecided_answer_does_too(self):
+        verdict = self.classify_with_image(
+            {'is_hate_speech': False, 'needs_context': True, 'reason': 'r'})
+        assert verdict.state == STATE_NEEDS_VISUAL
+
+    def test_a_positive_from_the_words_alone_still_stands(self):
+        """Holding back a finding the text already supports would delay a real
+        one to re-check evidence it did not depend on."""
+        verdict = self.classify_with_image({'is_hate_speech': True, 'reason': 'r'})
+        assert verdict.state == STATE_MODEL_POSITIVE
+
+    def test_a_post_whose_image_was_read_is_judged_normally(self):
+        verdict = self.classify_with_image(
+            {'is_hate_speech': False, 'reason': 'r'}, unread=False)
+        assert verdict.state == STATE_MODEL_NEGATIVE
+
+    def test_a_post_with_no_image_is_judged_normally(self):
+        ctx = mock.MagicMock()
+        ctx.llm.complete_structured.return_value = mock.MagicMock(
+            parsed={'is_hate_speech': False, 'reason': 'r'})
+        verdict = classify_mod.classify(
+            ctx, {'text': 't', 'parent_post_text': 'p'}, matched(), versions={})
+        assert verdict.state == STATE_MODEL_NEGATIVE
