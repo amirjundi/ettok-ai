@@ -60,7 +60,15 @@ CREATE TABLE IF NOT EXISTS evidence_artifact (
     source_url       TEXT NOT NULL DEFAULT '',
     captured_at      TEXT NOT NULL,
     content_hash     TEXT NOT NULL DEFAULT '',
-    delivered_at     TEXT
+    delivered_at     TEXT,
+    -- Who this capture belongs to, recorded when it is taken.
+    --
+    -- Delivery used to stamp every pending artefact with whichever case the
+    -- run draining the queue happened to be working. A capture that failed to
+    -- upload during case A -- which is the case this whole store exists for --
+    -- was then uploaded during case B, as B's evidence. Ownership of evidence
+    -- is not something a later unrelated run gets to decide.
+    case_id          INTEGER
 );
 
 -- Advisory. The platform re-evaluates every item and its verdict is the one that
@@ -202,6 +210,13 @@ def _drop_stale_tables(conn) -> None:
         columns = {row['name'] for row in conn.execute(f'PRAGMA table_info({table})')}
         if columns and required not in columns:
             conn.execute(f'DROP TABLE {table}')
+
+    # evidence_artifact is added to, never rebuilt. The rows are the queue of
+    # captures that exist nowhere else yet, so dropping the table to reshape it
+    # would orphan files on disk that are the only copy of a deleted post.
+    columns = {row['name'] for row in conn.execute('PRAGMA table_info(evidence_artifact)')}
+    if columns and 'case_id' not in columns:
+        conn.execute('ALTER TABLE evidence_artifact ADD COLUMN case_id INTEGER')
 
     # collected_item is gone from the schema. An agent installed before this
     # still has the table on disk, empty -- nothing ever wrote to it -- and

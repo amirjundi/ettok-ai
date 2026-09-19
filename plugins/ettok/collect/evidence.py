@@ -94,13 +94,21 @@ def capture(*, url: str, page_text: str, screenshot_b64: str = '',
     )
 
 
-def store(conn, collected_item_id: Optional[int], evidence: Evidence) -> int:
+def store(conn, collected_item_id: Optional[int], evidence: Evidence,
+          *, case_id=None) -> int:
+    """Record a capture, with the case it was taken for.
+
+    `case_id` is written now rather than read at delivery, because delivery can
+    happen during a different run working a different case. None is honest and
+    means unattributed; it is never filled in later from whatever is current.
+    """
     cursor = conn.execute(
         'INSERT INTO evidence_artifact(collected_item_id, screenshot_path, archive_path, '
-        'source_url, captured_at, content_hash) VALUES (?, ?, ?, ?, ?, ?)',
+        'source_url, captured_at, content_hash, case_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
         (
             collected_item_id, evidence.screenshot_path, evidence.archive_path,
             evidence.source_url, evidence.captured_at, evidence.content_hash,
+            case_id,
         ),
     )
     conn.commit()
@@ -148,7 +156,7 @@ def pending(conn, limit: int = 50) -> list:
     ).fetchall()
 
 
-def deliver(conn, client, *, case_id=None, item_hash_for=None, limit: int = 50) -> dict:
+def deliver(conn, client, *, item_hash_for=None, limit: int = 50) -> dict:
     """Upload what has not reached the platform, then delete the local copy.
 
     The order is the whole point. Upload, wait for the platform to say it holds
@@ -160,6 +168,13 @@ def deliver(conn, client, *, case_id=None, item_hash_for=None, limit: int = 50) 
     `item_hash_for` maps a captured page URL to the deduplication digest of a
     comment on it, so the platform can file the artefact against the item. It is
     optional: an artefact that matches nothing is still worth holding.
+
+    There is deliberately no `case_id` argument. Each row carries the case it
+    was captured for, and stamping the queue with the case of whichever run
+    happens to drain it is how a capture taken during case A arrived at the
+    platform as case B's evidence -- precisely when an upload had failed, which
+    is the situation this store exists to survive. A row with no case is
+    uploaded unattributed rather than attributed to a guess.
     """
     from ..platform import client as client_mod
 
@@ -183,7 +198,7 @@ def deliver(conn, client, *, case_id=None, item_hash_for=None, limit: int = 50) 
                 source_url=row['source_url'],
                 captured_at=row['captured_at'],
                 item_content_hash=(item_hash_for or {}).get(row['source_url'], ''),
-                case_id=case_id,
+                case_id=row['case_id'],
                 screenshot=screenshot,
                 archive=archive,
             )

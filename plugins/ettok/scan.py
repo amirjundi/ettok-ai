@@ -428,11 +428,10 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             page = finding.get('parent_post_url') or finding.get('url') or ''
             if page:
                 item_hash_for.setdefault(page, finding['content_hash'])
+        # No case passed. Each artefact knows which case it was captured for;
+        # see the note in evidence.deliver.
         summary['evidence'] = evidence_mod.deliver(
-            conn, client,
-            case_id=case.case_id if case is not None else None,
-            item_hash_for=item_hash_for,
-        )
+            conn, client, item_hash_for=item_hash_for)
     summary['queue'] = outbox_mod.status(conn)
 
     if 'stop_reason' not in summary:

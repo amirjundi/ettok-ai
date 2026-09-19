@@ -282,7 +282,16 @@ def _make_tools(ctx):
         if evidence is not None and evidence.is_complete:
             from .collect import evidence as evidence_mod
 
-            evidence_id = evidence_mod.store(conn, None, evidence)
+            # The case this page was collected for, recorded now. Delivery
+            # can happen during a later run working a different case, and
+            # letting that run claim the artefact is how evidence changed
+            # hands.
+            case_id = args.get('case_id')
+            try:
+                case_id = int(case_id) if case_id not in (None, '') else None
+            except (TypeError, ValueError):
+                case_id = None
+            evidence_id = evidence_mod.store(conn, None, evidence, case_id=case_id)
 
         return _tool_result(
             url=url,
@@ -401,6 +410,13 @@ def _make_tools(ctx):
                     'properties': {
                         'url': {'type': 'string', 'description': 'The post to open.'},
                         'platform': {'type': 'string', 'description': 'Defaults to facebook.'},
+                        'case_id': {
+                            'type': 'integer',
+                            'description': (
+                                'The case this page is being collected for. Recorded on '
+                                'the evidence so a later run cannot claim it.'
+                            ),
+                        },
                         'account_id': {
                             'type': 'string',
                             'description': 'Monitoring account in use, so its health is tracked.',
