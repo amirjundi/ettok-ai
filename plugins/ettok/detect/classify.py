@@ -31,6 +31,24 @@ log = logging.getLogger(__name__)
 TIER_MATCHED_ONLY = 'matched_only'
 TIER_CLASSIFIED = 'classified'
 
+# What kind of answer this is, which `is_hate_speech` alone cannot say.
+#
+# A deterministic match used to report `is_hate_speech=True` with no model
+# having looked at it, and a comment that matched nothing reported False for
+# the same reason -- so "a rule fired", "a model judged this hateful", "nothing
+# examined it" and "a model cleared it" arrived downstream as two booleans. The
+# platform then recorded agreement and disagreement between its own model and
+# an agent that had, in half those cases, expressed no opinion at all.
+STATE_NOT_ASSESSED = 'not_assessed'          # nothing looked at it
+STATE_RULE_CANDIDATE = 'rule_candidate'      # a rule fired; no model judgement
+STATE_MODEL_POSITIVE = 'model_positive'
+STATE_MODEL_NEGATIVE = 'model_negative'
+STATE_NEEDS_CONTEXT = 'needs_context'        # undecidable on what was collected
+STATE_NEEDS_VISUAL = 'needs_visual_review'   # the evidence is in an image
+
+# The states in which `is_hate_speech` is a real answer rather than a placeholder.
+DECIDED_STATES = (STATE_MODEL_POSITIVE, STATE_MODEL_NEGATIVE)
+
 _SCHEMA = {
     'type': 'object',
     'properties': {
@@ -40,26 +58,58 @@ _SCHEMA = {
         'reason': {'type': 'string'},
         'exemption_applied': {'type': 'string'},
         'requires_visual': {'type': 'boolean'},
+        # So uncertainty has somewhere to go other than into a negative.
+        'needs_context': {'type': 'boolean'},
     },
     'required': ['is_hate_speech', 'reason'],
 }
 
 
+def strict_bool(value):
+    """True, False, or None for anything that is not a yes or a no.
+
+    The model is asked for JSON and usually returns a real boolean, but
+    `bool("false")` is True and so is any non-empty string -- and this is the
+    field that decides whether a named account is accused of something. An
+    unrecognised answer means the question was not answered, and that is a
+    state of its own rather than a quiet negative.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and value in (0, 1):
+        return bool(value)
+    if isinstance(value, str):
+        cleaned = value.strip().lower()
+        if cleaned in ('true', 'yes'):
+            return True
+        if cleaned in ('false', 'no'):
+            return False
+    return None
+
+
 @dataclass
 class Verdict:
-    is_hate_speech: bool = False
+    # Optional, and None is the common case rather than an edge one: a rule
+    # match, an unexamined comment and an item waiting on an image all have no
+    # yes-or-no to give, and saying False for them is a claim nobody made.
+    is_hate_speech: Optional[bool] = None
     category: str = ''
     severity: Optional[int] = None
     reason: str = ''
     exemption_applied: str = ''
     requires_visual: bool = False
+    needs_context: bool = False
     tier: str = TIER_MATCHED_ONLY
+    state: str = STATE_NOT_ASSESSED
     versions: dict = field(default_factory=dict)
 
     def as_payload(self, match) -> dict:
         """The `agent_verdict` block the platform contract accepts."""
         return {
             'is_hate_speech': self.is_hate_speech,
+            # Read this in preference to the boolean. The boolean is None
+            # unless the state is one where a model actually answered.
+            'state': self.state,
             'category': self.category,
             'severity': self.severity,
             'reason': self.reason,
@@ -87,8 +137,13 @@ def from_match_only(match, versions: dict) -> Verdict:
         + [t.get('severity_weight', 5) for t in match.fired_tropes]
         + [0]
     ) or None
+    # No model ran, so there is no verdict to report -- only that a curated rule
+    # fired, which is a reason to look rather than a finding. This said
+    # `is_hate_speech=True`, and downstream that is indistinguishable from a
+    # model having read the comment and concluded it.
     return Verdict(
-        is_hate_speech=bool(match.matched),
+        is_hate_speech=None,
+        state=STATE_RULE_CANDIDATE if match.matched else STATE_NOT_ASSESSED,
         category=(match.fired_terms[0].get('category', '') if match.fired_terms else ''),
         severity=severity,
         reason=match.explain(),
@@ -131,10 +186,17 @@ WHAT DOES NOT COUNT, however offensive the words look:
 - Discussion of the community that is merely negative, inaccurate or clumsy
   without hostility.
 
-WHEN YOU CANNOT TELL, say it is not hate speech and give your doubt as the
-reason. A person reviews everything you mark; an unflagged comment they never
-see costs one observation, and a wrongly flagged one costs the credibility of
-every finding beside it."""
+WHEN YOU CANNOT TELL BECAUSE THE COMMENT IS HATEFUL OR NOT DEPENDING ON
+SOMETHING YOU CANNOT SEE -- the rest of the thread, what the image shows, who
+is being addressed -- set needs_context true and say in the reason what is
+missing. Do not answer false for that. False means you read it and it is not
+hate speech; a missing half of the conversation is a different thing, and
+collapsing the two hides the cases most worth a person's attention.
+
+WHEN YOU CAN TELL AND IT IS SIMPLY NOT HATE SPEECH, answer false and say why.
+A person reviews everything you mark; an unflagged comment they never see costs
+one observation, and a wrongly flagged one costs the credibility of every
+finding beside it."""
 
 
 def build_prompt(item: dict, match, group_background: str = '') -> str:
@@ -274,13 +336,35 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
         log.warning('ettok: classification unavailable, submitting match-only: %s', exc)
         return from_match_only(match, versions)
 
+    # The same strict reading the platform now applies. `bool("false")` is True,
+    # and this is the field where being wrong names a person.
+    verdict = strict_bool(parsed.get('is_hate_speech'))
+    needs_context = bool(parsed.get('needs_context'))
+    requires_visual = bool(parsed.get('requires_visual'))
+
+    # Order matters. Something the model could not decide is not a negative,
+    # and something waiting on an image is not a clearance -- both used to
+    # arrive as `is_hate_speech=False`, which reads downstream as "a model read
+    # this and found nothing wrong".
+    if requires_visual:
+        state = STATE_NEEDS_VISUAL
+    elif needs_context or verdict is None:
+        state = STATE_NEEDS_CONTEXT
+    else:
+        state = STATE_MODEL_POSITIVE if verdict else STATE_MODEL_NEGATIVE
+
     return Verdict(
-        is_hate_speech=bool(parsed.get('is_hate_speech')),
+        # Only carried where it means something. Outside the two decided
+        # states it is None, so nothing downstream can read an answer the
+        # model did not give.
+        is_hate_speech=verdict if state in DECIDED_STATES else None,
+        state=state,
         category=str(parsed.get('category') or ''),
         severity=parsed.get('severity'),
         reason=str(parsed.get('reason') or ''),
         exemption_applied=str(parsed.get('exemption_applied') or ''),
-        requires_visual=bool(parsed.get('requires_visual')),
+        requires_visual=requires_visual,
+        needs_context=needs_context,
         tier=TIER_CLASSIFIED,
         versions=versions,
     )

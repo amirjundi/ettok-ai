@@ -249,7 +249,12 @@ def _finding(item: dict, result, verdict, case, digest: str, versions=None) -> d
         # the term they just added, or by one from six weeks earlier.
         'agent_verdict': (
             verdict.as_payload(result) if verdict is not None
-            else {'tier': 'context', 'is_hate_speech': False, 'versions': versions or {}}
+            # Nothing examined this comment, which is not the same as something
+            # examining it and finding nothing. It reported is_hate_speech
+            # False, and downstream that reads as a clearance by a classifier
+            # that never ran.
+            else {'tier': 'context', 'state': classify_mod.STATE_NOT_ASSESSED,
+                  'is_hate_speech': None, 'versions': versions or {}}
         ),
     }
 
