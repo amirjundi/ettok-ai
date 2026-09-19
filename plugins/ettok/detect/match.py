@@ -178,7 +178,20 @@ def match_tropes(text: str, tropes: list, *, groups_in_context: list, parent_tex
         if not any(normalize(s) and normalize(s) in haystack for s in surfaces):
             continue
 
-        slug = (trope.get('target_group_slug') or '').strip()
+        # Every group the trope is aimed at, not the first one.
+        #
+        # The survey records tropes aimed at several communities at once, and
+        # the platform sends the whole list in `target_groups`;
+        # `target_group_slug` is just its first element, kept for rows that
+        # predate the M2M. Reading only that meant a trope aimed at Yazidi and
+        # Assyrian communities, whose first slug happened to be the other one,
+        # could not be activated by the case that established the subject -- so
+        # it silently failed to fire on exactly the multi-community attacks it
+        # was curated to catch.
+        slugs = [str(g).strip() for g in (trope.get('target_groups') or []) if str(g).strip()]
+        if not slugs:
+            single = (trope.get('target_group_slug') or '').strip()
+            slugs = [single] if single else []
         requires_group = bool(trope.get('requires_target_group', True))
         topics = trope.get('activation_topics') or []
 
@@ -198,8 +211,9 @@ def match_tropes(text: str, tropes: list, *, groups_in_context: list, parent_tex
             hit_topic = next(
                 (t for t in topics if normalize(t) and normalize(t) in parent), None,
             )
-            if hit_topic is None and slug and slug in groups_in_context:
-                hit_topic = slug        # the case already established the subject
+            if hit_topic is None:
+                # The case already established the subject.
+                hit_topic = next((s for s in slugs if s in groups_in_context), None)
             if hit_topic is None:
                 continue
             reason = f'the post concerns "{hit_topic}"'

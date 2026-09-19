@@ -19,6 +19,7 @@ import hashlib
 import json
 import logging
 from datetime import datetime, timezone
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from . import cases as cases_mod
 from .detect import classify as classify_mod
@@ -45,12 +46,50 @@ _ITEM_FIELDS = {
 }
 
 
+# Query parameters that identify the visitor or the click rather than the post.
+_TRACKING_EXACT = {
+    'fbclid', 'igshid', 'gclid', 'mibextid', 'rdid', 'ref', 'refsrc', 'refid',
+    'si', 'share_url', 'source', '__tn__',
+}
+_TRACKING_PREFIX = ('utm_', '__cft__')
+
+
+def post_identity(url: str) -> str:
+    """A post URL reduced to the part that identifies the post.
+
+    The query is filtered rather than dropped. Facebook puts the post id *in*
+    the query -- `permalink.php?story_fbid=...` -- so a bare path would merge
+    every post on that page into one. But the same link copied twice carries a
+    different fbclid or mibextid each time, and an identity that moves between
+    scans turns one comment into a fresh finding on every run, which now also
+    spends the case's item budget.
+
+    Host prefixes go too: m.facebook.com and www.facebook.com are the same page
+    reached from a phone and a desktop, and the collector may see either.
+    """
+    if not url:
+        return ''
+    parts = urlsplit(url.strip())
+    kept = sorted(
+        (k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
+        if k.lower() not in _TRACKING_EXACT
+        and not k.lower().startswith(_TRACKING_PREFIX)
+    )
+    host = parts.netloc.lower()
+    for prefix in ('m.', 'www.', 'mobile.'):
+        if host.startswith(prefix):
+            host = host[len(prefix):]
+            break
+    return urlunsplit(('', host, parts.path.rstrip('/'), urlencode(kept), ''))
+
+
 def content_hash(item: dict) -> str:
     """Identity of a comment, for deduplication.
 
-    Hashes the comment together with what it replies to, because the same words
-    under a different post are a different finding -- that is the entire premise
-    of context-dependent detection.
+    Hashes the comment together with what it replies to -- both the post's text
+    and which post it is -- because the same words under a different post are a
+    different finding, and that is the entire premise of context-dependent
+    detection.
 
     Author and platform are in it too. Without them, two people posting the same
     short phrase under one post collapse into a single observation and the
@@ -59,14 +98,19 @@ def content_hash(item: dict) -> str:
     permalink joins them when the page gave one, because it is the only identity
     on the page that is genuinely stable.
     """
-    permalink = item.get('url', '') or ''
-    if permalink == (item.get('parent_post_url', '') or ''):
+    parent = post_identity(item.get('parent_post_url', '') or '')
+    permalink = post_identity(item.get('url', '') or '')
+    if permalink == parent:
         # A page with no per-comment link hands back the post URL. That is the
         # post's identity, not the comment's, so it adds nothing here.
         permalink = ''
     parts = (
         item.get('text', '') or '',
         item.get('parent_post_text', '') or '',
+        # Which post, not just what it said. Two posts can carry identical text
+        # -- a caption reshared, or no caption at all on a photo -- and without
+        # this the same reply under each of them collapses into one finding.
+        parent,
         item.get('platform', '') or '',
         item.get('author_id', '') or '',
         permalink,
