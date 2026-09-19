@@ -124,3 +124,44 @@ class TestWhenItCannotSync:
         client = FakeClient(has_bundle=False, fail='lexicon')
         with pytest.raises(KnowledgeError):
             knowledge_mod.fetch(client)
+
+
+class TestThePlatformsNameForTheBundle:
+    """The platform archives each bundle it serves and hands back the key.
+
+    Recorded on every finding, because it is what makes "produce the rules that
+    judged this" answerable months later -- the agent's own digests answer the
+    narrower question of whether the knowledge moved between two runs.
+
+    Deliberately not compared against those digests. The two are computed
+    differently on purpose: per collection here, over the whole bundle there. A
+    mismatch would mean nothing, and a warning that fires on every sync teaches
+    people to stop reading warnings.
+    """
+
+    def named(self, release_id):
+        class Named(FakeClient):
+            def bundle(self, languages=None):
+                return {**super().bundle(languages), 'release_id': release_id}
+
+        return knowledge_mod.fetch(Named())
+
+    def test_it_is_kept(self):
+        assert self.named('4@abc123').platform_release_id == '4@abc123'
+
+    def test_it_travels_with_every_verdict(self):
+        assert self.named('4@abc123').versions['release'] == '4@abc123'
+
+    def test_the_agents_own_digests_are_still_there(self):
+        """They answer a different question, and losing them would make a
+        curator's edit invisible between two runs."""
+        versions = self.named('4@abc123').versions
+        assert versions['lexicon'] and versions['tropes'] and versions['cases']
+
+    def test_a_platform_that_names_nothing_is_not_an_error(self, caplog):
+        """The older three-call sync has no bundle to name. An empty key is
+        honest; inventing one would make an unarchived release look retrievable."""
+        with caplog.at_level('WARNING'):
+            know = knowledge_mod.fetch(FakeClient(has_bundle=False))
+        assert know.versions['release'] == ''
+        assert not any('release' in r.message for r in caplog.records)

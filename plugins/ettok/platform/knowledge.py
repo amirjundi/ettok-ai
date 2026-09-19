@@ -83,6 +83,9 @@ class Knowledge:
     # whatever made it -- which is the question being asked. A bundle built by
     # hand and cached for three days is exactly as stale as a fetched one.
     fetched_at: float = field(default_factory=time.time)
+    # What the platform called this bundle, where it said. Empty when the
+    # knowledge came from the older three-call sync, which names nothing.
+    platform_release_id: str = ''
 
     @property
     def age_seconds(self) -> float:
@@ -113,6 +116,17 @@ class Knowledge:
             # nothing. `target_groups` is nested here, so the topic markers and
             # background that do decide detection are already covered.
             'cases': _release_id(self.cases, ('id', 'title', 'state', 'target_groups')),
+            # The platform's own name for the whole bundle, which is the key
+            # its archive is indexed by. The three above are this agent's
+            # digests of its own view and answer "did the knowledge change
+            # between two runs"; this one answers "produce the knowledge that
+            # judged this", which is the question a referral has to survive.
+            #
+            # Not compared against them. They are computed differently on
+            # purpose -- per collection here, over the whole bundle there -- so
+            # a mismatch would mean nothing, and a warning that fires on every
+            # sync teaches people to stop reading warnings.
+            'release': self.platform_release_id,
         }
 
     def tropes_for(self, group_slug: str) -> list:
@@ -171,11 +185,13 @@ def fetch(client, *, languages: Optional[list] = None) -> Knowledge:
         # are released separately, and a sync that refuses to run against a
         # server one version behind would be a worse failure than the one being
         # fixed.
+        platform_release = ''
         try:
             bundle = client.bundle(languages=languages)
             terms = bundle.get('terms') or []
             trope_rows = bundle.get('tropes') or []
             case_rows = bundle.get('cases') or []
+            platform_release = bundle.get('release_id') or ''
         except Exception:
             log.info('ettok: no bundle endpoint; syncing the older way')
             tasks = client.tasks()
@@ -201,7 +217,10 @@ def fetch(client, *, languages: Optional[list] = None) -> Knowledge:
         accounts=accounts.get('accounts', accounts.get('monitoring_accounts', [])) or [],
         config=heartbeat.get('config', {}) or {},
         fetched_at=time.time(),
+        platform_release_id=platform_release,
     )
+
+
 
     ungated = sum(
         1 for t in knowledge.tropes
