@@ -135,6 +135,68 @@ def _make_tools(ctx):
         return _tool_result(reclaimed=reclaimed, **result, queue=outbox_mod.status(conn))
 
     @_guard
+    def replay(args: dict, **_) -> str:
+        """Re-attempt classifications that were lost to a crash or an outage."""
+        from . import jobs as jobs_mod
+        from .detect import classify as classify_mod
+        from .detect import match as match_mod
+
+        _cfg, conn, _client = _services(ctx)
+        know = getattr(ctx, '_ettok_knowledge', None)
+        if know is None:
+            return _tool_error(
+                'No knowledge loaded. Run ettok_sync_knowledge first -- replaying '
+                'against knowledge of unknown age would produce verdicts that '
+                'cannot be attributed to a release.'
+            )
+
+        limit = args.get('limit')
+        try:
+            limit = max(1, min(int(limit), 100)) if limit is not None else 25
+        except (TypeError, ValueError):
+            limit = 25
+
+        rows = jobs_mod.replayable(conn, limit=limit)
+        done, failed = 0, []
+        for row in rows:
+            item = jobs_mod.item_of(row)
+            if not item.get('text'):
+                # Nothing to judge. Closed rather than retried forever: a job
+                # whose payload did not survive cannot be replayed by anything,
+                # and leaving it queued would make the backlog permanent.
+                jobs_mod.fail(conn, row['id'], 'the stored item carried no text')
+                failed.append({'id': row['id'], 'error': 'empty item'})
+                continue
+
+            jobs_mod.start(conn, row['id'])
+            try:
+                result = match_mod.evaluate(
+                    item, know, item.get('case_id'))
+                verdict = classify_mod.classify(
+                    ctx, item, result, versions=know.versions)
+            except Exception as exc:                          # noqa: BLE001
+                jobs_mod.fail(conn, row['id'], f'{type(exc).__name__}: {exc}')
+                failed.append({'id': row['id'], 'error': str(exc)[:200]})
+                continue
+
+            jobs_mod.complete(conn, row['id'], verdict.as_payload(result))
+            done += 1
+
+        return _tool_result(
+            replayed=done,
+            failed=failed,
+            remaining=jobs_mod.status(conn),
+            note=(
+                'Replayed verdicts are held locally. They reach the platform on '
+                'the next submission, which is where the evidence they belong to '
+                'already is.'
+                if done else
+                'Nothing was replayable. That is the healthy answer: it means no '
+                'classification was interrupted.'
+            ),
+        )
+
+    @_guard
     def watchlist(args: dict, **_) -> str:
         """Accounts the organisation is watching, and which are due a look."""
         _cfg, _conn, client = _services(ctx)
@@ -679,6 +741,30 @@ def _make_tools(ctx):
             },
             explain_item,
             '💡',
+        ),
+        (
+            'ettok_replay',
+            {
+                'name': 'ettok_replay',
+                'description': (
+                    'Re-attempt classifications that were interrupted -- by a model '
+                    'provider being down, or the machine being closed mid-run. Their '
+                    'observations were already collected and stored; only the verdict '
+                    'was lost. Costs a provider call per item, so it is asked for '
+                    'rather than done automatically.'
+                ),
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'limit': {
+                            'type': 'integer',
+                            'description': 'How many to attempt. Defaults to 25.',
+                        },
+                    },
+                },
+            },
+            replay,
+            '♻',
         ),
         (
             'ettok_watchlist',

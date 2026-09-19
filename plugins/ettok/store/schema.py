@@ -25,6 +25,42 @@ PLUGIN_NAME = 'ettok'
 
 SCHEMA_VERSION = 4
 
+# Defined on its own so the one migration that has to rebuild this table
+# can create it from the same text the schema script uses -- two copies of
+# a CREATE statement drift, and this one is a table holding evidence of
+# what the agent decided.
+_TABLE_CLASSIFICATION = """CREATE TABLE IF NOT EXISTS classification (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    collected_item_id INTEGER,
+    content_hash      TEXT NOT NULL DEFAULT '',
+    case_id           TEXT NOT NULL DEFAULT '',
+    case_title        TEXT NOT NULL DEFAULT '',
+    platform          TEXT NOT NULL DEFAULT '',
+    url               TEXT NOT NULL DEFAULT '',
+    excerpt           TEXT NOT NULL DEFAULT '',
+    parent_excerpt    TEXT NOT NULL DEFAULT '',
+    -- Nullable, because "no answer" is a real result and the commonest one.
+    -- It was NOT NULL DEFAULT 0, so a rule firing with no model behind it, a
+    -- comment nothing examined, and a model clearing somebody all stored the
+    -- same value. `state` beside it carries which.
+    is_hate_speech    INTEGER,
+    why_flagged       TEXT NOT NULL DEFAULT '',
+    category          TEXT NOT NULL DEFAULT '',
+    severity          INTEGER,
+    reason            TEXT NOT NULL DEFAULT '',
+    fired_terms       TEXT NOT NULL DEFAULT '[]',
+    fired_tropes      TEXT NOT NULL DEFAULT '[]',
+    exemption_applied TEXT NOT NULL DEFAULT '',
+    tier              TEXT NOT NULL DEFAULT 'matched_only',
+    -- The result state, which `is_hate_speech` above cannot express: a rule
+    -- firing, a comment nobody examined and a model clearing something all
+    -- wrote 0 or 1 into that column and were indistinguishable afterwards.
+    state             TEXT NOT NULL DEFAULT '',
+    versions          TEXT NOT NULL DEFAULT '{}',
+    created_at        TEXT NOT NULL
+);"""
+
+
 _TABLES = """
 -- One attempt at working a case. Written before collection starts, so a crash
 -- mid-run is visible rather than invisible.
@@ -78,30 +114,40 @@ CREATE TABLE IF NOT EXISTS evidence_artifact (
 -- displayed without the platform -- and the operator's own machine could not
 -- answer "what did my agent decide, and why" without a network round trip to
 -- somebody else's database.
-CREATE TABLE IF NOT EXISTS classification (
-    id                INTEGER PRIMARY KEY AUTOINCREMENT,
-    collected_item_id INTEGER,
-    content_hash      TEXT NOT NULL DEFAULT '',
-    case_id           TEXT NOT NULL DEFAULT '',
-    case_title        TEXT NOT NULL DEFAULT '',
-    platform          TEXT NOT NULL DEFAULT '',
-    url               TEXT NOT NULL DEFAULT '',
-    excerpt           TEXT NOT NULL DEFAULT '',
-    parent_excerpt    TEXT NOT NULL DEFAULT '',
-    is_hate_speech    INTEGER NOT NULL DEFAULT 0,
-    why_flagged       TEXT NOT NULL DEFAULT '',
-    category          TEXT NOT NULL DEFAULT '',
-    severity          INTEGER,
-    reason            TEXT NOT NULL DEFAULT '',
-    fired_terms       TEXT NOT NULL DEFAULT '[]',
-    fired_tropes      TEXT NOT NULL DEFAULT '[]',
-    exemption_applied TEXT NOT NULL DEFAULT '',
-    tier              TEXT NOT NULL DEFAULT 'matched_only',
-    versions          TEXT NOT NULL DEFAULT '{}',
-    created_at        TEXT NOT NULL
-);
+__CLASSIFICATION_TABLE__
 CREATE INDEX IF NOT EXISTS idx_classification_hash ON classification(content_hash);
 CREATE INDEX IF NOT EXISTS idx_classification_made ON classification(created_at);
+
+-- Classification work that survives the process doing it.
+--
+-- A model provider goes down, or the laptop is closed mid-run, and the items
+-- that were being judged were simply gone: the run had already stored them for
+-- submission, the verdict attempt left no trace, and nothing anywhere said an
+-- item had been given up on. On every screen that is indistinguishable from an
+-- item nothing has reached yet.
+--
+-- Keyed by the observation and the knowledge that judged it, so re-classifying
+-- the same comment under an edited lexicon is a new job rather than an
+-- overwrite -- an earlier verdict is a version, never something to lose.
+--
+-- The item payload is kept here because replay has to happen without the page:
+-- the post it came from is usually deleted by the time anybody retries.
+CREATE TABLE IF NOT EXISTS classification_job (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    content_hash   TEXT NOT NULL,
+    case_key       TEXT NOT NULL DEFAULT '',
+    knowledge_id   TEXT NOT NULL DEFAULT '',
+    item_json      TEXT NOT NULL,
+    -- queued | running | completed | failed
+    state          TEXT NOT NULL DEFAULT 'queued',
+    attempts       INTEGER NOT NULL DEFAULT 0,
+    last_error     TEXT NOT NULL DEFAULT '',
+    verdict_json   TEXT NOT NULL DEFAULT '',
+    created_at     TEXT NOT NULL,
+    updated_at     TEXT NOT NULL,
+    UNIQUE(content_hash, case_key, knowledge_id)
+);
+CREATE INDEX IF NOT EXISTS idx_job_state ON classification_job(state);
 
 -- The most important table. A residential connection drops mid-submit and must
 -- lose nothing and duplicate nothing; the idempotency key is what lets a retry be
@@ -176,6 +222,11 @@ CREATE TABLE IF NOT EXISTS schema_meta (
 );
 """
 
+# One copy of the classification CREATE, shared by the schema script and by
+# the migration that has to rebuild that table. Two copies drift, and this is
+# the table holding what the agent decided.
+_TABLES = _TABLES.replace('__CLASSIFICATION_TABLE__', _TABLE_CLASSIFICATION)
+
 
 def data_dir() -> Path:
     from plugins.plugin_storage import plugin_data_dir
@@ -217,6 +268,39 @@ def _drop_stale_tables(conn) -> None:
     columns = {row['name'] for row in conn.execute('PRAGMA table_info(evidence_artifact)')}
     if columns and 'case_id' not in columns:
         conn.execute('ALTER TABLE evidence_artifact ADD COLUMN case_id INTEGER')
+
+    # Same reasoning for the local judgement log: it is the only record of what
+    # this agent decided while unpaired, so it is added to rather than rebuilt.
+    info = list(conn.execute('PRAGMA table_info(classification)'))
+    columns = {row['name'] for row in info}
+    if columns and 'state' not in columns:
+        conn.execute("ALTER TABLE classification ADD COLUMN state TEXT NOT NULL DEFAULT ''")
+
+    # `is_hate_speech` has to be able to say "no answer", and SQLite cannot
+    # drop a NOT NULL in place. So this one table is rebuilt -- copied, not
+    # dropped, because these rows are the only record of what this agent
+    # decided while unpaired and losing them to a schema change would be the
+    # same silent loss the column itself was causing.
+    #
+    # Guarded on the flag rather than a version number, so it runs once and is
+    # a no-op on every connection afterwards, including a fresh install where
+    # the column is already nullable.
+    not_null = {row['name'] for row in info if row['notnull']}
+    if 'is_hate_speech' in not_null:
+        kept = [name for name in (
+            'id', 'collected_item_id', 'content_hash', 'case_id', 'case_title',
+            'platform', 'url', 'excerpt', 'parent_excerpt', 'is_hate_speech',
+            'why_flagged', 'category', 'severity', 'reason', 'fired_terms',
+            'fired_tropes', 'exemption_applied', 'tier', 'state', 'versions',
+            'created_at',
+        ) if name in columns or name == 'state']
+        names = ', '.join(kept)
+        conn.executescript(f"""
+            ALTER TABLE classification RENAME TO classification_old;
+            {_TABLE_CLASSIFICATION}
+            INSERT INTO classification({names}) SELECT {names} FROM classification_old;
+            DROP TABLE classification_old;
+        """)
 
     # collected_item is gone from the schema. An agent installed before this
     # still has the table on disk, empty -- nothing ever wrote to it -- and

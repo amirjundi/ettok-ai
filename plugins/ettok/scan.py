@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from . import cases as cases_mod
+from . import jobs as jobs_mod
 from .detect import classify as classify_mod
 from .detect import match as match_mod
 from .platform import outbox as outbox_mod
@@ -176,16 +177,23 @@ def record_judgement(conn, item: dict, result, verdict, case, digest: str) -> No
     without a network round trip to somebody else's database, and a run made
     while unpaired left no trace of its reasoning at all.
 
-    Advisory, and stored as such: the platform re-judges every item and its
-    verdict is the one that stands. This is kept so a disagreement between the
-    two is visible rather than silent.
+    No longer advisory. It was, when the platform ran a classifier of its own
+    and its verdict was the one that stood; this was kept so a disagreement
+    between the two was visible. The platform stopped classifying -- one
+    rulebook instead of two that had already drifted -- so this row and the one
+    the platform stores are the same judgement, and this is the copy that
+    survives on the operator's own machine when the network does not.
+
+    Which makes `state` worth its column. A rule firing, a comment nobody
+    examined and a model clearing something all wrote 0 or 1 into
+    `is_hate_speech` and were indistinguishable afterwards.
     """
     payload = verdict.as_payload(result) if verdict is not None else {}
     conn.execute(
         'INSERT INTO classification(content_hash, case_id, case_title, platform, url, '
         'excerpt, parent_excerpt, is_hate_speech, why_flagged, category, severity, '
-        'reason, fired_terms, fired_tropes, exemption_applied, tier, versions, '
-        'created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'reason, fired_terms, fired_tropes, exemption_applied, tier, state, versions, '
+        'created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (
             digest,
             str(case.case_id) if case is not None else '',
@@ -197,7 +205,10 @@ def record_judgement(conn, item: dict, result, verdict, case, digest: str) -> No
             # need a second permanent home here.
             (item.get('text', '') or '')[:400],
             (item.get('parent_post_text', '') or '')[:200],
-            1 if payload.get('is_hate_speech') else 0,
+            # 1, 0, or NULL where the model gave no yes-or-no. Storing 0 for
+            # "nobody looked" made an unexamined comment read as a cleared one.
+            (None if payload.get('is_hate_speech') is None
+             else (1 if payload['is_hate_speech'] else 0)),
             result.explain() if result.matched else '',
             payload.get('category', '') or '',
             payload.get('severity'),
@@ -206,6 +217,7 @@ def record_judgement(conn, item: dict, result, verdict, case, digest: str) -> No
             json.dumps([t.get('name') for t in result.fired_tropes], ensure_ascii=False),
             payload.get('exemption_applied') or '',
             payload.get('tier', 'context'),
+            payload.get('state', classify_mod.STATE_NOT_ASSESSED),
             json.dumps(payload.get('versions') or {}, ensure_ascii=False),
             datetime.now(timezone.utc).isoformat(),
         ),
@@ -353,6 +365,13 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         return summary
 
     budget = case.budget if case else cases_mod.Budget()
+
+    # What died last time, before anything new is taken on. Reported rather
+    # than acted on automatically: replaying costs provider calls, and a run
+    # that silently spent a case's budget on yesterday's backlog would be a
+    # surprise. `ettok_replay` does the work when somebody asks for it.
+    summary['jobs'] = jobs_mod.status(conn)
+
     findings = []
     # Hashes waiting on a durable delivery record. Nothing is marked seen until
     # the outbox row for it is committed. A dict, so a comment repeated inside
@@ -420,9 +439,35 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
                 background = case.background_for(slug) or background
 
         if classify and budget.allows(cases_mod.TIER_CLASSIFY):
-            verdict = classify_mod.classify(
-                ctx, item, result, versions=know.versions, group_background=background,
+            # Written down before the attempt, not after it.
+            #
+            # A provider outage or a closed laptop used to lose the verdict for
+            # these items with no trace: the observation was already stored for
+            # submission, the attempt left nothing behind, and an item nobody
+            # judged looks exactly like one the agent has not reached yet. The
+            # job is the trace, and it is created first so that a crash leaves a
+            # row saying what was in flight.
+            item['content_hash'] = digest
+            job_id = jobs_mod.enqueue(
+                conn, item=item, case_key=case_key,
+                knowledge_id=know.versions.get('lexicon', ''),
             )
+            jobs_mod.start(conn, job_id)
+            try:
+                verdict = classify_mod.classify(
+                    ctx, item, result, versions=know.versions,
+                    group_background=background,
+                )
+            except Exception as exc:                          # noqa: BLE001
+                # Not swallowed into a match-only verdict here. `classify`
+                # already degrades to that for a provider it cannot reach; an
+                # exception reaching this far is something worse, and the item
+                # deserves to be replayable rather than quietly downgraded.
+                jobs_mod.fail(conn, job_id, f'{type(exc).__name__}: {exc}')
+                summary['errors'].append(f'classification failed: {exc}')
+                verdict = classify_mod.from_match_only(result, know.versions)
+            else:
+                jobs_mod.complete(conn, job_id, verdict.as_payload(result))
             # Reserve the estimate, settle on what it cost. The estimate is
             # what the budget check above had to work from -- you cannot know
             # the price before making the call -- but charging it afterwards

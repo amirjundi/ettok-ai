@@ -63,7 +63,12 @@ class TestEveryDecisionIsKept:
 
         row = _rows()[0]
         assert row['why_flagged'] == ''
-        assert row['is_hate_speech'] == 0
+        # Not 0, which is what this asserted before. Nothing examined this
+        # comment, and storing a 0 made it indistinguishable from one a model
+        # read and cleared -- the conflation ARCH-09 is about, in the local
+        # copy. The state says which.
+        assert row['is_hate_speech'] is None
+        assert row['state'] == 'not_assessed'
 
     def test_it_records_which_knowledge_decided(self, home):
         """So a disagreement between two runs can be traced to a curator's edit
