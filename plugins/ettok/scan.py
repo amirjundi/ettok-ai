@@ -364,6 +364,39 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         )
         return summary
 
+    # Claimed before any collecting, released when the run ends.
+    #
+    # Two agents asking for work both got the same due case and both collected
+    # it. A refusal here is an ordinary outcome, not a fault: it means somebody
+    # else got there first, and the right response is to stop rather than do
+    # the work twice.
+    #
+    # Tolerated when the platform does not offer claiming, because the two are
+    # released separately and refusing to run against a server one version
+    # behind loses posts that are deleted within hours.
+    #
+    # Only when the run will actually submit. A dry run collects nothing anyone
+    # else could duplicate, and requiring a network round trip to do one would
+    # make the offline path -- the one an operator uses to check selectors or
+    # try a comment by hand -- depend on the platform being reachable.
+    claimed = False
+    if case is not None and submit:
+        try:
+            client.claim_case(case.case_id)
+            claimed = True
+        except Exception as exc:                              # noqa: BLE001
+            if '409' in str(exc):
+                cases_mod.finish_run(conn, run_id, stop_reason='claimed_elsewhere',
+                                     spend=0.0)
+                summary['stop_reason'] = 'claimed_elsewhere'
+                summary['note'] = (
+                    f'Another agent is already working "{case.title}". Nothing was '
+                    f'collected. Ask for the case list again and take a different '
+                    f'one; the claim expires on its own if that agent has stopped.'
+                )
+                return summary
+            log.info('ettok: case claiming unavailable (%s); continuing', exc)
+
     budget = case.budget if case else cases_mod.Budget()
 
     # What died last time, before anything new is taken on. Reported rather
@@ -534,6 +567,14 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         # see the note in evidence.deliver.
         summary['evidence'] = evidence_mod.deliver(
             conn, client, item_hash_for=item_hash_for)
+    # Given back rather than left to time out, so the next run does not have to
+    # wait out a lease nobody is using.
+    if claimed and case is not None:
+        try:
+            client.claim_case(case.case_id, release=True)
+        except Exception:                                     # noqa: BLE001
+            log.debug('ettok: could not release the case claim', exc_info=True)
+
     summary['queue'] = outbox_mod.status(conn)
 
     if 'stop_reason' not in summary:

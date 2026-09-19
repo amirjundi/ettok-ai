@@ -239,6 +239,18 @@ class PlatformClient:
     def accounts(self) -> dict:
         return self.request('GET', 'accounts/').data
 
+    def claim_case(self, case_id: int, *, release: bool = False) -> dict:
+        """Take a case so no other agent is handed the same work, or give it back.
+
+        Raises `PlatformError` with status 409 when somebody else holds it,
+        which is a normal outcome rather than a fault: two agents asking for
+        work at the same moment is the situation this exists for.
+        """
+        return self.request(
+            'POST', 'cases/claim/',
+            payload={'case_id': case_id, 'release': release},
+        ).data
+
     def bundle(self, languages=None) -> dict:
         """Terms, tropes and cases as the platform held them at one instant.
 
