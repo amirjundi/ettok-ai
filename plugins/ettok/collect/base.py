@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -53,13 +54,26 @@ _EXTRACT_JS = r"""
   const sel = %s;
   // Bumped whenever this changes what "the comment" or "the post" means, so a
   // stored observation can be read against the rules that produced it.
-  const EXTRACTION_VERSION = 2;
+  const EXTRACTION_VERSION = 4;
   // Top-level posts only. A comment is an article too, so the post selector
   // matches every comment on the page as well -- a plain count said four on a
   // post with three comments, which would have read as a feed.
   const posts = Array.from(document.querySelectorAll(sel.post)).filter(
     (el) => !(el.parentElement && el.parentElement.closest(sel.post)));
-  const post = posts[0] || null;
+  // When the page has opened a post in a modal -- which is what a share link
+  // does -- the articles behind that modal belong to whatever page was
+  // underneath: a feed post, an unrelated profile. Taking the first article on
+  // the page then collected the feed post *behind* the dialog and left the post
+  // that was actually on screen, with every one of its comments, unread. The
+  // result read as "nothing was extracted", which is the honest report of a
+  // collection that looked in the wrong place.
+  // The first dialog in the DOM is not necessarily the post's: a share link
+  // leaves an empty wrapper behind, and picking that one put the collection back
+  // on the feed post underneath. Take the dialog that actually holds a post.
+  const dialogs = Array.from(document.querySelectorAll('[role="dialog"]'));
+  const modal = dialogs.find((d) => posts.some((el) => d.contains(el))) || null;
+  const onScreen = modal ? posts.filter((el) => modal.contains(el)) : [];
+  const post = onScreen[0] || posts[0] || null;
   // A page where nothing matched the post selector is refused for collection:
   // comments without the post they answer cannot be judged for
   // context-dependent hate, and handing them back anyway is exactly the quiet
@@ -68,7 +82,17 @@ _EXTRACT_JS = r"""
   // The comments are still gathered and returned beside it, because the
   // selector tuning tool reads this same output and needs to see which half of
   // a candidate set matched in order to say which half is wrong.
-  const scope = post || document;
+  //
+  // Where they live is the other half of the same problem. The comment selector
+  // assumes a comment is an article nested inside the post, which is how the
+  // first render looks. Open the thread -- which is the whole point of collecting
+  // it -- and the comments are re-rendered as siblings of the post, so the nested
+  // selector finds the ten that stayed nested and reports a 499-comment thread as
+  // empty. Inside a modal that is unambiguous: one post, its thread, nothing
+  // else, so the post selector minus the post is exactly the comment set.
+  const modalScope = (modal && post && modal.contains(post)) ? modal : null;
+  const scope = modalScope || post || document;
+  const commentSelector = modalScope ? sel.post : sel.comment;
 
   // Anything nested inside a node that is itself an article is a comment or a
   // reply, not part of that node's own body.
@@ -105,7 +129,8 @@ _EXTRACT_JS = r"""
   // Scoped to this post. A document-wide search paired every comment on a feed
   // with the first post's context, so a comment under post three was judged
   // against what post one was about.
-  const found = Array.from(scope.querySelectorAll(sel.comment));
+  const found = Array.from(scope.querySelectorAll(commentSelector))
+    .filter((el) => el !== post);
   const MAX_COMMENTS = 200;
   const out = [];
   found.slice(0, MAX_COMMENTS).forEach((node, i) => {
@@ -158,6 +183,53 @@ _EXTRACT_JS = r"""
     comments_truncated: found.length > MAX_COMMENTS,
     extraction_version: EXTRACTION_VERSION,
     comments: out,
+  });
+})()
+"""
+
+
+# Opening the collapsed half of a thread, before extraction.
+#
+# Not the same job as the wait: a post can render ten comments and hold six
+# hundred behind "view all N replies" and an unscrolled panel. The wait is
+# satisfied by the ten, so without this the run reports a quiet thread on
+# exactly the posts that are not quiet.
+_EXPAND_THREAD_JS = r"""
+(() => {
+  const SEL = %s;
+  // "View all N replies" / "View more comments", in the page's own language.
+  // Matched on the words and not on the exact string: the site pads the label
+  // with a count and a chevron, and neither is part of the label.
+  const wanted = /(view|show|عرض).{0,24}(comment|repl|تعليق|رد)/i;
+  // The controls that carry one of those words but do not open anything.
+  const exact = /^(comment|reply|like|share|تعليق|مشاركة|إعجاب|رد)$/i;
+  let clicked = 0;
+  document.querySelectorAll('[role="button"], [role="link"], span').forEach((el) => {
+    const label = (el.innerText || '').trim();
+    if (!label || label.length > 60 || exact.test(label)) return;
+    if (!wanted.test(label)) return;
+    // Innermost match only: every wrapper carries its child's label, so from
+    // the outside every one of these looks like a button and one click lands
+    // several times on the same control.
+    if (el.querySelector('[role="button"]')) return;
+    try { el.click(); clicked += 1; } catch (e) {}
+  });
+
+  // The thread scrolls inside its own panel, not the document. Scrolling the
+  // window moves nothing and loads nothing.
+  let panel = null;
+  document.querySelectorAll('div').forEach((el) => {
+    if (el.scrollHeight > el.clientHeight + 200 && el.clientHeight > 300) panel = el;
+  });
+  if (panel) panel.scrollTop = panel.scrollHeight;
+  else window.scrollTo(0, document.body.scrollHeight);
+
+  return JSON.stringify({
+    clicked,
+    // Named apart from the extractor's `comments`, which is a list of them:
+    // sharing the name made a count out of an array and raised.
+    comment_nodes: document.querySelectorAll(SEL).length,
+    scrolled: !!panel,
   });
 })()
 """
@@ -278,6 +350,40 @@ class BrowserCollector:
             result.auth_lost = blocked.auth_lost
             return result
 
+        # Then wait for the thread, still before anything is extracted.
+        #
+        # A social page paints its post immediately and its comments seconds
+        # later: they live in a panel the site fills in after the page settles,
+        # and sometimes only once it is scrolled. Extracting when navigation
+        # returns therefore reads an empty thread, and an empty thread and a
+        # post nobody replied to are the same result -- the silent-empty-page
+        # failure this collector can least afford, arriving before the selectors
+        # are even consulted.
+        #
+        # Bounded, because a post genuinely without comments must not hold a run
+        # open, and the count is kept either way so coverage can say whether the
+        # wait expired or finished.
+        selectors = self._selectors or self._extractors.get(self.platform) or {}
+        comments_seen = self._wait_for_comments(selectors)
+
+        # Then open the rest of the thread, which is not the same problem. A
+        # page can have ten comments rendered and six hundred more behind "view
+        # more comments" and an unscrolled panel: the wait above finds the ten
+        # and stops, because ten is not zero. Every reply thread on a Facebook
+        # post collapses to "view all N replies", so the majority of the hate on
+        # a pile-on sits behind a click that never happens.
+        #
+        # Run even when the wait found nothing. A panel that has not rendered at
+        # all is the case where a scroll is worth the most: the site fills the
+        # panel when it comes into view, and a tab that is not the front one is
+        # exactly where that does not happen on its own.
+        comments_expanded = self._expand_thread(selectors)
+
+        if comments_seen or comments_expanded:
+            # Re-read: the first read was the post on its own, which is what the
+            # block check needed and not what the evidence should show.
+            page_text = self._page_text()
+
         if capture_evidence:
             screenshot = ''
             try:
@@ -288,7 +394,138 @@ class BrowserCollector:
             result.evidence = capture(url=url, page_text=page_text, screenshot_b64=screenshot)
 
         result.items, result.coverage = self._extract(url, page_text)
+        result.coverage['comments_when_collection_started'] = comments_seen
+        result.coverage['comments_after_expanding'] = comments_expanded
         return result
+
+    # Long enough for a thread to paint on a slow connection, short enough that
+    # a page with no comments does not hold a run open.
+    DEFAULT_WAIT_FOR_COMMENTS_SECONDS = 30.0
+    WAIT_POLL_SECONDS = 2.0
+    # A seam, the same one the pacer has: tests drive the poll without waiting.
+    _wait_sleep = staticmethod(time.sleep)
+
+    def _wait_seconds(self) -> float:
+        """``wait_for_comments_seconds`` from plugin config, else the default."""
+        try:
+            raw = self._ctx.get_config(
+                'wait_for_comments_seconds', self.DEFAULT_WAIT_FOR_COMMENTS_SECONDS,
+            )
+        except Exception:                                     # noqa: BLE001
+            return self.DEFAULT_WAIT_FOR_COMMENTS_SECONDS
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            return self.DEFAULT_WAIT_FOR_COMMENTS_SECONDS
+        return value if value > 0 else self.DEFAULT_WAIT_FOR_COMMENTS_SECONDS
+
+    def _wait_for_comments(self, selectors: dict, *, sleep=None) -> int:
+        """Poll until a comment node exists, or the wait expires.
+
+        Cheap on purpose: a count, not an extraction, so a page that never
+        renders costs polls rather than parses. Returns the last count seen,
+        which is 0 when the wait ran out.
+        """
+        sleep = sleep or self._wait_sleep
+        selector = (selectors or {}).get('comment') or ''
+        if not selector:
+            return 0
+        expression = 'document.querySelectorAll(%s).length' % json.dumps(selector)
+        deadline = time.monotonic() + self._wait_seconds()
+        count = 0
+        while True:
+            try:
+                payload = self._call('browser_console', {'expression': expression})
+            except Exception:                                 # noqa: BLE001
+                log.debug('ettok: comment wait probe failed', exc_info=True)
+                return count
+            value = payload.get('result')
+            if value is None:
+                value = payload.get('value')
+            try:
+                count = int(value)
+            except (TypeError, ValueError):
+                # The probe came back unusable -- an error payload rather than a
+                # count. In a real page this expression always yields a number,
+                # even on a blank one, so waiting cannot fix a non-answer and is
+                # not worth the timeout.
+                return count
+            if count or time.monotonic() >= deadline:
+                return count
+            sleep(self.WAIT_POLL_SECONDS)
+
+    # How many click-and-scroll rounds to give a collapsed thread. Zero turns
+    # the step off; the loop also stops on its own once the count stops moving.
+    DEFAULT_EXPAND_ROUNDS = 6
+
+    def _expand_rounds(self) -> int:
+        """``expand_thread_rounds`` from plugin config, else the default."""
+        try:
+            raw = self._ctx.get_config('expand_thread_rounds', self.DEFAULT_EXPAND_ROUNDS)
+        except Exception:                                     # noqa: BLE001
+            return self.DEFAULT_EXPAND_ROUNDS
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            return self.DEFAULT_EXPAND_ROUNDS
+        return value if value > 0 else 0
+
+    def _expand_thread(self, selectors: dict, *, sleep=None) -> int:
+        """Open the collapsed reply threads and scroll the panel, then count.
+
+        Every reply thread on a Facebook post is collapsed to "view all N
+        replies", and the thread scrolls inside its own panel rather than the
+        document, so a post with six hundred comments can render ten and stop.
+        Ten is not zero, so the wait above is satisfied and the run reports a
+        quiet thread -- on exactly the posts that are not quiet.
+
+        Bounded twice over: a fixed number of rounds, and an early stop once the
+        count stops growing, because a thread that will not open must not be
+        clicked at for the rest of the run. Returns the count last seen; 0 means
+        the step found nothing to do, which is not an error.
+        """
+        sleep = sleep or self._wait_sleep
+        selector = (selectors or {}).get('comment') or ''
+        rounds = self._expand_rounds()
+        if not selector or rounds <= 0:
+            return 0
+
+        expression = _EXPAND_THREAD_JS % json.dumps(selector)
+        # `previous` is the answer: the count that was standing when the thread
+        # stopped growing. `count` is only ever the latest reading, and a reading
+        # of zero on the round that decided to stop is not the result.
+        previous = still = 0
+        for _round in range(rounds):
+            try:
+                payload = self._call('browser_console', {'expression': expression})
+            except Exception:                                 # noqa: BLE001
+                log.debug('ettok: thread expansion failed', exc_info=True)
+                return previous
+            value = payload.get('result')
+            if value is None:
+                value = payload.get('value')
+            if isinstance(value, str):
+                try:
+                    value = json.loads(value)
+                except ValueError:
+                    return previous
+            if not isinstance(value, dict) or 'comment_nodes' not in value:
+                # Not the expander's answer -- an extraction payload, or an
+                # error object. Stop rather than raise inside a collection, and
+                # rather than wait out a round on a page that cannot answer.
+                return previous
+            try:
+                count = int(value.get('comment_nodes') or 0)
+            except (TypeError, ValueError):
+                return previous
+            if count > previous:
+                previous, still = count, 0
+            else:
+                still += 1
+                if still >= 2:
+                    return previous
+            sleep(self.WAIT_POLL_SECONDS)
+        return previous
 
     # A factual description, capped. Long enough for a flag, a gesture and a
     # line of meme text; short enough that it cannot crowd the comment out of

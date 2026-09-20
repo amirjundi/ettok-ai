@@ -36,12 +36,14 @@ class FakeCtx:
         self.media_analysis = media_analysis
         self.config = config or {}
         self.calls = []
+        self.calls_with_args = []
 
     def get_config(self, key, default=None):
         return self.config.get(key, default)
 
     def dispatch_tool(self, tool, args, **kwargs):
         self.calls.append(tool)
+        self.calls_with_args.append((tool, args or {}))
         if tool == 'browser_snapshot':
             return json.dumps({'snapshot': self.page_text})
         if tool == 'browser_console':
@@ -55,6 +57,61 @@ class FakeCtx:
 
 class NoWait(session_mod.Pacer):
     _sleep = staticmethod(lambda _seconds: None)
+
+
+class FastPoll(collect_mod.FacebookCollector):
+    """A collector whose comment-wait polls without sleeping."""
+
+    _wait_sleep = staticmethod(lambda _seconds: None)
+
+
+class RenderingThreadCtx(FakeCtx):
+    """A page whose thread appears a few polls after navigation.
+
+    Facebook paints the post at once and the comments afterwards, so the count
+    the page gives starts at zero and climbs.
+    """
+
+    def __init__(self, counts, *, extracted, page_text='', config=None):
+        super().__init__(page_text=page_text, extracted=extracted, config=config)
+        self.counts = list(counts)
+        self.probes = 0
+
+    def dispatch_tool(self, tool, args, **kwargs):
+        expression = (args or {}).get('expression', '') if tool == 'browser_console' else ''
+        # The probe, and not the extraction or the expander: both of those also
+        # contain querySelectorAll, and the probe is the only call whose whole
+        # body is a count.
+        if tool == 'browser_console' \
+                and expression.startswith('document.querySelectorAll(') \
+                and expression.endswith('.length'):
+            self.calls.append(tool)
+            self.calls_with_args.append((tool, args or {}))
+            self.probes += 1
+            value = self.counts.pop(0) if self.counts else 0
+            return json.dumps({'result': value})
+        return super().dispatch_tool(tool, args, **kwargs)
+
+
+class ExpandingThreadCtx(RenderingThreadCtx):
+    """A thread that opens a few more comments per round of clicking."""
+
+    def __init__(self, comments_per_round, *, counts=(), **kwargs):
+        kwargs.setdefault('extracted', {})
+        super().__init__(counts, **kwargs)
+        self.comments_per_round = list(comments_per_round)
+        self.expand_calls = 0
+
+    def dispatch_tool(self, tool, args, **kwargs):
+        expression = (args or {}).get('expression', '') if tool == 'browser_console' else ''
+        if tool == 'browser_console' and 'panel.scrollTop' in expression:
+            self.calls.append(tool)
+            self.calls_with_args.append((tool, args or {}))
+            self.expand_calls += 1
+            value = self.comments_per_round.pop(0) if self.comments_per_round else 0
+            return json.dumps({'result': json.dumps(
+                {'clicked': 3, 'comment_nodes': value, 'scrolled': True})})
+        return super().dispatch_tool(tool, args, **kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -153,13 +210,24 @@ def test_a_recovered_account_returns_to_rotation(home):
 
 def test_evidence_is_captured_before_extraction(home):
     """The page can change or vanish between the two, and proof that arrived late
-    is an item with no proof."""
+    is an item with no proof.
+
+    The comment-wait probe is not extraction -- it asks the page how many
+    comments it holds, which is the opposite of taking them -- so the ordering
+    that matters is evidence before the extraction call itself.
+    """
     ctx = FakeCtx(page_text='الايزيدية في سنجار',
                   extracted={'parent_post_text': 'الايزيدية في سنجار', 'comments': []})
-    collector = collect_mod.FacebookCollector(ctx, pacer=NoWait())
+    collector = FastPoll(ctx, pacer=NoWait())
     collector.collect('https://facebook.com/post/1')
 
-    assert ctx.calls.index('browser_vision') < ctx.calls.index('browser_console')
+    def index_of(predicate):
+        return next(i for i, (tool, args) in enumerate(ctx.calls_with_args) if predicate(tool, args))
+
+    vision = index_of(lambda tool, _args: tool == 'browser_vision')
+    extraction = index_of(lambda tool, args: tool == 'browser_console'
+                          and 'EXTRACTION_VERSION' in args.get('expression', ''))
+    assert vision < extraction
 
 
 def test_evidence_without_an_artefact_proves_nothing(home):
@@ -398,3 +466,107 @@ def test_off_is_honoured_when_written_as_yaml_off(home):
         result = collect_mod.FacebookCollector(ctx, pacer=NoWait()).collect(
             'https://facebook.com/p')
         assert result.items[0]['parent_media_text'] == '', f'{value!r} should mean off'
+
+
+# ---------------------------------------------------------------------------
+# The thread renders after the page does
+# ---------------------------------------------------------------------------
+
+class TestWaitingForTheThread:
+    """A post paints at once; its comments arrive seconds later.
+
+    Extracting when navigation returns reads an empty thread, and an empty
+    thread is indistinguishable from a post nobody replied to -- the whole
+    thread is then reported quiet, confidently and wrongly.
+    """
+
+    def test_collection_waits_for_the_comments_to_appear(self, home):
+        ctx = RenderingThreadCtx(
+            [0, 0, 7],
+            page_text='الايزيدية في سنجار',
+            extracted={
+                'parent_post_text': 'الايزيدية في سنجار',
+                'comments': [{'text': 'تعليق أول', 'author_name': 'أ'},
+                             {'text': 'تعليق ثان', 'author_name': 'ب'}],
+            },
+        )
+        result = FastPoll(ctx, pacer=NoWait()).collect('https://facebook.com/post/1')
+
+        assert ctx.probes == 3, 'should have waited through the empty reads'
+        assert result.coverage['comments_when_collection_started'] == 7
+        assert [item['text'] for item in result.items] == ['تعليق أول', 'تعليق ثان']
+
+    def test_the_wait_is_recorded_even_when_nothing_rendered(self, home):
+        """A timeout is a fact about the read, not a silent zero."""
+        ctx = RenderingThreadCtx(
+            [0, 0, 0],
+            page_text='منشور بلا تعليقات',
+            extracted={'parent_post_text': 'منشور بلا تعليقات', 'comments': []},
+            config={'wait_for_comments_seconds': 0.05},
+        )
+        result = FastPoll(ctx, pacer=NoWait()).collect('https://facebook.com/post/1')
+
+        assert result.items == []
+        assert result.coverage['comments_when_collection_started'] == 0
+
+    def test_the_wait_gives_up_once_a_comment_exists(self, home):
+        """It is a gate, not a dwell: one comment on the page and we collect."""
+        ctx = RenderingThreadCtx(
+            [4],
+            page_text='منشور',
+            extracted={'parent_post_text': 'منشور', 'comments': [{'text': 'تعليق'}]},
+        )
+        FastPoll(ctx, pacer=NoWait()).collect('https://facebook.com/post/1')
+        assert ctx.probes == 1
+
+    def test_a_wait_configured_to_zero_falls_back_to_the_default(self, home):
+        """Zero would mean 'never wait', which is the failure being fixed."""
+        collector = FastPoll(FakeCtx(), pacer=NoWait())
+        collector._ctx.config = {'wait_for_comments_seconds': 0}
+        assert collector._wait_seconds() == collector.DEFAULT_WAIT_FOR_COMMENTS_SECONDS
+
+
+class TestOpeningTheCollapsedThread:
+    """A thread renders ten comments and holds the rest behind a click.
+
+    Ten is not zero, so waiting for the first comment is not enough on its own,
+    and a run that stops at ten reports a quiet post about a pile-on.
+    """
+
+    def test_expanding_stops_once_the_thread_stops_growing(self, home):
+        ctx = ExpandingThreadCtx([10, 25, 34, 34, 34])
+        collector = FastPoll(ctx, pacer=NoWait())
+
+        count = collector._expand_thread(collect_mod.DEFAULT_EXTRACTORS['facebook'])
+
+        assert count == 34
+        # Two flat rounds end it, on the fifth call rather than the sixth.
+        assert ctx.expand_calls == 5, 'should stop after two rounds without growth'
+
+    def test_expanding_is_bounded_by_its_round_limit(self, home):
+        ctx = ExpandingThreadCtx([1, 2, 3, 4, 5, 6, 7],
+                                 config={'expand_thread_rounds': 2})
+        collector = FastPoll(ctx, pacer=NoWait())
+
+        assert collector._expand_thread(collect_mod.DEFAULT_EXTRACTORS['facebook']) == 2
+        assert ctx.expand_calls == 2
+
+    def test_expanding_can_be_turned_off(self, home):
+        ctx = ExpandingThreadCtx([10, 20], config={'expand_thread_rounds': 0})
+        collector = FastPoll(ctx, pacer=NoWait())
+
+        assert collector._expand_thread(collect_mod.DEFAULT_EXTRACTORS['facebook']) == 0
+        assert ctx.expand_calls == 0
+
+    def test_the_expanded_count_travels_with_the_result(self, home):
+        """Two numbers, because they answer different questions: was the thread
+        there at all, and was the whole of it read."""
+        ctx = ExpandingThreadCtx(
+            [13],
+            counts=[4],
+            page_text='منشور',
+            extracted={'parent_post_text': 'منشور', 'comments': [{'text': 'تعليق'}]},
+        )
+        result = FastPoll(ctx, pacer=NoWait()).collect('https://facebook.com/post/1')
+
+        assert result.coverage['comments_after_expanding'] == 13

@@ -61,6 +61,34 @@ _TABLE_CLASSIFICATION = """CREATE TABLE IF NOT EXISTS classification (
 );"""
 
 
+# Defined on its own for the same reason as the classification table above: the
+# migration that has to rebuild it must create it from the same text the schema
+# script uses. And this one *does* have to be rebuilt -- a database made by an
+# older build has `collected_item_id INTEGER REFERENCES collected_item(id)` on
+# it, `collected_item` was dropped from the schema since, and with
+# `PRAGMA foreign_keys=ON` every INSERT then fails with "no such table:
+# main.collected_item". Collection died at the moment it captured evidence, which
+# is the one moment this store exists for.
+_TABLE_EVIDENCE = """CREATE TABLE IF NOT EXISTS evidence_artifact (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    collected_item_id INTEGER,
+    screenshot_path  TEXT NOT NULL DEFAULT '',
+    archive_path     TEXT NOT NULL DEFAULT '',
+    source_url       TEXT NOT NULL DEFAULT '',
+    captured_at      TEXT NOT NULL,
+    content_hash     TEXT NOT NULL DEFAULT '',
+    delivered_at     TEXT,
+    -- Who this capture belongs to, recorded when it is taken.
+    --
+    -- Delivery used to stamp every pending artefact with whichever case the
+    -- run draining the queue happened to be working. A capture that failed to
+    -- upload during case A -- which is the case this whole store exists for --
+    -- was then uploaded during case B, as B's evidence. Ownership of evidence
+    -- is not something a later unrelated run gets to decide.
+    case_id          INTEGER
+);"""
+
+
 _TABLES = """
 -- One attempt at working a case. Written before collection starts, so a crash
 -- mid-run is visible rather than invisible.
@@ -88,24 +116,7 @@ CREATE TABLE IF NOT EXISTS case_run (
 -- Captured at the moment of collection, before an item counts as collected.
 -- Hate speech posts get deleted, often within hours of being reported, and
 -- evidence that was not captured is evidence you do not have.
-CREATE TABLE IF NOT EXISTS evidence_artifact (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    collected_item_id INTEGER,
-    screenshot_path  TEXT NOT NULL DEFAULT '',
-    archive_path     TEXT NOT NULL DEFAULT '',
-    source_url       TEXT NOT NULL DEFAULT '',
-    captured_at      TEXT NOT NULL,
-    content_hash     TEXT NOT NULL DEFAULT '',
-    delivered_at     TEXT,
-    -- Who this capture belongs to, recorded when it is taken.
-    --
-    -- Delivery used to stamp every pending artefact with whichever case the
-    -- run draining the queue happened to be working. A capture that failed to
-    -- upload during case A -- which is the case this whole store exists for --
-    -- was then uploaded during case B, as B's evidence. Ownership of evidence
-    -- is not something a later unrelated run gets to decide.
-    case_id          INTEGER
-);
+__EVIDENCE_TABLE__
 
 -- Advisory. The platform re-evaluates every item and its verdict is the one that
 -- stands; this is kept so a disagreement is visible rather than silent.
@@ -226,6 +237,7 @@ CREATE TABLE IF NOT EXISTS schema_meta (
 # the migration that has to rebuild that table. Two copies drift, and this is
 # the table holding what the agent decided.
 _TABLES = _TABLES.replace('__CLASSIFICATION_TABLE__', _TABLE_CLASSIFICATION)
+_TABLES = _TABLES.replace('__EVIDENCE_TABLE__', _TABLE_EVIDENCE)
 
 
 def data_dir() -> Path:
@@ -262,12 +274,44 @@ def _drop_stale_tables(conn) -> None:
         if columns and required not in columns:
             conn.execute(f'DROP TABLE {table}')
 
-    # evidence_artifact is added to, never rebuilt. The rows are the queue of
-    # captures that exist nowhere else yet, so dropping the table to reshape it
-    # would orphan files on disk that are the only copy of a deleted post.
+    # evidence_artifact is added to, never rebuilt *in place*. The rows are the
+    # queue of captures that exist nowhere else yet, so dropping the table to
+    # reshape it would orphan files on disk that are the only copy of a deleted
+    # post.
     columns = {row['name'] for row in conn.execute('PRAGMA table_info(evidence_artifact)')}
     if columns and 'case_id' not in columns:
         conn.execute('ALTER TABLE evidence_artifact ADD COLUMN case_id INTEGER')
+
+    # It is copied out and back, however, when it still carries a foreign key into
+    # `collected_item`. `PRAGMA foreign_keys=ON` resolves constraints when a
+    # statement is prepared, so a dangling key does not sit there harmlessly:
+    # every INSERT into evidence_artifact raises "no such table:
+    # main.collected_item", and collection dies at the exact moment it captures
+    # evidence -- the one moment this store exists for. SQLite cannot drop a
+    # foreign key in place, so the rows are copied into the current shape and
+    # dropped back over the old table. Reading is not what fails, so the copy is
+    # safe while the dangling key is still present.
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='evidence_artifact'"
+    ).fetchone()
+    if row is not None and 'collected_item' in (row[0] or ''):
+        present = [r['name'] for r in conn.execute('PRAGMA table_info(evidence_artifact)')]
+        keep = [name for name in (
+            'id', 'collected_item_id', 'screenshot_path', 'archive_path',
+            'source_url', 'captured_at', 'content_hash', 'delivered_at', 'case_id',
+        ) if name in present]
+        names = ', '.join(keep)
+        rebuild = _TABLE_EVIDENCE.replace(
+            'CREATE TABLE IF NOT EXISTS evidence_artifact',
+            'CREATE TABLE evidence_artifact_rebuild',
+        )
+        conn.executescript(f"""
+            {rebuild}
+            INSERT INTO evidence_artifact_rebuild({names}) SELECT {names} FROM evidence_artifact;
+            DROP TABLE evidence_artifact;
+            ALTER TABLE evidence_artifact_rebuild RENAME TO evidence_artifact;
+        """)
+
 
     # Same reasoning for the local judgement log: it is the only record of what
     # this agent decided while unpaired, so it is added to rather than rebuilt.

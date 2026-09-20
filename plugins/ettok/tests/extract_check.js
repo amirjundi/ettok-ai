@@ -28,7 +28,9 @@ const SCRIPT = process.argv[2];
 const SELECTORS = JSON.parse(process.argv[3]);
 
 const failures = [];
+let checks = 0;
 function check(name, got, want) {
+  checks += 1;
   const ok = JSON.stringify(got) === JSON.stringify(want);
   if (!ok) failures.push(`${name}\n    got:  ${JSON.stringify(got)}\n    want: ${JSON.stringify(want)}`);
 }
@@ -118,6 +120,45 @@ check("the parent text is the first post's alone",
 
 check("a feed says how many posts it had", out.posts_on_page, 2);
 
+// ---- a post opened in a modal, with its comments as siblings -------------
+// A share link opens the post in a dialog over whatever page was underneath,
+// and an expanded thread re-renders its comments as siblings of the post rather
+// than inside it. Both halves of that were live defects: the first put the
+// collection on the feed post behind the dialog, the second reported a
+// 499-comment thread as empty.
+const modal = `
+  <div role="article" id="feedpost">
+    <div dir="auto">An unrelated feed post</div>
+    <div role="article"><div dir="auto">a comment on the feed post</div></div>
+  </div>
+  <div role="dialog" id="empty-wrapper"></div>
+  <div role="dialog" id="post-modal">
+    <div role="article" id="modalpost">
+      <div dir="auto">Post opened from a share link</div>
+    </div>
+    <div role="article" id="m1">
+      <a role="link" href="/people/aida"><span>Aida</span></a>
+      <div dir="auto">first comment</div>
+    </div>
+    <div role="article" id="m2"><div dir="auto">they are devil worshippers</div></div>
+    <div role="article" id="m3"><div dir="auto">third comment</div></div>
+  </div>`;
+
+out = run(modal);
+
+check("a modal's post is read, not the feed post behind it",
+  out.parent_post_text, "Post opened from a share link");
+
+check("comments rendered beside the post are still read",
+  out.comments.map((c) => c.text).sort(),
+  ["first comment", "they are devil worshippers", "third comment"].sort());
+
+check("the feed post's own comment stays out of it",
+  out.comments.some((c) => c.text === "a comment on the feed post"), false);
+
+check("an empty dialog wrapper does not become the post",
+  out.error, undefined);
+
 // ---- a page the selectors do not fit ------------------------------------
 out = run(`<div class="something-else">nothing here</div>`);
 check("an unmatched layout is an error, not an empty success",
@@ -132,4 +173,4 @@ if (failures.length) {
   console.error(`${failures.length} failure(s):\n  ${failures.join("\n  ")}`);
   process.exit(1);
 }
-console.log(`extraction: ${8} checks passed`);
+console.log(`extraction: ${checks} checks passed`);
