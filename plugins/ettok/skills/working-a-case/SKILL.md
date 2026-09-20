@@ -39,10 +39,26 @@ a model call per post in a feed is unaffordable.
    above a hostile comment.
 4. **`ettok_collect`** on each post worth reading. It captures evidence before it
    extracts anything, and stops if the platform presents a challenge.
-5. **`ettok_scan`** — deduplicates, matches, classifies what matched if there is
-   budget, queues findings and delivers them.
+5. **`ettok_scan`** — deduplicates, decides once per post whether the
+   conversation is one this organisation monitors, then assesses every in-scope
+   comment under it, matched or not, while the budget lasts. Queues findings and
+   delivers them.
 6. **Check the result.** `stop_reason` says why the run ended. `budget_note` says
    whether you ran degraded. `readiness` says what this case can actually detect.
+   `out_of_scope` says how many comments were set aside as somebody else's
+   subject, and `failed_assessments` how many a provider never answered for.
+7. **`ettok_resolve_context`** — only if items came back undecided for a reason
+   another look could fix: the post was not read, the comment it answers was not
+   read, a picture was not read. It revisits the page within the limits you give
+   it and judges those again with what turns up. Every visit costs money and is
+   one more request from an account that would rather not be noticed, so it is
+   something you decide to run, not a step. An item undecided because nobody can
+   tell who "they" refers to, or because an event is not recorded anywhere, needs
+   a curator and not this.
+8. **`ettok_report`** at the end of a monitoring day. Two reports: coverage says
+   what was looked at and what was not, findings says what was found. Never hand
+   over the second without the first — a findings list with no denominator reads
+   as a measurement of a platform rather than a sample of one day's work.
 
 ## When collection finds nothing
 

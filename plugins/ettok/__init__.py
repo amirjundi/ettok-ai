@@ -261,6 +261,56 @@ def _make_tools(ctx):
         )
 
     @_guard
+    def report(args: dict, **_) -> str:
+        """Produce the day's two reports and queue them for the platform.
+
+        Coverage says what was looked at and what was not. Findings say what
+        was found. They are separate on purpose: merged, they make the one
+        document this system must never produce -- a list of findings with no
+        denominator, which reads as a measurement of a platform rather than a
+        sample of one agent's day.
+
+        Built here from what this machine did, and stored there unchanged. The
+        platform holds only what reached it, which is a different quantity
+        from what happened, and the difference is the thing worth reporting.
+        """
+        from . import report as report_mod
+
+        _cfg, conn, client = _services(ctx)
+
+        try:
+            days = max(1, min(int(args.get('days')), 90))
+        except (TypeError, ValueError):
+            days = 1
+
+        case_key = (str(args.get('case_id')).strip()
+                    if args.get('case_id') not in (None, '') else None)
+
+        coverage = report_mod.coverage(conn, days=days, case_key=case_key)
+        findings = report_mod.findings(conn, days=days, case_key=case_key)
+
+        # Queued, not posted. A residential connection drops, and a report
+        # that failed to send should wait in the outbox with everything else
+        # rather than be lost with a log line.
+        outbox_mod.enqueue(conn, 'agent-reports/',
+                           {'kind': 'coverage', 'payload': coverage})
+        outbox_mod.enqueue(conn, 'agent-reports/',
+                           {'kind': 'findings', 'payload': findings})
+
+        if args.get('submit', True):
+            outbox_mod.drain(conn, client)
+
+        return _tool_result(
+            coverage={k: coverage[k] for k in (
+                'observations_collected', 'assessed', 'not_assessed',
+                'unresolved', 'out_of_scope', 'positive', 'runs', 'spend_usd',
+                'gaps')},
+            findings_count=len(findings['items']),
+            note=coverage['positive_rate_note'],
+            queue=outbox_mod.status(conn),
+        )
+
+    @_guard
     def resolve_context(args: dict, **_) -> str:
         """Go back for the context a verdict said it was missing, within limits.
 
@@ -1053,6 +1103,35 @@ def _make_tools(ctx):
             },
             replay,
             '♻',
+        ),
+        (
+            'ettok_report',
+            {
+                'name': 'ettok_report',
+                'description': (
+                    "The day's two reports: what was covered, and what was found. "
+                    'Coverage carries the denominator -- how much was collected, how '
+                    'much was assessed, how much was not, and which days had no run '
+                    'at all. Findings carry the items somebody should look at. Run '
+                    'this at the end of a monitoring day; a findings list with no '
+                    'coverage beside it cannot be read honestly.'
+                ),
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'days': {
+                            'type': 'integer',
+                            'description': 'How many days back to cover. Defaults to 1.',
+                        },
+                        'case_id': {
+                            'type': 'integer',
+                            'description': 'One case only. Omit for every case worked.',
+                        },
+                    },
+                },
+            },
+            report,
+            '📋',
         ),
         (
             'ettok_resolve_context',
