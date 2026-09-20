@@ -199,6 +199,34 @@ CREATE TABLE IF NOT EXISTS seen_item (
     PRIMARY KEY (content_hash, case_id)
 );
 
+-- One post this agent has read, and when it last read it.
+--
+-- `seen_item` remembers comments so they are not submitted twice. This
+-- remembers *posts*, which answers a different question: which threads are
+-- worth opening again. A hostile pile-on arrives over hours -- the post is
+-- collected at nine with four comments and has ninety by noon -- and nothing
+-- brought the agent back, so the run that mattered was the one nobody made.
+--
+-- Deduplication already handles the overlap: the four are recognised and
+-- skipped, and only the eighty-six new ones cost anything. What was missing
+-- was the list of doors worth knocking on twice.
+CREATE TABLE IF NOT EXISTS seen_post (
+    post_identity  TEXT PRIMARY KEY,
+    url            TEXT NOT NULL DEFAULT '',
+    platform       TEXT NOT NULL DEFAULT '',
+    case_id        TEXT NOT NULL DEFAULT '',
+    source_account TEXT NOT NULL DEFAULT '',
+    first_seen_at  TEXT NOT NULL,
+    last_seen_at   TEXT NOT NULL,
+    times_seen     INTEGER NOT NULL DEFAULT 1,
+    -- How many comments the last read found, and how many of those were new.
+    -- A revisit that finds nothing new twice running is a thread that has
+    -- gone quiet, and is worth dropping before it costs a third visit.
+    last_comment_count INTEGER NOT NULL DEFAULT 0,
+    last_new_count     INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_seen_post_last ON seen_post(last_seen_at);
+
 -- Unknown language recurring on target-group content. Counted across runs,
 -- because seen once is noise and seen fourteen times across three days is a
 -- pattern the review queue can sort by.

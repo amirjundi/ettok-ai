@@ -18,7 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from . import cases as cases_mod
@@ -179,6 +179,72 @@ def remember(conn, digests, case_key: str = '') -> None:
     )
     conn.commit()
 
+
+
+def remember_posts(conn, entries: list, case_key: str) -> None:
+    """Note which posts this run read, and how much was new in each.
+
+    The counts are what make a revisit decision possible later. A thread that
+    yielded eighty new comments an hour ago is worth opening again; one that
+    yielded nothing twice has gone quiet, and a third visit spends a page load
+    to confirm it.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    totals = {}
+    for entry in entries:
+        item = entry['item']
+        identity = post_identity(item.get('parent_post_url') or '')
+        if not identity:
+            continue
+        bucket = totals.setdefault(identity, {
+            'url': item.get('parent_post_url') or '',
+            'platform': item.get('platform') or '',
+            'seen': 0, 'new': 0,
+        })
+        bucket['seen'] += 1
+        if entry.get('fresh'):
+            bucket['new'] += 1
+
+    for identity, bucket in totals.items():
+        conn.execute(
+            'INSERT INTO seen_post(post_identity, url, platform, case_id, '
+            'first_seen_at, last_seen_at, last_comment_count, last_new_count) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?) '
+            'ON CONFLICT(post_identity) DO UPDATE SET '
+            'last_seen_at = excluded.last_seen_at, '
+            'times_seen = times_seen + 1, '
+            'last_comment_count = excluded.last_comment_count, '
+            'last_new_count = excluded.last_new_count',
+            (identity, bucket['url'], bucket['platform'], case_key, now, now,
+             bucket['seen'], bucket['new']),
+        )
+    conn.commit()
+
+
+def posts_to_revisit(conn, *, within_hours: int = 48, limit: int = 20,
+                     case_key: str = None) -> list:
+    """Threads read recently that are still producing comments.
+
+    Two filters, and the second is what keeps this from becoming a treadmill.
+
+    Recent, because an old thread is finished and its comments are not coming
+    back -- revisiting it forever would spend every run re-reading history.
+
+    And still moving: a post whose last read found nothing new has gone quiet.
+    Dropping it is not a guess about the future, it is declining to pay a page
+    load to confirm what the last page load already said. A post nobody has
+    read twice yet has no such evidence and is always offered.
+    """
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=within_hours)).isoformat()
+    sql = ('SELECT * FROM seen_post WHERE last_seen_at >= ? '
+           'AND (times_seen < 2 OR last_new_count > 0)')
+    params = [cutoff]
+    if case_key:
+        sql += ' AND case_id = ?'
+        params.append(case_key)
+    sql += ' ORDER BY last_new_count DESC, last_seen_at DESC LIMIT ?'
+    params.append(limit)
+    return [dict(row) for row in conn.execute(sql, params)]
 
 
 def record_judgement(conn, item: dict, result, verdict, case, digest: str,
@@ -456,6 +522,9 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
     # "they should go back where they came from", which is the attack, and does
     # recognise a journalist quoting a slur, which is not.
     candidates = []
+    # Items seen before, kept only long enough to note that their post was
+    # read again and produced nothing. They go no further than that.
+    revisited = []
     for raw in items:
         # The row as collected, not a seven-key copy of it. The copy dropped
         # parent_post_url and author_url -- the field that groups comments by
@@ -470,6 +539,11 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         digest = content_hash(item)
         if digest in collected_digests or already_seen(conn, digest, case_key):
             summary['duplicates'] += 1
+            # Noted against its post anyway. A revisit that finds every
+            # comment already seen is the evidence that the thread has gone
+            # quiet -- and without recording it, the post keeps whatever
+            # `last_new_count` it had and is offered for revisiting for ever.
+            revisited.append({'item': item, 'fresh': False})
             continue
 
         # Everything kept is submitted and stored, matched or not, so the
@@ -494,7 +568,11 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             summary['flagged'] += 1
         collected_digests[digest] = None
         candidates.append({'item': item, 'digest': digest, 'result': result,
-                           'verdict': None})
+                           'verdict': None,
+                           # Everything reaching here passed deduplication, so
+                           # it is new to this agent. Recorded per post, to
+                           # answer "is this thread still producing" later.
+                           'fresh': True})
 
     # --- pass two: is this conversation even ours? ------------------------
     #
@@ -647,6 +725,8 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
                                  scope=entry['scope']))
         record_judgement(conn, entry['item'], entry['result'], entry['verdict'],
                          case, entry['digest'], scope=entry['scope'])
+
+    remember_posts(conn, candidates + revisited, case_key)
 
     if summary.get('stop_reason') == 'item_budget':
         cases_mod.finish_run(conn, run_id, stop_reason='item_budget',

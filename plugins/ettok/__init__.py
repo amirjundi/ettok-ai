@@ -608,24 +608,47 @@ def _make_tools(ctx):
 
     @_guard
     def watchlist(args: dict, **_) -> str:
-        """Accounts the organisation is watching, and which are due a look."""
-        _cfg, _conn, client = _services(ctx)
+        """Accounts due a look, and threads worth opening a second time."""
+        from . import scan as scan_mod
+
+        _cfg, conn, client = _services(ctx)
         everything = bool(args.get('all'))
         data = client.watchlist(everything=everything)
         accounts = data.get('accounts') or []
+
+        # Threads this agent read recently that were still producing comments
+        # when it left them.
+        #
+        # A pile-on arrives over hours: the post is collected at nine with
+        # four comments and has ninety by noon. Deduplication means the second
+        # visit costs only the new ones, so the missing piece was never cost
+        # -- it was the list of doors worth knocking on twice.
+        revisit = scan_mod.posts_to_revisit(conn, limit=20)
+
+        notes = []
+        if accounts:
+            notes.append(
+                'Open each profile_url with ettok_collect, passing the case_id '
+                'listed beside it, then call ettok_record_sweep for that account '
+                'whether it worked or not. An account whose sweep is never '
+                'recorded stays due forever and takes every later run.')
+        else:
+            notes.append(
+                'No account is due. This is a real answer, not an empty one: it '
+                'means every watched account is inside its sweep interval.')
+        if revisit:
+            notes.append(
+                f'{len(revisit)} recently-read thread(s) were still gaining '
+                f'comments when the agent left them. Collect those too -- the '
+                f'comments already seen are deduplicated, so a revisit costs '
+                f'only what is new.')
+
         return _tool_result(
             accounts=accounts,
             due=len(accounts),
             watched_total=data.get('watched_total'),
-            note=(
-                'Open each profile_url with ettok_collect, passing the case_id '
-                'listed beside it, then call ettok_record_sweep for that account '
-                'whether it worked or not. An account whose sweep is never '
-                'recorded stays due forever and takes every later run.'
-                if accounts else
-                'Nothing is due. This is a real answer, not an empty one: it '
-                'means every watched account is inside its sweep interval.'
-            ),
+            revisit=revisit,
+            note=' '.join(notes),
         )
 
     @_guard
