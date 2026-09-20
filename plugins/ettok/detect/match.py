@@ -246,6 +246,11 @@ def _trope_guidance(trope: dict) -> dict:
     """
     return {
         'description': (trope.get('description') or '').strip(),
+        # Carried through so the prompt can use it as a stance cue. It was
+        # shipped by the platform, dropped here, and read by nothing -- and
+        # the reading its name invites, "a negation makes this harmless", is
+        # the one the guide forbids.
+        'negation_cancels': bool(trope.get('negation_cancels')),
         'example': (trope.get('example') or '').strip(),
         'negative_examples': trope.get('negative_examples') or [],
         'counter_speech_examples': trope.get('counter_speech_examples') or [],

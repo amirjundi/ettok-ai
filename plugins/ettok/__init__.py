@@ -109,6 +109,7 @@ def _services(ctx):
 # ---------------------------------------------------------------------------
 
 def _make_tools(ctx):
+    from . import scan as scan_mod
     from .platform import knowledge as knowledge_mod
     from .platform import outbox as outbox_mod
 
@@ -257,6 +258,229 @@ def _make_tools(ctx):
             remaining=jobs_mod.status(conn),
             queue=outbox_mod.status(conn),
             note=' '.join(notes),
+        )
+
+    @_guard
+    def resolve_context(args: dict, **_) -> str:
+        """Go back for the context a verdict said it was missing, within limits.
+
+        An item that came back `needs_context` or `needs_visual_review` has a
+        named gap: the post was not read, the comment it answers was not read,
+        the picture was not read. Those three are on the page and another look
+        can recover them. A referent nobody can identify and an event nobody
+        recorded are not -- they are a curator's note, and sending a browser
+        after them spends money to find nothing.
+
+        Bounded, and the bounds are the point. Every page visit is a page
+        visit: it costs a little money, it costs time, and on a monitored
+        platform it is one more request from an account that would rather not
+        be noticed. So this is a tool somebody runs, never a loop the scan
+        enters on its own, and it stops at the limits given.
+
+        What comes back is a *new* assessment, not a retry. The evidence
+        changed, so the earlier verdict is not wrong -- it was right about what
+        it could see. Both are kept.
+        """
+        from . import jobs as jobs_mod
+        from .collect import base as collect_mod
+        from .detect import classify as classify_mod
+        from .detect import guidance as guidance_mod
+        from .detect import match as match_mod
+        from . import cases as cases_mod
+
+        cfg, conn, client = _services(ctx)
+        know = getattr(ctx, '_ettok_knowledge', None)
+        if know is None:
+            return _tool_error(
+                'No knowledge loaded. Run ettok_sync_knowledge first -- '
+                'reassessing against knowledge of unknown age would produce '
+                'verdicts that cannot be attributed to a release.'
+            )
+
+        def _limit(name, default, ceiling):
+            try:
+                return max(1, min(int(args.get(name)), ceiling))
+            except (TypeError, ValueError):
+                return default
+
+        # Pages, not items: the cost is in the visit, and one visit recovers
+        # every unresolved comment under that post at once.
+        max_pages = _limit('max_pages', 3, 20)
+        try:
+            max_spend = float(args.get('max_spend_usd') or 0.50)
+        except (TypeError, ValueError):
+            max_spend = 0.50
+
+        rows = jobs_mod.awaiting_context(
+            conn, kinds=classify_mod.RECOVERABLE, limit=200)
+        if not rows:
+            return _tool_result(
+                resolved=0, still_unresolved=0, pages_visited=0,
+                note='Nothing is waiting on context that another look could '
+                     'recover. Items left undecided for a reason nobody can '
+                     'fetch -- an unidentifiable referent, an event nobody '
+                     'recorded -- need a curator, not a browser.',
+            )
+
+        # Grouped by the page, because that is the unit of cost.
+        by_page = {}
+        for row in rows:
+            item = jobs_mod.item_of(row)
+            page = (item.get('parent_post_url') or '').strip()
+            if page:
+                by_page.setdefault(page, []).append((row, item))
+
+        no_page = sum(1 for row in rows
+                      if not (jobs_mod.item_of(row).get('parent_post_url') or '').strip())
+
+        resolved, unresolved, visited, spent = 0, 0, 0, 0.0
+        limits_hit, notes = [], []
+
+        for page, waiting in list(by_page.items())[:max_pages]:
+            if spent >= max_spend:
+                limits_hit.append('spend')
+                break
+
+            platform = (waiting[0][1].get('platform') or '').strip()
+            collector = collect_mod.for_platform(ctx, platform)
+            if collector is None:
+                notes.append(f'No collector for {platform or "an unknown platform"}.')
+                unresolved += len(waiting)
+                continue
+
+            try:
+                fresh = collector.collect(page)
+            except Exception as exc:                          # noqa: BLE001
+                # A page that will not load is a limitation to report, not a
+                # reason to stop: the next page may load fine, and an item
+                # left unresolved is a truthful outcome.
+                log.info('ettok: could not revisit %s: %s', page, exc)
+                notes.append(f'{page} could not be loaded again: {exc}'[:300])
+                unresolved += len(waiting)
+                continue
+
+            visited += 1
+
+            # Matched on the words and the author, not the hash: the hash
+            # covers the parent post, and recovering the parent post is the
+            # whole point -- so it has changed by definition.
+            recovered = {}
+            for candidate in fresh.items:
+                key = ((candidate.get('text') or '').strip(),
+                       (candidate.get('author_id') or '').strip())
+                recovered.setdefault(key, candidate)
+
+            for row, item in waiting:
+                key = ((item.get('text') or '').strip(),
+                       (item.get('author_id') or '').strip())
+                found = recovered.get(key)
+                if found is None:
+                    # Deleted, collapsed behind something that did not open,
+                    # or edited since. Unresolved, and said so.
+                    unresolved += 1
+                    continue
+
+                gained = {
+                    field: found.get(field)
+                    for field in ('parent_post_text', 'parent_media_text',
+                                  'reply_to_text', 'reply_to_author',
+                                  'ancestors', 'parent_media_unread')
+                    if (found.get(field) not in (None, '', []))
+                    and found.get(field) != item.get(field)
+                }
+                if not gained:
+                    # The page still does not show it. Spending a model call
+                    # on identical evidence would produce the same answer and
+                    # charge for it.
+                    unresolved += 1
+                    continue
+
+                # Normalised against the field set the run uses, because
+                # this item came off disk and may have been written by an
+                # older build that did not carry every field.
+                revised = {**scan_mod._ITEM_FIELDS, **item, **gained,
+                           'context_revision': int(item.get('context_revision') or 0) + 1}
+                revised['content_hash'] = scan_mod.content_hash(revised)
+
+                case_key = row['case_key'] or ''
+                case_id = int(case_key) if case_key.isdigit() else None
+
+                result = match_mod.evaluate(revised, know, case_id=case_id)
+                background = ''
+                case = cases_mod.pick(know, case_id=case_id) if case_id else None
+                if case is not None:
+                    for slug in result.topic_groups:
+                        background = case.background_for(slug) or background
+
+                picked = guidance_mod.select(
+                    getattr(know, 'examples', None) or [],
+                    case_id=case_id, match=result, groups=result.topic_groups)
+
+                # A new job, because the evidence is new. Keyed on the revised
+                # content hash, so it cannot collide with the original -- and
+                # the original stays exactly as it was, right about what it
+                # could see.
+                job_id = jobs_mod.enqueue(
+                    conn, item=revised, case_key=case_key,
+                    knowledge_id=knowledge_mod.assessment_id(know.versions))
+                jobs_mod.start(conn, job_id)
+                try:
+                    verdict = classify_mod.classify(
+                        ctx, revised, result, versions=know.versions,
+                        group_background=background,
+                        policy=know.policy_text,
+                        severity_guidance=know.severity_guidance,
+                        allowed_categories=know.allowed_categories,
+                        guidance=picked)
+                except Exception as exc:                      # noqa: BLE001
+                    jobs_mod.fail(conn, job_id, f'{type(exc).__name__}: {exc}')
+                    notes.append(f'reassessment failed: {exc}'[:200])
+                    unresolved += 1
+                    continue
+
+                jobs_mod.complete(conn, job_id, verdict.as_payload(result))
+                spent += (verdict.cost_usd
+                          if verdict.cost_usd is not None
+                          else scan_mod.ESTIMATED_CLASSIFY_COST_USD)
+
+                scan_mod.record_judgement(conn, revised, result, verdict,
+                                          case, revised['content_hash'])
+                outbox_mod.enqueue(conn, 'flagged-items/', {'items': [
+                    scan_mod._finding(revised, result, verdict, case,
+                                      revised['content_hash'], know.versions)
+                ]})
+
+                if verdict.state in classify_mod.DECIDED_STATES:
+                    resolved += 1
+                else:
+                    # Still undecided, with better evidence than before. That
+                    # is an outcome, not a failure, and forcing it either way
+                    # is the thing this state exists to prevent.
+                    unresolved += 1
+
+        if len(by_page) > max_pages:
+            limits_hit.append('pages')
+
+        if no_page:
+            notes.append(
+                f'{no_page} item(s) record no post URL, so there is no page to '
+                f'go back to.')
+        if limits_hit:
+            notes.append(
+                f'Stopped at the {" and ".join(limits_hit)} limit with work '
+                f'left. Run it again to continue.')
+
+        return _tool_result(
+            resolved=resolved,
+            still_unresolved=unresolved,
+            pages_visited=visited,
+            spend_usd=round(spent, 4),
+            limits={'max_pages': max_pages, 'max_spend_usd': max_spend},
+            queue=outbox_mod.status(conn),
+            note=' '.join(notes) or (
+                f'{resolved} item(s) could be decided with the context that was '
+                f'recovered. The earlier verdicts are kept: they were right '
+                f'about what they could see.'),
         )
 
     @_guard
@@ -829,6 +1053,38 @@ def _make_tools(ctx):
             },
             replay,
             '♻',
+        ),
+        (
+            'ettok_resolve_context',
+            {
+                'name': 'ettok_resolve_context',
+                'description': (
+                    'Go back to the page for items a verdict left undecided because '
+                    'something was missing -- the post, the comment it answered, an '
+                    'unread picture -- and judge them again with what turns up. Each '
+                    'visit costs money and is one more request from an account that '
+                    'would rather not be noticed, so it stops at the limits given and '
+                    'reports what it did not reach. An item left undecided for a '
+                    'reason nobody can fetch (who "they" refers to, an event nobody '
+                    'recorded) needs a curator, not this. The earlier verdict is kept: '
+                    'it was right about what it could see.'
+                ),
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'max_pages': {
+                            'type': 'integer',
+                            'description': 'Pages to revisit. Defaults to 3, at most 20.',
+                        },
+                        'max_spend_usd': {
+                            'type': 'number',
+                            'description': 'Stop once this much has been spent. Defaults to 0.50.',
+                        },
+                    },
+                },
+            },
+            resolve_context,
+            '🔎',
         ),
         (
             'ettok_watchlist',

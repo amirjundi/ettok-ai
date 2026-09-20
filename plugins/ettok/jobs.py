@@ -125,6 +125,47 @@ def replayable(conn, limit: int = 50) -> list:
     ).fetchall()
 
 
+def awaiting_context(conn, *, kinds, limit: int = 200) -> list:
+    """Completed jobs whose verdict said something fetchable was missing.
+
+    Completed, not failed: the model answered, and its answer was "I cannot
+    decide this without X". That is a finished piece of work with an
+    outstanding request attached, which is a different thing from a job that
+    never ran -- `replayable` handles those and must not pick these up, or a
+    provider outage and a missing reply would be retried by the same pass and
+    reported as the same problem.
+
+    Filtered on the *fetchable* kinds only. An unresolved event reference is a
+    note a curator has to write; sending a browser after it spends money and
+    finds nothing.
+    """
+    rows = conn.execute(
+        'SELECT * FROM classification_job WHERE state = ? '
+        'ORDER BY id DESC LIMIT ?', (COMPLETED, limit * 4),
+    ).fetchall()
+
+    wanted = set(kinds or ())
+    out = []
+    for row in rows:
+        try:
+            verdict = json.loads(row['verdict_json'] or '{}')
+        except (TypeError, ValueError):
+            continue
+        if wanted & set(verdict.get('missing') or []):
+            out.append(row)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def verdict_of(row) -> dict:
+    """The stored verdict payload, or an empty dict if it did not survive."""
+    try:
+        return json.loads(row['verdict_json'] or '{}')
+    except (TypeError, ValueError):
+        return {}
+
+
 def status(conn) -> dict:
     """What the local queue holds, for an operator asking whether anything is stuck."""
     rows = conn.execute(

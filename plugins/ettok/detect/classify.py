@@ -75,6 +75,28 @@ STATE_UNCERTAIN = 'uncertain'
 # The states in which `is_hate_speech` is a real answer rather than a placeholder.
 DECIDED_STATES = (STATE_MODEL_POSITIVE, STATE_MODEL_NEGATIVE)
 
+# What a comment can be missing, as a short list rather than a sentence.
+#
+# "needs_context" with the reason in prose is unactionable: something has to
+# read it and decide what to fetch, and nothing can do that reliably from
+# free text. These are the things that can actually be gone and looked for.
+MISSING_PARENT_POST = 'parent_post'       # the post it sits under was not read
+MISSING_REPLY = 'reply'                   # the comment it answers was not read
+MISSING_MEDIA = 'media'                   # a picture nothing could read
+MISSING_REFERENT = 'referent'             # who or what "they" means is unclear
+MISSING_EVENT = 'event'                   # an event referred to and not known
+
+MISSING_KINDS = (
+    MISSING_PARENT_POST, MISSING_REPLY, MISSING_MEDIA,
+    MISSING_REFERENT, MISSING_EVENT,
+)
+
+# Which of them another look at the page could actually recover. The other two
+# are curator work -- a case background, a note about an event -- and saying so
+# is more useful than a retrieval pass that spends money finding nothing.
+RECOVERABLE = (MISSING_PARENT_POST, MISSING_REPLY, MISSING_MEDIA)
+
+
 _SCHEMA = {
     'type': 'object',
     'properties': {
@@ -89,6 +111,9 @@ _SCHEMA = {
         # Different from needs_context: nothing is missing, the evidence
         # simply supports more than one reading.
         'unresolved': {'type': 'boolean'},
+        # Named, so something can act on it. A prose reason cannot be
+        # turned into a retrieval.
+        'missing': {'type': 'array', 'items': {'type': 'string'}},
     },
     'required': ['is_hate_speech', 'reason'],
 }
@@ -152,6 +177,14 @@ class Verdict:
     # answer when the guidance around it changes.
     example_ids: list = field(default_factory=list)
     retrieval_version: str = ''
+    # What is missing, named. Empty for a decided verdict, and empty for an
+    # `uncertain` one too -- that state means nothing is missing and the
+    # words still carry two readings, which is not something fetching can fix.
+    missing: list = field(default_factory=list)
+    # How many times context has already been gathered for this observation.
+    # 0 is the original reading. Each successful retrieval makes a new
+    # revision, and a new assessment rather than a retry of the old one.
+    context_revision: int = 0
     # What this call actually cost, as the host measured it. None where nothing
     # was spent (no model ran) or where the host could not say, which the
     # caller has to tell apart from zero.
@@ -179,6 +212,8 @@ class Verdict:
             ],
             'example_ids': list(self.example_ids or []),
             'retrieval_version': self.retrieval_version,
+            'missing': list(self.missing or []),
+            'context_revision': self.context_revision,
             'versions': self.versions,
         }
 
@@ -415,8 +450,10 @@ def build_prompt(item: dict, match, group_background: str = '',
         '(one sentence, naming what makes it an attack or why it is not), '
         'exemption_applied (which exemption applied, or empty), '
         'requires_visual (true if the judgement depends on an image you cannot see), '
-        'needs_context (true if something is missing that would settle it -- the '
-        'rest of the thread, who is being addressed), '
+        'needs_context (true if something is missing that would settle it), '
+        'missing (which of these is absent, as a list: parent_post, reply, '
+        'media, referent, event -- name them rather than describing them, so '
+        'somebody can go and fetch them), '
         'unresolved (true if nothing is missing and the words still carry two '
         'readings that the evidence does not choose between).',
     ]
@@ -433,6 +470,23 @@ def _trope_lines(trope: dict) -> list:
     out = [f'- {trope["name"]} -- {trope.get("activation_reason", "")}']
     if trope.get('description'):
         out.append(f'    what it is: {trope["description"]}')
+    if trope.get('negation_cancels'):
+        # A cue about this pattern, not a rule about the sentence.
+        #
+        # The field has been shipped by the platform since the beginning and
+        # read by nothing, and the obvious reading of its name -- "contains a
+        # negation, therefore harmless" -- is the one thing the guide forbids
+        # outright, because quoting endorses as often as it condemns and "no
+        # Yazidi belongs here" is a negation carrying the whole attack.
+        #
+        # What the curator actually knows, ticking it, is that this particular
+        # pattern is commonly repeated by people arguing against it. That is a
+        # reason to read the stance carefully, and it is all it can be.
+        out.append(
+            '    NOTE: this pattern is often repeated by people rejecting it. '
+            'Work out whether this author is asserting it or refusing it -- '
+            'and do not treat a negation or a quotation as harmless by '
+            'itself, because both can carry the attack.')
     if trope.get('example'):
         out.append(f'    attested example: "{trope["example"]}"')
     for benign in (trope.get('negative_examples') or [])[:3]:
@@ -519,6 +573,30 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
 
     unresolved = bool(parsed.get('unresolved'))
 
+    # Only the kinds that exist. A model inventing a sixth would otherwise
+    # send the retrieval pass looking for something nothing can fetch, and
+    # then report failure for a request nobody made.
+    missing = [
+        kind for kind in (parsed.get('missing') or [])
+        if isinstance(kind, str) and kind.strip() in MISSING_KINDS
+    ]
+    # Inferred where the model said context was missing but did not say what.
+    # Better than an empty list, which reads as "nothing is missing" -- the
+    # opposite of what it just said.
+    if needs_context and not missing:
+        if not (item.get('parent_post_text') or '').strip():
+            missing.append(MISSING_PARENT_POST)
+        if item.get('is_reply') and not (item.get('reply_to_text') or '').strip():
+            missing.append(MISSING_REPLY)
+        if not missing:
+            missing.append(MISSING_REFERENT)
+
+    # An image nothing read is missing whether or not the model said so: it
+    # cannot know that the description it was given is absent rather than
+    # simply of an image with nothing in it.
+    if unread_image:
+        missing.append(MISSING_MEDIA)
+
     if requires_visual or (unread_image and verdict is not True):
         state = STATE_NEEDS_VISUAL
     elif needs_context:
@@ -548,6 +626,12 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
         exemption_applied=str(parsed.get('exemption_applied') or ''),
         requires_visual=requires_visual,
         needs_context=needs_context,
+        # Only where something is actually absent. A decided verdict and an
+        # `uncertain` one both carry nothing to fetch, and a retrieval pass
+        # that runs on them spends money to learn what it already knows.
+        missing=(sorted(set(missing))
+                 if state in (STATE_NEEDS_CONTEXT, STATE_NEEDS_VISUAL) else []),
+        context_revision=int(item.get('context_revision') or 0),
         tier=TIER_CLASSIFIED,
         example_ids=guidance.get('ids') or [],
         retrieval_version=guidance.get('retrieval_version', ''),
