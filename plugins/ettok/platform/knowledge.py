@@ -117,6 +117,11 @@ class Knowledge:
     # rejecting every category against an empty allowlist would reject
     # everything.
     categories: list = field(default_factory=list)
+    # Worked examples: this comment, in this conversation, means this. The
+    # platform sends only the published ones, and never the held-out set --
+    # an evaluation example that reaches the model measures memory instead of
+    # judgement, and does it silently.
+    examples: list = field(default_factory=list)
     # When this came into existence, as a wall clock reading. Defaulted to now
     # rather than zero so that age measures how long the object has been held,
     # whatever made it -- which is the question being asked. A bundle built by
@@ -159,6 +164,10 @@ class Knowledge:
             # changes what every one of them means, so a release id that
             # ignored it would say two differently-judged runs were the same.
             'policy': _release_id([self.policy] if self.policy else []),
+            # Editing one example changes what the model is taught, so it has
+            # to change the release. Two runs taught differently must not
+            # carry the same name.
+            'examples': _release_id(self.examples),
             # The platform's own name for the whole bundle, which is the key
             # its archive is indexed by. The three above are this agent's
             # digests of its own view and answer "did the knowledge change
@@ -253,6 +262,7 @@ def fetch(client, *, languages: Optional[list] = None) -> Knowledge:
             case_rows = bundle.get('cases') or []
             policy = bundle.get('policy') or {}
             categories = bundle.get('categories') or []
+            examples = bundle.get('examples') or []
             platform_release = bundle.get('release_id') or ''
         except Exception:
             log.info('ettok: no bundle endpoint; syncing the older way')
@@ -260,7 +270,7 @@ def fetch(client, *, languages: Optional[list] = None) -> Knowledge:
             # a compatibility fallback, not a policy of silence: the classifier
             # uses its built-in wording and says so rather than claiming a
             # published standard it never received.
-            policy, categories = {}, []
+            policy, categories, examples = {}, [], []
             tasks = client.tasks()
             lexicon = client.lexicon(languages=languages)
             tropes = client.tropes()
@@ -285,6 +295,7 @@ def fetch(client, *, languages: Optional[list] = None) -> Knowledge:
         config=heartbeat.get('config', {}) or {},
         policy=policy,
         categories=categories,
+        examples=examples,
         fetched_at=time.time(),
         platform_release_id=platform_release,
     )

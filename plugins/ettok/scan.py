@@ -24,6 +24,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from . import cases as cases_mod
 from . import jobs as jobs_mod
 from .detect import classify as classify_mod
+from .detect import guidance as guidance_mod
 from .detect import match as match_mod
 from .detect import scope as scope_mod
 from .platform import outbox as outbox_mod
@@ -582,12 +583,26 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         )
         jobs_mod.start(conn, job_id)
         try:
+            # Chosen per comment, not per run: which examples help depends
+            # on what matched and which community the post concerns.
+            picked = guidance_mod.select(
+                getattr(know, 'examples', None) or [],
+                case_id=case.case_id if case is not None else None,
+                match=result,
+                groups=result.topic_groups or entry['scope'].groups,
+            )
+            if picked.get('note'):
+                summary.setdefault('guidance_notes', [])
+                if picked['note'] not in summary['guidance_notes']:
+                    summary['guidance_notes'].append(picked['note'])
+
             verdict = classify_mod.classify(
                 ctx, item, result, versions=know.versions,
                 group_background=background,
                 policy=know.policy_text,
                 severity_guidance=know.severity_guidance,
                 allowed_categories=know.allowed_categories,
+                guidance=picked,
             )
         except Exception as exc:                          # noqa: BLE001
             # Not swallowed into a match-only verdict here. `classify`

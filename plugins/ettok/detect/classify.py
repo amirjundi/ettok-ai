@@ -35,6 +35,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import Optional
 
+from . import guidance as guidance_mod
+
 log = logging.getLogger(__name__)
 
 # Bumped whenever the wording the model is given changes: the policy text,
@@ -144,6 +146,12 @@ class Verdict:
     needs_context: bool = False
     tier: str = TIER_MATCHED_ONLY
     state: str = STATE_NOT_ASSESSED
+    # Which worked examples this verdict was shown, as id@revision, and the
+    # rules that picked them. Without it "why did it decide that" is
+    # unanswerable: the same comment under the same lexicon gets a different
+    # answer when the guidance around it changes.
+    example_ids: list = field(default_factory=list)
+    retrieval_version: str = ''
     # What this call actually cost, as the host measured it. None where nothing
     # was spent (no model ran) or where the host could not say, which the
     # caller has to tell apart from zero.
@@ -169,6 +177,8 @@ class Verdict:
                 {'id': t.get('id'), 'activation_reason': t.get('activation_reason')}
                 for t in match.fired_tropes
             ],
+            'example_ids': list(self.example_ids or []),
+            'retrieval_version': self.retrieval_version,
             'versions': self.versions,
         }
 
@@ -265,7 +275,8 @@ _UNPUBLISHED = (
 
 
 def build_prompt(item: dict, match, group_background: str = '',
-                 policy: str = '', severity_guidance: str = '') -> str:
+                 policy: str = '', severity_guidance: str = '',
+                 examples: list = None) -> str:
     """Assemble the classification prompt for one item.
 
     Everything here is either the item, or something that matched the item. The
@@ -391,6 +402,8 @@ def build_prompt(item: dict, match, group_background: str = '',
             + '.',
         ]
 
+    lines += guidance_mod.lines_for(examples or [])
+
     lines += [
         '',
         (severity_guidance or '').strip() or (
@@ -446,14 +459,16 @@ def _checked_category(value, allowed) -> str:
 
 def classify(ctx, item: dict, match, *, versions: dict, group_background: str = '',
              policy: str = '', severity_guidance: str = '',
-             allowed_categories=None) -> Verdict:
+             allowed_categories=None, guidance: dict = None) -> Verdict:
     """Ask the model, once, in isolation.
 
     Falls back to the match-only verdict on any failure. A classifier that cannot
     be reached is a reason to submit with less opinion attached, never a reason to
     lose the finding.
     """
-    prompt = build_prompt(item, match, group_background, policy, severity_guidance)
+    guidance = guidance or {}
+    prompt = build_prompt(item, match, group_background, policy,
+                          severity_guidance, guidance.get('examples') or [])
 
     try:
         result = ctx.llm.complete_structured(
@@ -534,6 +549,8 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
         requires_visual=requires_visual,
         needs_context=needs_context,
         tier=TIER_CLASSIFIED,
+        example_ids=guidance.get('ids') or [],
+        retrieval_version=guidance.get('retrieval_version', ''),
         versions=versions,
         # Measured, not assumed. The run charged a flat estimate per attempted
         # classification, so the spend a case reported was a count of calls
