@@ -31,6 +31,7 @@ from plugins.ettok import jobs as jobs_mod
 from plugins.ettok import scan as scan_mod
 from plugins.ettok.detect import classify as classify_mod
 from plugins.ettok.detect.match import Match
+from plugins.ettok.platform.knowledge import Knowledge
 
 
 @pytest.fixture
@@ -70,36 +71,34 @@ class TestClassifyRefusesToInventAnAnswer:
         assert 'No enabled LLM provider' in str(raised.value)
 
 
-class Knowledge:
-    versions = {'lexicon': '1@aaa', 'release': 'rel-1'}
-    age_seconds = 0.0
+def knowledge():
+    """The real dataclass: one explicit term, one case about Yazidis.
 
-    def __init__(self):
-        self.terms = [{
+    Not a stand-in. A stub that does not model what it replaces drifts the
+    moment a field is added, and hides the bug that field was added for.
+    """
+    return Knowledge(
+        terms=[{
             'id': 12, 'term': 'devil worshippers', 'is_explicit': True,
             'is_regex': False, 'target_group_slug': 'yazidi', 'severity_weight': 8,
             'category': 'dehumanization', 'variants': [], 'never_flag_when': [],
-        }]
-        self.tropes = []
-        self.cases = [{
+        }],
+        tropes=[],
+        cases=[{
             'id': 1, 'title': 'Sinjar anniversary', 'state': 'active',
             'target_groups': [{'slug': 'yazidi', 'name_en': 'Yazidis',
                                'topic_markers': ['sinjar'], 'background': 'b'}],
             'seed_sources': [{'kind': 'page', 'value': 'X'}],
             'limits': {'items_remaining': None, 'cost_remaining_usd': None},
             'suggests_closing': False,
-        }]
-
-    def group_markers(self):
-        return {'yazidi': ['sinjar']}
-
-    def tropes_for(self, slug):
-        return self.tropes
+        }],
+        platform_release_id='rel-1',
+    )
 
 
 class DeadCtx:
     def __init__(self):
-        self._ettok_knowledge = Knowledge()
+        self._ettok_knowledge = knowledge()
         self.llm = mock.MagicMock()
         self.llm.complete_structured.side_effect = RuntimeError('502 upstream')
 

@@ -108,6 +108,15 @@ class Knowledge:
     accounts: list = field(default_factory=list)
     config: dict = field(default_factory=dict)
     skipped_terms: list = field(default_factory=list)
+    # The standard itself, as the organisation publishes it. Empty where the
+    # server is older than this field or no curator has written one, in which
+    # case the classifier falls back to its built-in wording -- correct
+    # behaviour, but not curated knowledge, and the two must not be confused.
+    policy: dict = field(default_factory=dict)
+    # The categories a verdict may name. Empty means "do not check", because
+    # rejecting every category against an empty allowlist would reject
+    # everything.
+    categories: list = field(default_factory=list)
     # When this came into existence, as a wall clock reading. Defaulted to now
     # rather than zero so that age measures how long the object has been held,
     # whatever made it -- which is the question being asked. A bundle built by
@@ -146,6 +155,10 @@ class Knowledge:
             # nothing. `target_groups` is nested here, so the topic markers and
             # background that do decide detection are already covered.
             'cases': _release_id(self.cases, ('id', 'title', 'state', 'target_groups')),
+            # The standard the terms and tropes are read against. Editing it
+            # changes what every one of them means, so a release id that
+            # ignored it would say two differently-judged runs were the same.
+            'policy': _release_id([self.policy] if self.policy else []),
             # The platform's own name for the whole bundle, which is the key
             # its archive is indexed by. The three above are this agent's
             # digests of its own view and answer "did the knowledge change
@@ -180,6 +193,23 @@ class Knowledge:
             if not slugs or group_slug in slugs:
                 out.append(trope)
         return out
+
+    @property
+    def policy_text(self) -> str:
+        """The published standard, or empty where none was published."""
+        return (self.policy or {}).get('body', '').strip()
+
+    @property
+    def severity_guidance(self) -> str:
+        return (self.policy or {}).get('severity_guidance', '').strip()
+
+    @property
+    def allowed_categories(self) -> list:
+        """Slugs a verdict may name. Empty means the server did not say."""
+        return sorted({
+            (c.get('slug') or '').strip() for c in (self.categories or [])
+            if (c.get('slug') or '').strip()
+        })
 
     def group_markers(self) -> dict:
         """Topic markers by group slug, from the open cases.
@@ -221,9 +251,16 @@ def fetch(client, *, languages: Optional[list] = None) -> Knowledge:
             terms = bundle.get('terms') or []
             trope_rows = bundle.get('tropes') or []
             case_rows = bundle.get('cases') or []
+            policy = bundle.get('policy') or {}
+            categories = bundle.get('categories') or []
             platform_release = bundle.get('release_id') or ''
         except Exception:
             log.info('ettok: no bundle endpoint; syncing the older way')
+            # The older endpoints carry no policy and no category list. That is
+            # a compatibility fallback, not a policy of silence: the classifier
+            # uses its built-in wording and says so rather than claiming a
+            # published standard it never received.
+            policy, categories = {}, []
             tasks = client.tasks()
             lexicon = client.lexicon(languages=languages)
             tropes = client.tropes()
@@ -246,6 +283,8 @@ def fetch(client, *, languages: Optional[list] = None) -> Knowledge:
         cases=case_rows,
         accounts=accounts.get('accounts', accounts.get('monitoring_accounts', [])) or [],
         config=heartbeat.get('config', {}) or {},
+        policy=policy,
+        categories=categories,
         fetched_at=time.time(),
         platform_release_id=platform_release,
     )

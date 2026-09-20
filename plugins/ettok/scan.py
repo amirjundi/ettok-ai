@@ -585,6 +585,9 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             verdict = classify_mod.classify(
                 ctx, item, result, versions=know.versions,
                 group_background=background,
+                policy=know.policy_text,
+                severity_guidance=know.severity_guidance,
+                allowed_categories=know.allowed_categories,
             )
         except Exception as exc:                          # noqa: BLE001
             # Not swallowed into a match-only verdict here. `classify`

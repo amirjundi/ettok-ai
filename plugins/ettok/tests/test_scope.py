@@ -30,6 +30,7 @@ import pytest
 from plugins.ettok import scan as scan_mod
 from plugins.ettok.detect import classify as classify_mod
 from plugins.ettok.detect import scope as scope_mod
+from plugins.ettok.platform.knowledge import Knowledge
 
 COMMUNITIES = {'yazidi': 'Yazidis', 'assyrian': 'Assyrians'}
 
@@ -158,38 +159,36 @@ class TestThePrompt:
 # What a run does with it
 # ---------------------------------------------------------------------------
 
-class Knowledge:
-    versions = {'lexicon': '1@aaa', 'release': 'rel-1'}
-    age_seconds = 0.0
+def knowledge():
+    """The real dataclass: one explicit term, one case about Yazidis.
 
-    def __init__(self):
-        self.terms = [{
+    Not a stand-in. A stub that does not model what it replaces drifts the
+    moment a field is added, and hides the bug that field was added for.
+    """
+    return Knowledge(
+        terms=[{
             'id': 12, 'term': 'devil worshippers', 'is_explicit': True,
             'is_regex': False, 'target_group_slug': 'yazidi', 'severity_weight': 8,
             'category': 'dehumanization', 'variants': [], 'never_flag_when': [],
-        }]
-        self.tropes = []
-        self.cases = [{
+        }],
+        tropes=[],
+        cases=[{
             'id': 1, 'title': 'Sinjar anniversary', 'state': 'active',
             'target_groups': [{'slug': 'yazidi', 'name_en': 'Yazidis',
                                'topic_markers': ['sinjar'], 'background': 'b'}],
             'seed_sources': [{'kind': 'page', 'value': 'X'}],
             'limits': {'items_remaining': None, 'cost_remaining_usd': None},
             'suggests_closing': False,
-        }]
-
-    def group_markers(self):
-        return {'yazidi': ['sinjar']}
-
-    def tropes_for(self, slug):
-        return self.tropes
+        }],
+        platform_release_id='rel-1',
+    )
 
 
 class Ctx:
     """Answers the scope question first, then every classification."""
 
     def __init__(self, scope_reply, classify_reply=None):
-        self._ettok_knowledge = Knowledge()
+        self._ettok_knowledge = knowledge()
         self.llm = mock.MagicMock()
 
         def answer(**kwargs):

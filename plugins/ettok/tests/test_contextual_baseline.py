@@ -30,6 +30,7 @@ import pytest
 
 from plugins.ettok import scan as scan_mod
 from plugins.ettok.detect import classify as classify_mod
+from plugins.ettok.platform.knowledge import Knowledge
 
 
 @pytest.fixture
@@ -42,33 +43,30 @@ def home(monkeypatch):
     return path
 
 
-class FakeKnowledge:
-    """One explicit term, one case about Yazidis. Nothing else on the list."""
+def FakeKnowledge(limits=None):
+    """One explicit term, one case about Yazidis. Nothing else on the list.
 
-    versions = {'lexicon': '1@aaa', 'release': 'rel-1'}
-    age_seconds = 0.0
-
-    def __init__(self, limits=None):
-        self.terms = [{
+    The real dataclass rather than a stand-in. A stub that does not model the
+    thing it replaces is how it went unnoticed that nothing enforced knowledge
+    freshness, and the same drift would have hidden the policy fields.
+    """
+    return Knowledge(
+        terms=[{
             'id': 12, 'term': 'devil worshippers', 'is_explicit': True,
             'is_regex': False, 'target_group_slug': 'yazidi', 'severity_weight': 8,
             'category': 'dehumanization', 'variants': [], 'never_flag_when': [],
-        }]
-        self.tropes = []
-        self.cases = [{
+        }],
+        tropes=[],
+        cases=[{
             'id': 1, 'title': 'Sinjar anniversary', 'state': 'active',
-            'target_groups': [{'slug': 'yazidi', 'topic_markers': ['sinjar'],
-                               'background': 'b'}],
+            'target_groups': [{'slug': 'yazidi', 'name_en': 'Yazidis',
+                               'topic_markers': ['sinjar'], 'background': 'b'}],
             'seed_sources': [{'kind': 'page', 'value': 'X'}],
             'limits': limits or {'items_remaining': None, 'cost_remaining_usd': None},
             'suggests_closing': False,
-        }]
-
-    def group_markers(self):
-        return {'yazidi': ['sinjar']}
-
-    def tropes_for(self, slug):
-        return self.tropes
+        }],
+        platform_release_id='rel-1',
+    )
 
 
 class Ctx:

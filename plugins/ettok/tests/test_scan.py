@@ -30,10 +30,16 @@ def home(monkeypatch):
 class FakeKnowledge:
     versions = {'lexicon': 'test'}
 
-    # The real Knowledge carries this; a run refuses to use one that has
-    # gone stale. A stub without it does not model the thing it stands in
+    # The real Knowledge carries these; a run refuses to use one that has
+    # gone stale, and it reads the published policy and category list off the
+    # same object. A stub without them does not model the thing it stands in
     # for, which is how it went unnoticed that nothing enforced freshness.
     age_seconds = 0.0
+    policy = {}
+    categories = []
+    policy_text = ''
+    severity_guidance = ''
+    allowed_categories = []
 
     def __init__(self, cases=None):
         self.terms = [{

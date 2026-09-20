@@ -200,10 +200,18 @@ def from_match_only(match, versions: dict) -> Verdict:
     )
 
 
-# The standard, written down. It used to exist nowhere: the model was told it
-# "classifies hate speech for a human rights monitoring system in Iraq" and left
-# to supply its own definition, which is why two runs, and the agent and the
-# platform, could reach different answers on the same comment.
+# The standard, written down -- and now the *fallback* standard.
+#
+# The organisation publishes its own in the knowledge bundle, which is where a
+# definition belongs: everything around it was already curated, and the one
+# thing a curator could not change was the sentence that decides what all the
+# rest means. This is what a run uses when the server is older than that field
+# or nobody has written one yet, and the prompt says which of the two it is.
+#
+# It used to exist nowhere at all: the model was told it "classifies hate speech
+# for a human rights monitoring system in Iraq" and left to supply its own
+# definition, which is why two runs could reach different answers on the same
+# comment.
 #
 # The exclusions are not softness. This system exists to produce evidence that
 # an outside body will act on, and a package that turns out to contain a
@@ -247,7 +255,17 @@ one observation, and a wrongly flagged one costs the credibility of every
 finding beside it."""
 
 
-def build_prompt(item: dict, match, group_background: str = '') -> str:
+# Said out loud in the prompt when the built-in wording is in use, so a verdict
+# formed against it is not mistaken for one formed against the published
+# standard. The difference matters to anybody auditing a referral.
+_UNPUBLISHED = (
+    'This standard is the monitoring tool\'s built-in wording. The '
+    'organisation has not published one of its own yet.'
+)
+
+
+def build_prompt(item: dict, match, group_background: str = '',
+                 policy: str = '', severity_guidance: str = '') -> str:
     """Assemble the classification prompt for one item.
 
     Everything here is either the item, or something that matched the item. The
@@ -263,7 +281,8 @@ def build_prompt(item: dict, match, group_background: str = '') -> str:
     lines = [
         'Decide whether this social media comment attacks a minority community in Iraq.',
         '',
-        WHAT_COUNTS,
+        (policy or '').strip() or WHAT_COUNTS,
+        '' if (policy or '').strip() else _UNPUBLISHED,
         '',
         f'THE COMMENT TO JUDGE: {item.get("text", "")}',
     ]
@@ -374,9 +393,10 @@ def build_prompt(item: dict, match, group_background: str = '') -> str:
 
     lines += [
         '',
-        'SEVERITY: 9-10 a direct threat or a call for violence; 6-8 dehumanisation, '
-        'an extreme slur, or denial of a massacre; 3-5 a derogatory stereotype or an '
-        'insult aimed at the community; 1-2 subtle bias or a divisive framing.',
+        (severity_guidance or '').strip() or (
+            'SEVERITY: 9-10 a direct threat or a call for violence; 6-8 dehumanisation, '
+            'an extreme slur, or denial of a massacre; 3-5 a derogatory stereotype or an '
+            'insult aimed at the community; 1-2 subtle bias or a divisive framing.'),
         '',
         'Answer as JSON: is_hate_speech (boolean), category, severity 1-10, reason '
         '(one sentence, naming what makes it an attack or why it is not), '
@@ -409,14 +429,31 @@ def _trope_lines(trope: dict) -> list:
     return out
 
 
-def classify(ctx, item: dict, match, *, versions: dict, group_background: str = '') -> Verdict:
+def _checked_category(value, allowed) -> str:
+    """The category, or empty where it is not one the platform recognises.
+
+    Empty `allowed` means the server did not say, so nothing is rejected:
+    checking against an empty allowlist would reject every category there is.
+    """
+    slug = str(value or '').strip()
+    if not slug or not allowed:
+        return slug
+    if slug in allowed:
+        return slug
+    log.warning('ettok: discarding unrecognised category %r', slug)
+    return ''
+
+
+def classify(ctx, item: dict, match, *, versions: dict, group_background: str = '',
+             policy: str = '', severity_guidance: str = '',
+             allowed_categories=None) -> Verdict:
     """Ask the model, once, in isolation.
 
     Falls back to the match-only verdict on any failure. A classifier that cannot
     be reached is a reason to submit with less opinion attached, never a reason to
     lose the finding.
     """
-    prompt = build_prompt(item, match, group_background)
+    prompt = build_prompt(item, match, group_background, policy, severity_guidance)
 
     try:
         result = ctx.llm.complete_structured(
@@ -486,7 +523,11 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
         # model did not give.
         is_hate_speech=verdict if state in DECIDED_STATES else None,
         state=state,
-        category=str(parsed.get('category') or ''),
+        # Checked against what the platform publishes, where it published a
+        # list. A model naming a category nobody curated stores a label that
+        # no screen filters on and no export understands, which reads
+        # downstream as a category with one member rather than as a mistake.
+        category=_checked_category(parsed.get('category'), allowed_categories),
         severity=parsed.get('severity'),
         reason=str(parsed.get('reason') or ''),
         exemption_applied=str(parsed.get('exemption_applied') or ''),
