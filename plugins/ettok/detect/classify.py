@@ -37,6 +37,12 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
+# Bumped whenever the wording the model is given changes: the policy text,
+# the instructions, the fields asked for, the guidance included. The same
+# comment under the same lexicon can get a different answer because this
+# moved, and a reviewer comparing two runs has to be able to see that.
+PROMPT_VERSION = '2026-09-20'
+
 TIER_MATCHED_ONLY = 'matched_only'
 TIER_CLASSIFIED = 'classified'
 # Nothing matched and no model ran: the row is the denominator, not a
@@ -259,12 +265,48 @@ def build_prompt(item: dict, match, group_background: str = '') -> str:
         '',
         WHAT_COUNTS,
         '',
-        f'COMMENT: {item.get("text", "")}',
+        f'THE COMMENT TO JUDGE: {item.get("text", "")}',
     ]
+
+    # The direct parent, before the post. It is nearer to the comment and it
+    # usually decides: "Exactly" under a call for expulsion and "Exactly" under
+    # a defence of somebody's rights are the same word, and only the comment
+    # directly above separates them. Judging the second as an attack accuses a
+    # person of the opposite of what they said.
+    #
+    # Three levels, kept apart and labelled. Flattening the thread into one
+    # paragraph is how a quotation becomes an endorsement and somebody else's
+    # words become the author's.
+    reply_to = (item.get('reply_to_text') or '').strip()
+    if reply_to:
+        who = (item.get('reply_to_author') or '').strip()
+        lines += [
+            '',
+            f'IT IS A REPLY TO THIS COMMENT{f" BY {who}" if who else ""}, '
+            f'WHICH SOMEBODY ELSE WROTE: {reply_to}',
+        ]
+        for above in (item.get('ancestors') or [])[:3]:
+            text = (above.get('text') or '').strip()
+            if text:
+                author = (above.get('author_name') or '').strip()
+                lines += [f'  ...and that answered{f" {author}" if author else ""}: {text}']
+        lines += [
+            'Judge only the comment to judge. The lines above are what it is '
+            'answering, written by other people, and are context rather than '
+            'anything this author said.',
+        ]
+    elif item.get('is_reply'):
+        lines += [
+            '',
+            'IT IS A REPLY TO ANOTHER COMMENT THAT COULD NOT BE READ. What it '
+            'agrees or disagrees with is unknown, so a short reply that depends '
+            'on that comment is undecidable: set needs_context rather than '
+            'guessing which side it is on.',
+        ]
 
     parent = (item.get('parent_post_text') or '').strip()
     if parent:
-        lines += ['', f'IT REPLIES TO A POST THAT SAYS: {parent}']
+        lines += ['', f'ALL OF IT SITS UNDER A POST THAT SAYS: {parent}']
     else:
         lines += [
             '',

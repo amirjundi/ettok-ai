@@ -133,21 +133,58 @@ _EXTRACT_JS = r"""
     .filter((el) => el !== post);
   const MAX_COMMENTS = 200;
   const out = [];
+
+  // Which comment a node hangs under, and the whole way up to the post.
+  //
+  // `is_reply` was a boolean, which is the one fact about a reply that does
+  // not help. "Exactly" under a call for expulsion and "Exactly" under a
+  // defence of somebody's rights are the same six letters, and the thing that
+  // separates them is the comment directly above -- which was thrown away
+  // here and reconstructed by nobody. Judging the second as hate speech
+  // accuses a person of the opposite of what they said.
+  const ancestorsOf = (node) => {
+    const chain = [];
+    let at = node.parentElement ? node.parentElement.closest(sel.comment) : null;
+    // Bounded: a thread nests, but not forty deep, and a selector that matches
+    // its own ancestor would otherwise loop until the tab dies.
+    while (at && chain.length < 8) {
+      const a = at.querySelector(sel.author);
+      chain.push({
+        text: bodyOf(at).slice(0, 600),
+        author_name: a ? (a.innerText || '').trim().slice(0, 200) : '',
+        index: found.indexOf(at),
+      });
+      at = at.parentElement ? at.parentElement.closest(sel.comment) : null;
+    }
+    // Nearest first: the direct parent is the one that decides the meaning,
+    // and a budget that truncates the chain must cut the far end.
+    return chain;
+  };
+
   found.slice(0, MAX_COMMENTS).forEach((node, i) => {
     const body = bodyOf(node);
     if (!body) return;
     const authorEl = node.querySelector(sel.author);
     const authorLink = sel.author_link ? node.querySelector(sel.author_link) : null;
     const permalink = sel.permalink ? node.querySelector(sel.permalink) : null;
-    // Whether this is a reply to another comment rather than to the post.
-    const parentComment = node.parentElement ? node.parentElement.closest(sel.comment) : null;
+    const chain = ancestorsOf(node);
     out.push({
       text: body.slice(0, 2000),
       text_truncated: body.length > 2000,
       author_name: authorEl ? (authorEl.innerText || '').trim().slice(0, 200) : '',
       author_href: authorLink ? (authorLink.href || '') : '',
       permalink: permalink ? (permalink.href || '') : '',
-      is_reply: !!parentComment,
+      is_reply: chain.length > 0,
+      // The comment this one answers, in full. Everything above it, in order,
+      // as excerpts -- context thins out with distance, the direct parent
+      // never does.
+      reply_to_text: chain.length ? chain[0].text : '',
+      reply_to_author: chain.length ? chain[0].author_name : '',
+      reply_to_index: chain.length ? chain[0].index : -1,
+      ancestors: chain.slice(1),
+      // How deep, even where the chain was cut. A reply at depth 12 with 8
+      // ancestors recorded says so rather than looking like a top-level one.
+      reply_depth: chain.length,
       index: i,
     });
   });
@@ -702,6 +739,23 @@ class BrowserCollector:
                 # A reply to another comment, rather than to the post. It
                 # changes what the comment is answering, and so what it means.
                 'is_reply': bool(comment.get('is_reply')),
+                # And what it is answering, which is the part that decides.
+                # "Exactly" under a call for expulsion and "Exactly" under a
+                # defence of somebody's rights are the same word; only this
+                # tells them apart, and a boolean cannot.
+                'reply_to_text': (comment.get('reply_to_text') or '').strip(),
+                'reply_to_author': (comment.get('reply_to_author') or '').strip(),
+                # Everything above the direct parent, nearest first. Context
+                # thins with distance; the direct parent never does.
+                'ancestors': [
+                    {'author_name': (a.get('author_name') or '').strip(),
+                     'text': (a.get('text') or '').strip()}
+                    for a in (comment.get('ancestors') or [])
+                    if (a.get('text') or '').strip()
+                ],
+                # How deep it actually sits, even where the chain was cut, so
+                # a truncated chain does not read as a top-level comment.
+                'reply_depth': int(comment.get('reply_depth') or 0),
             })
         return items, coverage
 

@@ -60,6 +60,11 @@ _ITEM_FIELDS = {
     'text': '', 'parent_post_text': '', 'parent_media_text': '',
     'url': '', 'parent_post_url': '', 'platform': '',
     'author_name': '', 'author_id': '', 'author_url': '',
+    # The conversation this comment sits in. A reply judged against the post
+    # instead of against the comment above it is judged against the wrong
+    # thing: "Exactly" means opposite things under an attack and under a
+    # defence, and a boolean `is_reply` cannot say which.
+    'reply_to_text': '', 'reply_to_author': '', 'reply_depth': 0,
 }
 
 
@@ -570,7 +575,10 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         item['content_hash'] = digest
         job_id = jobs_mod.enqueue(
             conn, item=item, case_key=case_key,
-            knowledge_id=know.versions.get('lexicon', ''),
+            # Every semantic input, not the lexicon digest alone. Keyed on
+            # the lexicon, a job for the same comment looked already done
+            # after a curator fixed the trope gate that had misread it.
+            knowledge_id=knowledge_mod.assessment_id(know.versions),
         )
         jobs_mod.start(conn, job_id)
         try:

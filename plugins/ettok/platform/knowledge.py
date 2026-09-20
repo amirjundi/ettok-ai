@@ -64,6 +64,36 @@ def _release_id(rows: list, fields: tuple = None) -> str:
     return f'{len(rows or [])}@{combined}'
 
 
+def assessment_id(versions: dict) -> str:
+    """Everything that can change an answer, in one string.
+
+    The job table keyed on the lexicon digest alone, so a curator who fixed a
+    trope's activation gate, or corrected a case's background, or changed
+    nothing but the prompt, got a job that was already "done" -- the same
+    observation under the same lexicon -- and the corrected reading was never
+    produced. An assessment identity that omits an input is an identity that
+    silently refuses to redo the work that input changed.
+
+    Covers the lexicon, the tropes, the case scope and background, the
+    platform's own release id, the prompt builder and the matcher schema.
+    Deliberately not the schedule, the remaining budget or the lease: those
+    move on every run without changing what anything means, and hashing them
+    would give an identity that never repeats -- which identifies nothing and
+    re-pays for every verdict.
+
+    A function of the recorded versions rather than of the live object, so the
+    identity of an assessment can be recomputed from a verdict that was stored
+    months ago. Replay needs exactly that: to ask whether the knowledge it can
+    reach now is the knowledge the job was created under.
+    """
+    from ..detect import classify as classify_mod
+
+    return hashlib.sha256(json.dumps(
+        [versions or {}, classify_mod.PROMPT_VERSION, SCHEMA_VERSION],
+        ensure_ascii=False, sort_keys=True, default=str,
+    ).encode('utf-8')).hexdigest()[:16]
+
+
 class KnowledgeError(RuntimeError):
     """The run cannot proceed. Never downgrade this into a warning."""
 

@@ -159,6 +159,72 @@ check("the feed post's own comment stays out of it",
 check("an empty dialog wrapper does not become the post",
   out.error, undefined);
 
+// ---- the conversation a reply sits in -----------------------------------
+//
+// `is_reply` was a boolean, which is the one fact about a reply that does not
+// help. "Exactly" under a call for expulsion and "Exactly" under a defence of
+// somebody's rights are the same word; only the comment directly above tells
+// them apart, and judging the second as an attack accuses a person of the
+// opposite of what they said.
+const thread = `
+  <div role="article" id="post">
+    <div dir="auto">Marking the anniversary at Sinjar</div>
+    <div role="article" id="c1">
+      <a role="link" href="/people/ali"><span>Ali</span></a>
+      <div dir="auto">they should all be driven out</div>
+      <div role="article" id="c2">
+        <a role="link" href="/people/sara"><span>Sara</span></a>
+        <div dir="auto">Exactly.</div>
+      </div>
+    </div>
+    <div role="article" id="c3"><div dir="auto">a top level comment</div></div>
+  </div>`;
+
+out = run(thread);
+const reply = out.comments.find((c) => c.text === "Exactly.");
+const top = out.comments.find((c) => c.text === "a top level comment");
+
+check("a reply carries the comment it answers",
+  reply.reply_to_text, "they should all be driven out");
+
+check("and who wrote that comment",
+  reply.reply_to_author, "Ali");
+
+check("a top level comment has no parent comment",
+  [top.reply_to_text, top.is_reply, top.reply_depth], ["", false, 0]);
+
+check("the parent's own body excludes the reply nested inside it",
+  out.comments.find((c) => c.text === "they should all be driven out") !== undefined,
+  true);
+
+check("depth is recorded",
+  reply.reply_depth, 1);
+
+// Three deep, so there is something above the direct parent to carry.
+const deeper = `
+  <div role="article" id="post">
+    <div dir="auto">Marking the anniversary at Sinjar</div>
+    <div role="article" id="d1">
+      <div dir="auto">grandparent comment</div>
+      <div role="article" id="d2">
+        <div dir="auto">parent comment</div>
+        <div role="article" id="d3"><div dir="auto">Exactly.</div></div>
+      </div>
+    </div>
+  </div>`;
+
+out = run(deeper);
+const deep = out.comments.find((c) => c.text === "Exactly.");
+
+check("the direct parent is the nearest one, not the outermost",
+  deep.reply_to_text, "parent comment");
+
+check("what is above it is kept in order, nearest first",
+  deep.ancestors.map((a) => a.text), ["grandparent comment"]);
+
+check("depth counts the whole chain",
+  deep.reply_depth, 2);
+
 // ---- a page the selectors do not fit ------------------------------------
 out = run(`<div class="something-else">nothing here</div>`);
 check("an unmatched layout is an error, not an empty success",
