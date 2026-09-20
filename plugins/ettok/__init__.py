@@ -261,6 +261,69 @@ def _make_tools(ctx):
         )
 
     @_guard
+    def evaluate(args: dict, **_) -> str:
+        """Measure the classifier against examples it has never been shown.
+
+        Deliberate and bounded: it fetches the held-out set from its own
+        endpoint, runs each example through the real classification path, and
+        reports what matched what a curator expected.
+
+        The numbers come with their denominator and with the abstention rate
+        beside them, and no threshold is implied by any of it. A classifier
+        that answers "I cannot tell" to every hard case and is right about the
+        easy ones scores beautifully and is useless.
+        """
+        from . import evaluate as evaluate_mod
+
+        _cfg, conn, client = _services(ctx)
+        know = getattr(ctx, '_ettok_knowledge', None)
+        if know is None:
+            return _tool_error(
+                'No knowledge loaded. Run ettok_sync_knowledge first -- a '
+                'measurement that cannot name the release it measured is not '
+                'a measurement.'
+            )
+
+        try:
+            fetched = client.evaluation_set()
+        except Exception as exc:                              # noqa: BLE001
+            return _tool_error(
+                f'Could not fetch the held-out set: {exc}. It is served from '
+                f'its own endpoint, separate from the knowledge bundle, so an '
+                f'older platform will not have it.'
+            )
+
+        examples = fetched.get('examples') or []
+        if not examples:
+            return _tool_result(
+                scored=0,
+                note='No held-out examples are published. Mark some reviewed '
+                     'examples as held out on the platform first -- scoring '
+                     'against examples the model was taught measures memory.',
+            )
+
+        try:
+            max_spend = float(args.get('max_spend_usd') or 1.0)
+        except (TypeError, ValueError):
+            max_spend = 1.0
+
+        out = evaluate_mod.run(
+            ctx, examples, know, max_spend_usd=max_spend,
+            guidance=getattr(know, 'examples', None) or [])
+
+        # Filed with the other reports, so a measurement is on the record
+        # rather than in somebody's terminal scrollback.
+        outbox_mod.enqueue(conn, 'agent-reports/',
+                           {'kind': 'findings', 'payload': dict(
+                               out, report='findings',
+                               report_version=evaluate_mod.EVALUATION_VERSION,
+                               items=[])})
+        if args.get('submit', True):
+            outbox_mod.drain(conn, client)
+
+        return _tool_result(**out)
+
+    @_guard
     def report(args: dict, **_) -> str:
         """Produce the day's two reports and queue them for the platform.
 
@@ -1103,6 +1166,31 @@ def _make_tools(ctx):
             },
             replay,
             '♻',
+        ),
+        (
+            'ettok_evaluate',
+            {
+                'name': 'ettok_evaluate',
+                'description': (
+                    'Measure the classifier against held-out examples it has never '
+                    'been shown. Run this deliberately, not as part of a monitoring '
+                    'day: it costs a model call per example. What comes back is a '
+                    'result over that set with its sample size and abstention rate '
+                    'attached -- not accuracy on live material, and not a pass or a '
+                    'fail against any threshold.'
+                ),
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'max_spend_usd': {
+                            'type': 'number',
+                            'description': 'Stop once this much is spent. Defaults to 1.00.',
+                        },
+                    },
+                },
+            },
+            evaluate,
+            '📐',
         ),
         (
             'ettok_report',

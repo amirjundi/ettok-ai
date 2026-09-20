@@ -287,6 +287,16 @@ class PlatformClient:
             idempotency_key=idempotency_key,
         )
 
+    def evaluation_set(self) -> dict:
+        """The held-out examples, which the bundle deliberately never carries.
+
+        A separate call because an evaluation run has to be a decision
+        somebody made. If these arrived with the ordinary sync they would end
+        up in prompts, and every figure measured against them afterwards
+        would be a test of memory with nothing about it looking wrong.
+        """
+        return self.request('GET', 'evaluation-set/').data
+
     def reports(self, *, limit: int = 20) -> dict:
         """What became of what was submitted.
 
