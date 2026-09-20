@@ -58,7 +58,8 @@ def _rows(conn, days: int, case_key: str = None) -> list:
     return conn.execute(sql + ' ORDER BY id', params).fetchall()
 
 
-def coverage(conn, *, days: int = 1, case_key: str = None) -> dict:
+def coverage(conn, *, days: int = 1, case_key: str = None,
+             sources: list = None) -> dict:
     """What was looked at, what was not, and what is still owed.
 
     Every count here has its denominator beside it, because the single most
@@ -105,6 +106,18 @@ def coverage(conn, *, days: int = 1, case_key: str = None) -> dict:
         except (TypeError, ValueError):
             continue
 
+    # The watchlist, as the platform sees it. Passed in rather than read
+    # here, because the agent holds no watchlist between runs -- and the
+    # question "how many sources were due" can only be answered by the side
+    # that keeps the schedule.
+    #
+    # A source is not covered because the agent visited one post under it,
+    # which is the reading that makes an empty day look like a thorough one.
+    due = [a for a in (sources or []) if a.get('is_due')]
+    overdue = [a for a in due if (a.get('coverage_state') or '') == 'overdue']
+    blocked = [a for a in (sources or [])
+               if (a.get('coverage_state') or '') in ('blocked', 'quarantined')]
+
     return {
         'report': 'coverage',
         'report_version': REPORT_VERSION,
@@ -135,6 +148,24 @@ def coverage(conn, *, days: int = 1, case_key: str = None) -> dict:
             if assessed else
             f'Nothing was assessed. {len(rows)} observation(s) were collected. '
             f'A day with no assessment is not a day with no hate speech.'
+        ),
+
+        # Sources, which is the denominator the observation counts sit
+        # inside. Nine findings from one account out of twenty watched is a
+        # different day from nine out of twenty covered.
+        'sources_watched': len(sources or []),
+        'sources_due': len(due),
+        'sources_overdue': len(overdue),
+        'sources_blocked': len(blocked),
+        'sources_note': (
+            f'{len(due)} of {len(sources or [])} watched source(s) were due. '
+            f'{len(overdue)} had gone overdue and {len(blocked)} could not be '
+            f'reached at all. A source is not covered because one post under '
+            f'it was read.'
+            if sources else
+            'The watchlist could not be read, so this report cannot say how '
+            'many sources were due. That is a gap in the report, not a quiet '
+            'day.'
         ),
 
         'runs': len(runs),

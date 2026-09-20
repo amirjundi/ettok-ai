@@ -179,6 +179,40 @@ class TestDaysWithNoRunAtAll:
         assert out['gaps'] == []
 
 
+class TestSourcesAreADenominatorToo:
+    def test_due_and_watched_are_both_reported(self, conn):
+        """Nine findings from one account out of twenty watched is a
+        different day from nine out of twenty covered."""
+        out = report_mod.coverage(conn, sources=[
+            {'id': 1, 'is_due': True, 'coverage_state': 'due'},
+            {'id': 2, 'is_due': False, 'coverage_state': 'covered'},
+            {'id': 3, 'is_due': True, 'coverage_state': 'overdue'},
+        ])
+
+        assert out['sources_watched'] == 3
+        assert out['sources_due'] == 2
+        assert out['sources_overdue'] == 1
+
+    def test_a_source_nobody_could_reach_is_counted(self, conn):
+        out = report_mod.coverage(conn, sources=[
+            {'id': 1, 'is_due': True, 'coverage_state': 'quarantined'}])
+
+        assert out['sources_blocked'] == 1
+
+    def test_an_unreadable_watchlist_says_so_rather_than_reporting_zero(self, conn):
+        """Zero due and "could not ask" look identical as a number, and one
+        of them reads as a thorough day."""
+        out = report_mod.coverage(conn, sources=None)
+
+        assert 'gap in the report, not a quiet day' in out['sources_note']
+
+    def test_visiting_one_post_is_not_covering_a_source(self, conn):
+        out = report_mod.coverage(conn, sources=[
+            {'id': 1, 'is_due': True, 'coverage_state': 'due'}])
+
+        assert 'not covered because one post under it was read' in out['sources_note']
+
+
 class TestScope:
     def test_out_of_scope_is_counted_separately(self, conn):
         """A skipped football thread and a quiet one are different days."""

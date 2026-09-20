@@ -349,7 +349,17 @@ def _make_tools(ctx):
         case_key = (str(args.get('case_id')).strip()
                     if args.get('case_id') not in (None, '') else None)
 
-        coverage = report_mod.coverage(conn, days=days, case_key=case_key)
+        # The schedule lives on the platform, so the count of sources due
+        # can only come from there. A report that cannot reach it says so
+        # rather than reporting zero, which would read as "none were due".
+        try:
+            sources = (client.watchlist(everything=True) or {}).get('accounts') or []
+        except Exception as exc:                              # noqa: BLE001
+            log.info('ettok: watchlist unavailable for the report: %s', exc)
+            sources = None
+
+        coverage = report_mod.coverage(conn, days=days, case_key=case_key,
+                                       sources=sources)
         findings = report_mod.findings(conn, days=days, case_key=case_key)
 
         # Queued, not posted. A residential connection drops, and a report
@@ -367,7 +377,7 @@ def _make_tools(ctx):
             coverage={k: coverage[k] for k in (
                 'observations_collected', 'assessed', 'not_assessed',
                 'unresolved', 'out_of_scope', 'positive', 'runs', 'spend_usd',
-                'gaps')},
+                'sources_due', 'sources_overdue', 'gaps')},
             findings_count=len(findings['items']),
             note=coverage['positive_rate_note'],
             queue=outbox_mod.status(conn),
