@@ -100,6 +100,21 @@ class CaseWork:
     def group_slugs(self) -> list:
         return [g.get('slug') for g in self.target_groups if g.get('slug')]
 
+    def communities(self) -> dict:
+        """The monitored communities, slug -> the name a person would use.
+
+        This case's remit, not a list of Iraq's minorities. The organisation
+        curates who is in scope, and a community absent from here is outside
+        this product -- which is a statement about this product, never about
+        whether an attack on them matters.
+        """
+        out = {}
+        for group in self.target_groups:
+            slug = (group.get('slug') or '').strip()
+            if slug:
+                out[slug] = (group.get('name_en') or slug).strip()
+        return out
+
     def background_for(self, slug: str) -> str:
         for group in self.target_groups:
             if group.get('slug') == slug:

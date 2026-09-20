@@ -56,6 +56,11 @@ _TABLE_CLASSIFICATION = """CREATE TABLE IF NOT EXISTS classification (
     -- firing, a comment nobody examined and a model clearing something all
     -- wrote 0 or 1 into that column and were indistinguishable afterwards.
     state             TEXT NOT NULL DEFAULT '',
+    -- Whether this comment's conversation is one this product monitors at all,
+    -- which is a separate question from whether it is an attack. Collapsing the
+    -- two would record an attack on a community outside the remit as harmless.
+    scope_status      TEXT NOT NULL DEFAULT '',
+    scope_reason      TEXT NOT NULL DEFAULT '',
     versions          TEXT NOT NULL DEFAULT '{}',
     created_at        TEXT NOT NULL
 );"""
@@ -319,6 +324,11 @@ def _drop_stale_tables(conn) -> None:
     columns = {row['name'] for row in info}
     if columns and 'state' not in columns:
         conn.execute("ALTER TABLE classification ADD COLUMN state TEXT NOT NULL DEFAULT ''")
+    for added in ('scope_status', 'scope_reason'):
+        if columns and added not in columns:
+            conn.execute(
+                f"ALTER TABLE classification ADD COLUMN {added} TEXT NOT NULL DEFAULT ''")
+            columns.add(added)
 
     # `is_hate_speech` has to be able to say "no answer", and SQLite cannot
     # drop a NOT NULL in place. So this one table is rebuilt -- copied, not
@@ -335,8 +345,8 @@ def _drop_stale_tables(conn) -> None:
             'id', 'collected_item_id', 'content_hash', 'case_id', 'case_title',
             'platform', 'url', 'excerpt', 'parent_excerpt', 'is_hate_speech',
             'why_flagged', 'category', 'severity', 'reason', 'fired_terms',
-            'fired_tropes', 'exemption_applied', 'tier', 'state', 'versions',
-            'created_at',
+            'fired_tropes', 'exemption_applied', 'tier', 'state',
+            'scope_status', 'scope_reason', 'versions', 'created_at',
         ) if name in columns or name == 'state']
         names = ', '.join(kept)
         conn.executescript(f"""

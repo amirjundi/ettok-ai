@@ -25,6 +25,7 @@ from . import cases as cases_mod
 from . import jobs as jobs_mod
 from .detect import classify as classify_mod
 from .detect import match as match_mod
+from .detect import scope as scope_mod
 from .platform import outbox as outbox_mod
 
 log = logging.getLogger(__name__)
@@ -32,6 +33,12 @@ log = logging.getLogger(__name__)
 # A classification is one short structured call. Deliberately pessimistic: an
 # estimate that runs out early downgrades a run, one that runs out late overspends.
 ESTIMATED_CLASSIFY_COST_USD = 0.002
+
+# One scope check reads a post and answers a yes-or-no, so it is shorter than a
+# classification both ways. It is also charged once per post rather than once
+# per comment, which is the point of it: the reservation for a two-hundred
+# comment thread is this, not two hundred of the figure above.
+ESTIMATED_SCOPE_COST_USD = 0.001
 
 # How old the detection knowledge may be before a run refuses to use it.
 #
@@ -168,7 +175,8 @@ def remember(conn, digests, case_key: str = '') -> None:
 
 
 
-def record_judgement(conn, item: dict, result, verdict, case, digest: str) -> None:
+def record_judgement(conn, item: dict, result, verdict, case, digest: str,
+                     scope=None) -> None:
     """Keep this agent's own decision, on this machine.
 
     The operator could see what the platform made of a submission and never what
@@ -192,8 +200,9 @@ def record_judgement(conn, item: dict, result, verdict, case, digest: str) -> No
     conn.execute(
         'INSERT INTO classification(content_hash, case_id, case_title, platform, url, '
         'excerpt, parent_excerpt, is_hate_speech, why_flagged, category, severity, '
-        'reason, fired_terms, fired_tropes, exemption_applied, tier, state, versions, '
-        'created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'reason, fired_terms, fired_tropes, exemption_applied, tier, state, '
+        'scope_status, scope_reason, versions, '
+        'created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (
             digest,
             str(case.case_id) if case is not None else '',
@@ -218,6 +227,12 @@ def record_judgement(conn, item: dict, result, verdict, case, digest: str) -> No
             payload.get('exemption_applied') or '',
             payload.get('tier', 'context'),
             payload.get('state', classify_mod.STATE_NOT_ASSESSED),
+            # Kept beside the verdict rather than folded into it. "Nobody
+            # monitors this community" and "this is not an attack" are
+            # different answers, and the row has to be able to say the first
+            # without implying the second.
+            scope.status if scope is not None else '',
+            scope.reason if scope is not None else '',
             json.dumps(payload.get('versions') or {}, ensure_ascii=False),
             datetime.now(timezone.utc).isoformat(),
         ),
@@ -225,7 +240,8 @@ def record_judgement(conn, item: dict, result, verdict, case, digest: str) -> No
     conn.commit()
 
 
-def _finding(item: dict, result, verdict, case, digest: str, versions=None) -> dict:
+def _finding(item: dict, result, verdict, case, digest: str, versions=None,
+             scope=None) -> dict:
     """One submission row, for a finding or for the context around it.
 
     `verdict` is None for a comment that matched nothing: there is no judgement
@@ -263,6 +279,13 @@ def _finding(item: dict, result, verdict, case, digest: str, versions=None) -> d
         # only. Sent rather than recomputed so both sides gate on the same
         # reading of the post.
         'topic_groups': list(result.topic_groups or []),
+        # Whether this product monitors the conversation at all, and why the
+        # agent thinks so. Sent so the platform can show a day's coverage
+        # honestly: an out-of-scope comment section is not a quiet one, and an
+        # item nobody assessed is not an item nobody needed to.
+        'scope_status': scope.status if scope is not None else '',
+        'scope_reason': scope.reason if scope is not None else '',
+        'scope_decided_by': scope.decided_by if scope is not None else '',
         # A context row carried an empty verdict, so nothing recorded which
         # knowledge had read it. That is the row that says "this comment was
         # examined and matched nothing" -- and without a version stamp, a later
@@ -318,6 +341,10 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         'case': case.title if case else None,
         'scanned': 0, 'duplicates': 0, 'flagged': 0,
         'classified': 0, 'match_only': 0,
+        # How much was looked at, and how much was set aside as somebody
+        # else's subject. A day of monitoring that assessed nothing and a
+        # day that found nothing are different days.
+        'posts': 0, 'scope_checks': 0, 'out_of_scope': 0,
         'spend_usd': 0.0,
         'errors': [],
     }
@@ -412,6 +439,14 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
     collected_digests = {}
     case_key = str(case.case_id) if case is not None else ''
 
+    # --- pass one: free, and unconditional --------------------------------
+    #
+    # Match everything, keep everything, spend nothing. What comes out is the
+    # batch as collected, annotated -- not filtered. Deciding here which items
+    # deserve a model was the whole bug: a lexicon of slurs cannot recognise
+    # "they should go back where they came from", which is the attack, and does
+    # recognise a journalist quoting a slur, which is not.
+    candidates = []
     for raw in items:
         # The row as collected, not a seven-key copy of it. The copy dropped
         # parent_post_url and author_url -- the field that groups comments by
@@ -428,19 +463,15 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             summary['duplicates'] += 1
             continue
 
-        # Everything appended to `findings` is submitted and stored, matched
-        # or not, so the budget counts all of it. Counting only flagged items
-        # let a case with one item of budget left collect a whole page of
-        # context -- which is real work and real storage, and is now charged
-        # as such on the platform side too.
-        if case is not None and not case.may_collect(len(findings)):
-            cases_mod.finish_run(conn, run_id, stop_reason='item_budget',
-                                 scanned=summary['scanned'], flagged=summary['flagged'],
-                                 spend=summary['spend_usd'])
+        # Everything kept is submitted and stored, matched or not, so the
+        # budget counts all of it. Counting only flagged items let a case with
+        # one item of budget left collect a whole page of context -- which is
+        # real work and real storage, and is now charged as such on the
+        # platform side too.
+        if case is not None and not case.may_collect(len(candidates)):
             summary['stop_reason'] = 'item_budget'
             break
 
-        # --- free tier: always, whatever the budget ------------------------
         try:
             result = match_mod.evaluate(
                 item, know, case_id=case.case_id if case is not None else None,
@@ -450,81 +481,143 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             summary['errors'].append(f'match failed: {exc}')
             continue
 
-        # Unmatched comments are kept and submitted too. They cost nothing to
-        # collect -- they were already fetched, read and hashed -- and without
-        # them the platform has findings but no denominator, so it can say "nine
-        # findings" and never "nine out of four hundred comments", which is the
-        # number that says whether a post is a pile-on or an ordinary thread.
-        #
-        # Only findings go on to classification, so the expensive tier is
-        # unchanged.
-        if not result.matched:
-            findings.append(_finding(item, result, None, case, digest, know.versions))
-            record_judgement(conn, item, result, None, case, digest)
-            collected_digests[digest] = None
-            continue
-        summary['flagged'] += 1
+        if result.matched:
+            summary['flagged'] += 1
+        collected_digests[digest] = None
+        candidates.append({'item': item, 'digest': digest, 'result': result,
+                           'verdict': None})
 
-        # --- paid tier: only if there is budget for it ---------------------
+    # --- pass two: is this conversation even ours? ------------------------
+    #
+    # Once per post, not once per comment. This is what keeps contextual
+    # assessment affordable: a thread of two hundred comments asks the question
+    # once, and a post about football takes its whole comment section out of
+    # the paid queue in a single cheap call.
+    #
+    # A curated topic marker answers it for free. Only a post no marker
+    # recognised costs anything, and a post nobody could decide about is
+    # `uncertain`, which is assessed -- never skipped.
+    communities = case.communities() if case is not None else {}
+    scopes = {}
+    for entry in candidates:
+        item = entry['item']
+        key = (post_identity(item.get('parent_post_url') or '')
+               or item['parent_post_text'][:200])
+        if key not in scopes:
+            if entry['result'].topic_groups:
+                scopes[key] = scope_mod.from_markers(entry['result'].topic_groups)
+            elif classify and budget.allows(cases_mod.TIER_CLASSIFY):
+                decided = scope_mod.assess(
+                    ctx, post_text=item['parent_post_text'],
+                    media_text=item['parent_media_text'], communities=communities,
+                )
+                spent = (decided.cost_usd if decided.cost_usd is not None
+                         else ESTIMATED_SCOPE_COST_USD)
+                budget.charge(spent)
+                summary['spend_usd'] += spent
+                summary['tokens'] = summary.get('tokens', 0) + decided.total_tokens
+                summary['scope_checks'] = summary.get('scope_checks', 0) + 1
+                scopes[key] = decided
+            else:
+                scopes[key] = scope_mod.Scope(
+                    status=scope_mod.STATUS_UNCERTAIN,
+                    reason='no budget to check whether this post is in scope')
+        entry['scope'] = scopes[key]
+
+    summary['posts'] = len(scopes)
+    summary['out_of_scope'] = sum(
+        1 for e in candidates if not e['scope'].assessable and not e['result'].matched)
+
+    # --- pass three: paid, in priority order ------------------------------
+    #
+    # Matched first. The lexicon stopped being the gate and became the queue:
+    # a hit is the one direction a word list is reliable in, so a run that runs
+    # out of money runs out of it on the least likely comments rather than the
+    # most likely.
+    for entry in sorted(candidates, key=lambda e: not e['result'].matched):
+        item, result, digest = entry['item'], entry['result'], entry['digest']
+
+        # An out-of-scope post excuses its comments -- unless one of them
+        # matched. Somebody raising Yazidis in a comment under a football post
+        # is exactly what per-post scoping would otherwise miss, and a curated
+        # term firing is the evidence that it happened.
+        if not entry['scope'].assessable and not result.matched:
+            continue
+
+        if not (classify and budget.allows(cases_mod.TIER_CLASSIFY)):
+            # Out of money, or never asked. Whatever is left keeps
+            # `not_assessed`, which is not a clearance.
+            summary['match_only'] += 1
+            entry['verdict'] = classify_mod.from_match_only(result, know.versions)
+            continue
+
         background = ''
         if case is not None:
-            for slug in result.topic_groups:
+            for slug in (result.topic_groups or entry['scope'].groups):
                 background = case.background_for(slug) or background
 
-        if classify and budget.allows(cases_mod.TIER_CLASSIFY):
-            # Written down before the attempt, not after it.
-            #
-            # A provider outage or a closed laptop used to lose the verdict for
-            # these items with no trace: the observation was already stored for
-            # submission, the attempt left nothing behind, and an item nobody
-            # judged looks exactly like one the agent has not reached yet. The
-            # job is the trace, and it is created first so that a crash leaves a
-            # row saying what was in flight.
-            item['content_hash'] = digest
-            job_id = jobs_mod.enqueue(
-                conn, item=item, case_key=case_key,
-                knowledge_id=know.versions.get('lexicon', ''),
+        # Written down before the attempt, not after it.
+        #
+        # A provider outage or a closed laptop used to lose the verdict for
+        # these items with no trace: the observation was already stored for
+        # submission, the attempt left nothing behind, and an item nobody
+        # judged looks exactly like one the agent has not reached yet. The
+        # job is the trace, and it is created first so that a crash leaves a
+        # row saying what was in flight.
+        item['content_hash'] = digest
+        job_id = jobs_mod.enqueue(
+            conn, item=item, case_key=case_key,
+            knowledge_id=know.versions.get('lexicon', ''),
+        )
+        jobs_mod.start(conn, job_id)
+        try:
+            verdict = classify_mod.classify(
+                ctx, item, result, versions=know.versions,
+                group_background=background,
             )
-            jobs_mod.start(conn, job_id)
-            try:
-                verdict = classify_mod.classify(
-                    ctx, item, result, versions=know.versions,
-                    group_background=background,
-                )
-            except Exception as exc:                          # noqa: BLE001
-                # Not swallowed into a match-only verdict here. `classify`
-                # already degrades to that for a provider it cannot reach; an
-                # exception reaching this far is something worse, and the item
-                # deserves to be replayable rather than quietly downgraded.
-                jobs_mod.fail(conn, job_id, f'{type(exc).__name__}: {exc}')
-                summary['errors'].append(f'classification failed: {exc}')
-                verdict = classify_mod.from_match_only(result, know.versions)
-            else:
-                jobs_mod.complete(conn, job_id, verdict.as_payload(result))
-            # Reserve the estimate, settle on what it cost. The estimate is
-            # what the budget check above had to work from -- you cannot know
-            # the price before making the call -- but charging it afterwards
-            # made a case's reported spend a count of calls wearing a dollar
-            # sign. Arabic costs several times the tokens of the equivalent
-            # English, so the error was not random: it understated exactly the
-            # cases this system exists for.
-            spent = (verdict.cost_usd if verdict.cost_usd is not None
-                     else ESTIMATED_CLASSIFY_COST_USD)
-            budget.charge(spent)
-            summary['spend_usd'] += spent
-            summary['tokens'] = summary.get('tokens', 0) + verdict.total_tokens
-            summary['classified'] += 1
-            if verdict.cost_usd is None:
-                # Worth knowing that a figure is an estimate rather than a
-                # measurement, because a budget built on estimates drifts.
-                summary['estimated_costs'] = summary.get('estimated_costs', 0) + 1
-        else:
+        except Exception as exc:                          # noqa: BLE001
+            # Not swallowed into a match-only verdict here. `classify`
+            # already degrades to that for a provider it cannot reach; an
+            # exception reaching this far is something worse, and the item
+            # deserves to be replayable rather than quietly downgraded.
+            jobs_mod.fail(conn, job_id, f'{type(exc).__name__}: {exc}')
+            summary['errors'].append(f'classification failed: {exc}')
             verdict = classify_mod.from_match_only(result, know.versions)
-            summary['match_only'] += 1
+        else:
+            jobs_mod.complete(conn, job_id, verdict.as_payload(result))
+        entry['verdict'] = verdict
 
-        findings.append(_finding(item, result, verdict, case, digest))
-        record_judgement(conn, item, result, verdict, case, digest)
-        collected_digests[digest] = None
+        # Reserve the estimate, settle on what it cost. The estimate is
+        # what the budget check above had to work from -- you cannot know
+        # the price before making the call -- but charging it afterwards
+        # made a case's reported spend a count of calls wearing a dollar
+        # sign. Arabic costs several times the tokens of the equivalent
+        # English, so the error was not random: it understated exactly the
+        # cases this system exists for.
+        spent = (verdict.cost_usd if verdict.cost_usd is not None
+                 else ESTIMATED_CLASSIFY_COST_USD)
+        budget.charge(spent)
+        summary['spend_usd'] += spent
+        summary['tokens'] = summary.get('tokens', 0) + verdict.total_tokens
+        summary['classified'] += 1
+        if verdict.cost_usd is None:
+            # Worth knowing that a figure is an estimate rather than a
+            # measurement, because a budget built on estimates drifts.
+            summary['estimated_costs'] = summary.get('estimated_costs', 0) + 1
+
+    # --- and now, in the order they were collected ------------------------
+    for entry in candidates:
+        findings.append(_finding(entry['item'], entry['result'], entry['verdict'],
+                                 case, entry['digest'], know.versions,
+                                 scope=entry['scope']))
+        record_judgement(conn, entry['item'], entry['result'], entry['verdict'],
+                         case, entry['digest'], scope=entry['scope'])
+
+    if summary.get('stop_reason') == 'item_budget':
+        cases_mod.finish_run(conn, run_id, stop_reason='item_budget',
+                             scanned=summary['scanned'], flagged=summary['flagged'],
+                             spend=summary['spend_usd'])
+
 
     # --- delivery: queued first, sent second ------------------------------
     if findings:

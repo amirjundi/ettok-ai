@@ -30,6 +30,9 @@ log = logging.getLogger(__name__)
 
 TIER_MATCHED_ONLY = 'matched_only'
 TIER_CLASSIFIED = 'classified'
+# Nothing matched and no model ran: the row is the denominator, not a
+# finding. Naming it `matched_only` would claim a match that never happened.
+TIER_CONTEXT = 'context'
 
 # What kind of answer this is, which `is_hate_speech` alone cannot say.
 #
@@ -152,7 +155,7 @@ def from_match_only(match, versions: dict) -> Verdict:
         category=(match.fired_terms[0].get('category', '') if match.fired_terms else ''),
         severity=severity,
         reason=match.explain(),
-        tier=TIER_MATCHED_ONLY,
+        tier=TIER_MATCHED_ONLY if match.matched else TIER_CONTEXT,
         versions=versions,
     )
 
@@ -269,6 +272,21 @@ def build_prompt(item: dict, match, group_background: str = '') -> str:
         ]
         for trope in match.ungated_tropes:
             lines += _trope_lines(trope)
+
+    if not (match.fired_terms or match.fired_tropes or match.ungated_tropes):
+        # Said out loud, because silence about the lexicon reads as "the
+        # lexicon was not consulted". It was, and it found nothing -- which is
+        # information, and is the ordinary case now that every collected
+        # comment reaches this prompt rather than only the ones with a word on
+        # a list. Most attacks are worded in ways no list anticipated.
+        lines += [
+            '',
+            'NO CURATED TERM OR PATTERN MATCHED this comment. The curated lists '
+            'were applied and found nothing in it. That is not evidence either '
+            'way: most attacks are phrased in ordinary words -- who belongs '
+            'here, who should leave, who is to blame -- and the lists cannot '
+            'anticipate them. Judge it against the standard above.',
+        ]
 
     if match.exemption_hints:
         lines += [
