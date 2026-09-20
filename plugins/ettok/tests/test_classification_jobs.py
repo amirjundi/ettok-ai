@@ -44,9 +44,20 @@ ITEM = {'content_hash': 'h1', 'text': 'they are devil worshippers',
         'parent_post_text': 'sinjar anniversary', 'platform': 'facebook'}
 
 
-def enqueue(conn, **over):
+def enqueue(conn, knowledge_id='42@abc', **over):
     item = dict(ITEM, **over)
-    return jobs_mod.enqueue(conn, item=item, case_key='5', knowledge_id='42@abc')
+    return jobs_mod.enqueue(conn, item=item, case_key='5', knowledge_id=knowledge_id)
+
+
+def assessment_of(knowledge):
+    """The identity a job created under this knowledge would carry.
+
+    Replay checks it, so a fixture that invents one is a fixture where replay
+    correctly refuses to do anything -- which is a real behaviour and has its
+    own test below, not the default for every other one.
+    """
+    from plugins.ettok.platform import knowledge as knowledge_mod
+    return knowledge_mod.assessment_id(knowledge.versions)
 
 
 class TestAJobOutlivesTheRunThatMadeIt:
@@ -176,16 +187,49 @@ class TestTheReplayTool:
         ctx._ettok_knowledge = Knowledge(terms=[], tropes=[], cases=[])
         monkeypatch.setattr(plugin, '_services',
                             lambda _c: (mock.MagicMock(), conn, mock.MagicMock()))
+        self.release = assessment_of(ctx._ettok_knowledge)
         return {spec['name']: handler
                 for _k, spec, handler, _i in plugin._make_tools(ctx)}
 
     def test_it_finishes_an_interrupted_job(self, tools, conn):
-        job_id = enqueue(conn)
+        job_id = enqueue(conn, knowledge_id=self.release)
         jobs_mod.start(conn, job_id)
 
         out = json.loads(tools['ettok_replay']({}))
         assert out['replayed'] == 1
         assert jobs_mod.replayable(conn) == []
+
+    def test_the_recovered_verdict_is_queued_for_the_platform(self, tools, conn):
+        """It used to be left for the next scan to carry, and the next scan
+        never would: the observation is already in `seen_item`, so it is
+        deduplicated away before it could be resubmitted. The replay spent a
+        provider call, wrote a verdict, reported success -- and the platform
+        went on showing the outage's empty result."""
+        jobs_mod.start(conn, enqueue(conn, knowledge_id=self.release))
+
+        json.loads(tools['ettok_replay']({}))
+
+        queued = conn.execute(
+            "SELECT payload FROM outbox WHERE endpoint = 'flagged-items/'"
+        ).fetchall()
+        assert len(queued) == 1
+        item = json.loads(queued[0]['payload'])['items'][0]
+        assert item['content_hash'] == 'h1'
+        assert item['agent_verdict']['state'] == 'model_positive'
+
+    def test_a_job_from_another_release_is_left_alone(self, tools, conn):
+        """A replay is a retry of the same assessment. Running it against
+        whatever knowledge is loaded today answers a different question and
+        files the answer under the old job's identity, which is exactly the
+        audit chain the job table exists to keep."""
+        jobs_mod.start(conn, enqueue(conn, knowledge_id='an-older-release'))
+
+        out = json.loads(tools['ettok_replay']({}))
+
+        assert out['replayed'] == 0
+        assert out['left_for_their_own_release'] == 1
+        assert len(jobs_mod.replayable(conn)) == 1, 'it must stay recoverable'
+        assert 'scan the case again' in out['note']
 
     def test_nothing_to_replay_is_the_healthy_answer(self, tools, conn):
         out = json.loads(tools['ettok_replay']({}))
@@ -195,7 +239,7 @@ class TestTheReplayTool:
     def test_a_job_with_no_text_is_closed_rather_than_retried_forever(
             self, tools, conn):
         jobs_mod.enqueue(conn, item={'content_hash': 'h9'}, case_key='5',
-                         knowledge_id='42@abc')
+                         knowledge_id=self.release)
         out = json.loads(tools['ettok_replay']({}))
         assert out['replayed'] == 0
         assert out['failed'][0]['error'] == 'empty item'

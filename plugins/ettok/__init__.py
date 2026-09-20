@@ -158,8 +158,15 @@ def _make_tools(ctx):
         except (TypeError, ValueError):
             limit = 25
 
+        # The knowledge a job was created under, as it is in hand now. A
+        # replay is a retry of the *same* assessment, so it has to run against
+        # the same inputs; running it against whatever is loaded today would
+        # answer a different question and file the answer under the old job's
+        # identity.
+        current = knowledge_mod.assessment_id(know.versions)
+
         rows = jobs_mod.replayable(conn, limit=limit)
-        done, failed = 0, []
+        done, failed, stale = 0, [], 0
         for row in rows:
             item = jobs_mod.item_of(row)
             if not item.get('text'):
@@ -168,6 +175,19 @@ def _make_tools(ctx):
                 # and leaving it queued would make the backlog permanent.
                 jobs_mod.fail(conn, row['id'], 'the stored item carried no text')
                 failed.append({'id': row['id'], 'error': 'empty item'})
+                continue
+
+            if (row['knowledge_id'] or '') != current:
+                # Left queued, deliberately. The release this job was created
+                # under is not the one loaded, and substituting the current one
+                # would record a verdict formed from different rules under an
+                # identity claiming otherwise -- which is the audit chain this
+                # table exists to keep.
+                #
+                # Reassessing under new knowledge is a legitimate thing to
+                # want. It is a new job, produced by scanning the case again,
+                # not a retry of this one.
+                stale += 1
                 continue
 
             jobs_mod.start(conn, row['id'])
@@ -182,20 +202,61 @@ def _make_tools(ctx):
                 continue
 
             jobs_mod.complete(conn, row['id'], verdict.as_payload(result))
+
+            # Queued for delivery here, not left for the next scan to notice.
+            #
+            # It never would: the observation is already in `seen_item`, so the
+            # next run deduplicates it away before it could be resubmitted. A
+            # replay therefore spent a provider call, wrote a verdict, and
+            # reported success while the platform went on showing the outage's
+            # empty result for ever.
+            case_key = row['case_key'] or ''
+            outbox_mod.enqueue(conn, 'flagged-items/', {'items': [{
+                'case_id': int(case_key) if case_key.isdigit() else None,
+                'content_hash': row['content_hash'],
+                'platform': item.get('platform') or 'unknown',
+                'url': item.get('url') or '',
+                'parent_post_url': item.get('parent_post_url') or '',
+                'text': item.get('text') or '',
+                'parent_post_text': item.get('parent_post_text') or '',
+                'parent_media_text': item.get('parent_media_text') or '',
+                'reply_to_text': item.get('reply_to_text') or '',
+                'reply_to_author': item.get('reply_to_author') or '',
+                'author_name': item.get('author_name') or '',
+                'author_id': item.get('author_id') or '',
+                'author_url': item.get('author_url') or '',
+                'why_flagged': result.explain() if result.matched else '',
+                'topic_groups': list(result.topic_groups or []),
+                'scope_status': item.get('scope_status') or '',
+                'scope_reason': item.get('scope_reason') or '',
+                'agent_verdict': verdict.as_payload(result),
+            }]})
             done += 1
+
+        notes = []
+        if done:
+            notes.append(
+                f'{done} verdict(s) recovered and queued for the platform. '
+                f'Run ettok_submit to send them.')
+        if stale:
+            notes.append(
+                f'{stale} job(s) were left alone: they were created under a '
+                f'different knowledge release from the one loaded, and a replay '
+                f'is a retry of the same assessment rather than a new one. To '
+                f'judge those comments under current knowledge, scan the case '
+                f'again -- that is a new assessment and is recorded as one.')
+        if not rows:
+            notes.append(
+                'Nothing was replayable. That is the healthy answer: it means '
+                'no classification was interrupted.')
 
         return _tool_result(
             replayed=done,
             failed=failed,
+            left_for_their_own_release=stale,
             remaining=jobs_mod.status(conn),
-            note=(
-                'Replayed verdicts are held locally. They reach the platform on '
-                'the next submission, which is where the evidence they belong to '
-                'already is.'
-                if done else
-                'Nothing was replayable. That is the healthy answer: it means no '
-                'classification was interrupted.'
-            ),
+            queue=outbox_mod.status(conn),
+            note=' '.join(notes),
         )
 
     @_guard
