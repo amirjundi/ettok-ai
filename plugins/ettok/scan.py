@@ -345,6 +345,9 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         # else's subject. A day of monitoring that assessed nothing and a
         # day that found nothing are different days.
         'posts': 0, 'scope_checks': 0, 'out_of_scope': 0,
+        # Items a provider never answered for. Replayable work, not
+        # finished work, and never a clearance.
+        'failed_assessments': 0,
         'spend_usd': 0.0,
         'errors': [],
     }
@@ -582,9 +585,15 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             # deserves to be replayable rather than quietly downgraded.
             jobs_mod.fail(conn, job_id, f'{type(exc).__name__}: {exc}')
             summary['errors'].append(f'classification failed: {exc}')
-            verdict = classify_mod.from_match_only(result, know.versions)
-        else:
-            jobs_mod.complete(conn, job_id, verdict.as_payload(result))
+            # Submitted with what the rules found and nothing more, so the
+            # evidence does not wait on a provider -- but not counted or
+            # charged. The accounting below used to run for these too, so an
+            # outage reported a full run of classifications and billed the
+            # case for calls that never happened.
+            entry['verdict'] = classify_mod.from_match_only(result, know.versions)
+            summary['failed_assessments'] = summary.get('failed_assessments', 0) + 1
+            continue
+        jobs_mod.complete(conn, job_id, verdict.as_payload(result))
         entry['verdict'] = verdict
 
         # Reserve the estimate, settle on what it cost. The estimate is

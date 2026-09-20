@@ -95,8 +95,13 @@ class TestUncertaintyHasSomewhereToGo:
         assert verdict.is_hate_speech is None
 
     def test_an_unparseable_verdict_is_undecided_not_negative(self):
+        """`uncertain` rather than `needs_context` now. Nothing is missing --
+        the model answered, just not with a yes or a no -- and telling the
+        workflow that context is missing sends it off to fetch a reply that
+        does not exist. Both are null; only one is actionable."""
         verdict = classify({'is_hate_speech': 'maybe', 'reason': 'r'})
-        assert verdict.state == STATE_NEEDS_CONTEXT
+        assert verdict.state == classify_mod.STATE_UNCERTAIN
+        assert verdict.is_hate_speech is None
 
     def test_the_prompt_no_longer_tells_it_to_answer_false(self):
         assert 'needs_context true' in classify_mod.WHAT_COUNTS

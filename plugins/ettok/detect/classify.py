@@ -48,6 +48,12 @@ STATE_MODEL_POSITIVE = 'model_positive'
 STATE_MODEL_NEGATIVE = 'model_negative'
 STATE_NEEDS_CONTEXT = 'needs_context'        # undecidable on what was collected
 STATE_NEEDS_VISUAL = 'needs_visual_review'   # the evidence is in an image
+# Everything is here and it still will not resolve: the words carry two
+# readings and the evidence does not choose between them. Distinct from
+# `needs_context`, which names something missing that could be fetched --
+# there is nothing to fetch for this one, and a bounded retrieval pass
+# would burn a provider call to learn nothing.
+STATE_UNCERTAIN = 'uncertain'
 
 # The states in which `is_hate_speech` is a real answer rather than a placeholder.
 DECIDED_STATES = (STATE_MODEL_POSITIVE, STATE_MODEL_NEGATIVE)
@@ -63,6 +69,9 @@ _SCHEMA = {
         'requires_visual': {'type': 'boolean'},
         # So uncertainty has somewhere to go other than into a negative.
         'needs_context': {'type': 'boolean'},
+        # Different from needs_context: nothing is missing, the evidence
+        # simply supports more than one reading.
+        'unresolved': {'type': 'boolean'},
     },
     'required': ['is_hate_speech', 'reason'],
 }
@@ -88,6 +97,22 @@ def strict_bool(value):
         if cleaned in ('false', 'no'):
             return False
     return None
+
+
+class ProviderUnavailable(RuntimeError):
+    """No model answered, so there is no assessment.
+
+    This used to be caught inside `classify` and turned into the rule-only
+    verdict, which the caller then recorded as a *completed* job. A provider
+    outage therefore looked exactly like a finished piece of work: the item
+    carried `rule_candidate` or `not_assessed` for ever, nothing was
+    replayable, and the backlog the job table exists to show was empty.
+
+    Raised instead, so the caller marks the job failed and the work stays
+    replayable. The submission still goes out with the match-only verdict
+    attached -- the evidence must not wait on a provider -- but the job behind
+    it is honest about never having run.
+    """
 
 
 @dataclass
@@ -305,7 +330,11 @@ def build_prompt(item: dict, match, group_background: str = '') -> str:
         'Answer as JSON: is_hate_speech (boolean), category, severity 1-10, reason '
         '(one sentence, naming what makes it an attack or why it is not), '
         'exemption_applied (which exemption applied, or empty), '
-        'requires_visual (true if the judgement depends on an image you cannot see).',
+        'requires_visual (true if the judgement depends on an image you cannot see), '
+        'needs_context (true if something is missing that would settle it -- the '
+        'rest of the thread, who is being addressed), '
+        'unresolved (true if nothing is missing and the words still carry two '
+        'readings that the evidence does not choose between).',
     ]
     return '\n'.join(lines)
 
@@ -357,8 +386,8 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
         parsed = result.parsed if isinstance(result.parsed, dict) else json.loads(result.parsed)
         usage = getattr(result, 'usage', None)
     except Exception as exc:
-        log.warning('ettok: classification unavailable, submitting match-only: %s', exc)
-        return from_match_only(match, versions)
+        log.warning('ettok: classification unavailable: %s', exc)
+        raise ProviderUnavailable(str(exc)) from exc
 
     # The same strict reading the platform now applies. `bool("false")` is True,
     # and this is the field where being wrong names a person.
@@ -383,10 +412,18 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
     # is never looked at again.
     unread_image = bool(item.get('parent_media_unread'))
 
+    unresolved = bool(parsed.get('unresolved'))
+
     if requires_visual or (unread_image and verdict is not True):
         state = STATE_NEEDS_VISUAL
-    elif needs_context or verdict is None:
+    elif needs_context:
         state = STATE_NEEDS_CONTEXT
+    elif unresolved or verdict is None:
+        # Everything arrived and it still will not resolve. This used to be
+        # folded into needs_context, which sent the workflow off to fetch a
+        # reply that does not exist -- a provider call spent learning nothing,
+        # and a reviewer told the wrong thing about why the item is here.
+        state = STATE_UNCERTAIN
     else:
         state = STATE_MODEL_POSITIVE if verdict else STATE_MODEL_NEGATIVE
 
