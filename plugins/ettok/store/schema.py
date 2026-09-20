@@ -123,8 +123,9 @@ CREATE TABLE IF NOT EXISTS case_run (
 -- evidence that was not captured is evidence you do not have.
 __EVIDENCE_TABLE__
 
--- Advisory. The platform re-evaluates every item and its verdict is the one that
--- stands; this is kept so a disagreement is visible rather than silent.
+-- What this agent decided, on this machine. Not a second opinion: the platform
+-- runs no classifier, so this row and the one it stores are the same judgement,
+-- and this is the copy that survives when the network does not.
 -- Self-contained on purpose. It used to hold only a foreign key to
 -- collected_item, which nothing has ever written, so a row here could not be
 -- displayed without the platform -- and the operator's own machine could not

@@ -290,8 +290,10 @@ class PlatformClient:
     def reports(self, *, limit: int = 20) -> dict:
         """What became of what was submitted.
 
-        Read-only and advisory in the other direction: the platform's verdicts
-        are shown to an operator, never fed back into the agent's own judgement.
+        Read-only. What comes back is this agent's own verdicts as stored,
+        plus whatever a human reviewer has since decided about them -- shown to
+        an operator, never fed back into the agent's own judgement. A past
+        finding against an account must not tilt the next one.
         """
         return self.request('GET', 'reports/', params={'limit': limit}).data
 

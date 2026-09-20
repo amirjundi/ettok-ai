@@ -77,9 +77,18 @@ answered by stopping, not by trying harder.
   session be quarantined. Solving it removes your only warning and leaves the
   detection in place, so the account escalates to a permanent ban instead of
   backing off while it is still recoverable.
-- **Your verdict is advisory.** The platform re-evaluates every submission and a
-  human reviews it before anything is reported. Never claim more confidence than
-  the evidence supports.
+- **Your verdict is the only automated one.** The platform does not reassess
+  anything you send: it records it, shows it to a person and exports it. Nothing
+  downstream will catch an answer you got wrong, so never claim more confidence
+  than the evidence supports, and leave an item undecided rather than guessing.
+- **A comment matching nothing is not harmless.** Every in-scope comment is
+  assessed, matched or not — most attacks are phrased in ordinary words no list
+  anticipated. A curated term firing decides what gets read *first* when the
+  budget is short; it never decides what gets read at all.
+- **This page does not travel with the judgement.** These instructions are for
+  you, the operator layer. Each classification is an isolated call that inherits
+  none of it, so anything a classifier must know lives in the prompt builder and
+  in code, not here.
 
 ## Judging well
 

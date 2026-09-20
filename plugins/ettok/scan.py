@@ -696,7 +696,7 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
     budget_note = None
     if budget.exhausted:
         budget_note = ('Model budget is exhausted for this month. Collection, matching '
-                       'and delivery continue; advisory classification is suspended.')
+                       'and delivery continue; nothing collected this run has been judged.')
     elif summary['match_only'] and not summary['classified']:
         budget_note = 'Ran without classification; findings were submitted on matching alone.'
     if budget_note:

@@ -6,14 +6,16 @@ the review queue.
 
 ## What the two halves do
 
-The **platform** owns the knowledge and the verdict. It holds the terms, the
-tropes, the exemptions, the rubric and the cases; it re-evaluates everything the
-agent submits, and its conclusion is the one that stands.
+The **platform** owns the knowledge. It holds the terms, the tropes, the
+exemptions, the rubric and the cases, and it publishes them as a versioned
+release. It runs no classifier: what arrives is what it stores, displays,
+searches and exports.
 
-The **agent** owns collection and delivery. It fetches knowledge at the start of
-every run and keeps none of it, captures evidence before an item counts as
-collected, forms an advisory opinion when there is budget for one, and gets
-findings onto the platform without losing or duplicating any.
+The **agent** owns collection *and* judgement. It fetches knowledge at the start
+of every run and keeps none of it, captures evidence before an item counts as
+collected, decides once per post whether the conversation is one this
+organisation monitors, assesses every in-scope comment under it — matched or not
+— and gets the results onto the platform without losing or duplicating any.
 
 That split is why a curator's edit reaches every agent on its next run with no
 redeployment, and why a stolen or reimaged laptop leaks nothing that is not
@@ -158,8 +160,8 @@ noticed; the agent stops and reports rather than working around it, because
 solving the challenge removes the only warning while leaving the detection in
 place.
 
-Its verdict is advisory. The platform re-evaluates every submission and a human
-reviews it before anything is reported.
+Its verdict is the only automated one. The platform does not reassess anything
+submitted; a human reviews what the agent marks before anything is reported.
 
 ## If it finds nothing
 

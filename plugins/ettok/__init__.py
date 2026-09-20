@@ -7,14 +7,16 @@ on a fork of a repository with 33,000 commits.
 
 The division of labour, which explains most of the design:
 
-  The platform owns the knowledge and the verdict. It holds the lexicon, the
-  tropes, the exemptions, the rubric and the cases; it re-evaluates everything this
-  agent submits, and its conclusion is the one that stands.
+  The platform owns the knowledge. It holds the lexicon, the tropes, the
+  exemptions, the rubric and the cases, and publishes them as a versioned
+  release. It runs no classifier of its own: what arrives is what it stores,
+  shows and exports.
 
-  This agent owns collection and delivery. It fetches knowledge per run and keeps
-  none of it, captures evidence before an item counts as collected, forms an
-  advisory opinion when there is budget for one, and gets findings onto the
-  platform without losing or duplicating any of them.
+  This agent owns collection *and* judgement. It fetches knowledge per run and
+  keeps none of it, captures evidence before an item counts as collected,
+  decides once per post whether the conversation is one this organisation
+  monitors, assesses every in-scope comment under it -- matched or not -- and
+  gets the results onto the platform without losing or duplicating any of them.
 """
 
 from __future__ import annotations
@@ -301,7 +303,7 @@ def _make_tools(ctx):
 
     @_guard
     def classify_item(args: dict, **_) -> str:
-        """Advisory verdict. The platform re-evaluates and its verdict stands."""
+        """One comment, judged. The only automated judgement there is."""
         from .detect import classify as classify_mod
         from .detect import match as match_mod
 
@@ -702,10 +704,11 @@ def _make_tools(ctx):
             {
                 'name': 'ettok_classify',
                 'description': (
-                    'Form an advisory verdict on a comment, judged together with the post '
-                    'it replies to. The Ettok platform re-evaluates every submission and a '
-                    'human reviews it, so this opinion informs triage rather than deciding '
-                    'anything. Pass match_only to skip the model call entirely.'
+                    'Judge one comment, together with the post it replies to. This is '
+                    'the only automated judgement made: the Ettok platform records it '
+                    'rather than reassessing it, and a person reviews what is marked '
+                    'before anything is reported. Pass match_only to skip the model '
+                    'call and see what the curated lists alone found.'
                 ),
                 'parameters': {
                     'type': 'object',
@@ -949,9 +952,11 @@ def register(ctx) -> None:
 
 _OPERATING_RULES = (
     'You are operating Ettok AI, a hate speech monitoring agent. Four rules govern '
-    'everything you do with it. Your classification is advisory: the Ettok platform '
-    're-evaluates every item and a human reviews it before anything is reported, so '
-    'never claim more confidence than the evidence supports. Judge a comment together '
+    'everything you do with it. Yours is the only automated judgement made: the '
+    'Ettok platform records what you decide rather than reassessing it, and a person '
+    'reviews what you mark before anything is reported -- so never claim more '
+    'confidence than the evidence supports, and leave an item undecided rather than '
+    'guessing. Judge a comment together '
     'with the post it replies to, never alone -- the same words are ordinary piety '
     'under one post and a libel under another. Never circumvent an access control: a '
     'CAPTCHA or a block is the platform telling you it has noticed, so stop and report '

@@ -164,9 +164,11 @@ def run(args) -> int:
 
     # -- 3. the model ------------------------------------------------------
     _step(3, total, 'Which model forms the agent\'s opinion?')
-    _say('  Classification is advisory — the platform re-evaluates everything and')
-    _say('  a human reviews it. The agent works without a model configured; it')
-    _say('  simply reports what matched rather than forming a view.')
+    _say('  This is the only automated judgement in the system — the platform')
+    _say('  records what the agent decides rather than reassessing it, and a')
+    _say('  person reviews what it marks. The agent still works without a model')
+    _say('  configured: it collects, captures evidence and reports what the')
+    _say('  curated lists matched, with no verdict attached to any of it.')
     _say()
     if _model_configured():
         _say('  A model provider is configured.')

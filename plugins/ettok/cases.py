@@ -10,10 +10,12 @@ what it looks like it should be:
 
     always, free   collect, evidence, normalise, match, dedup, submit
     first spend    discovery of unknown vocabulary
-    last spend     the agent's own advisory classification
+    last spend     judging what was collected
 
-Classification goes first because the platform reproduces it authoritatively, so
-paying for it twice buys the least. Discovery goes last because nothing anywhere
+Classification is cut first, but not because anything else reproduces it --
+nothing does. It is because a post deleted today cannot be collected next month
+when a donation arrives, while an opinion about it can be formed at any time:
+the verdict is deferred, not written off. Discovery goes last because nothing anywhere
 else performs it, and without it the term list decays as campaigns adopt new
 language specifically to evade it. A month with no budget at all is a valid
 operating state: collection still runs, and collection is the time-sensitive part
