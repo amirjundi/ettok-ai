@@ -375,6 +375,37 @@ def _finding(item: dict, result, verdict, case, digest: str, versions=None,
     }
 
 
+def _note_gap(gaps: dict, item: dict, verdict, groups, allowed_categories) -> None:
+    """Propose the words that carried an attack no curated entry caught.
+
+    Merged by spelling within a run, so a phrase repeated down a thread is one
+    proposal with its occurrences counted rather than many.
+    """
+    from .detect.normalize import normalize
+
+    key = normalize(verdict.key_phrase)
+    gap = gaps.get(key)
+    if gap is None:
+        gaps[key] = {
+            'suggested_term': verdict.key_phrase[:500],
+            'content_text': item.get('text', ''),
+            'language': item.get('language') or '',
+            'suggested_target_group': (groups or [''])[0],
+            # The platform refuses a category it does not know, and refuses the
+            # whole proposal with it.
+            'suggested_category': (verdict.category
+                                   if verdict.category in (allowed_categories or [])
+                                   else ''),
+            'evidence_urls': [item['url']] if item.get('url') else [],
+            'occurrences': 1,
+            'rationale': verdict.reason,
+        }
+        return
+    gap['occurrences'] += 1
+    if item.get('url') and item['url'] not in gap['evidence_urls']:
+        gap['evidence_urls'] = (gap['evidence_urls'] + [item['url']])[:20]
+
+
 def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool = True) -> dict:
     """Work one batch of items under one case.
 
@@ -611,11 +642,27 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
                     reason='no budget to check whether this post is in scope')
         entry['scope'] = scopes[key]
 
+    # Matched again where the scope check named a community no topic marker
+    # did. Pass one could only know what the markers said, so a context-only
+    # term or a community's trope under a post the model placed was never
+    # tested, and the prompt then said nothing curated had matched.
+    for entry in candidates:
+        if set(entry['scope'].groups) - set(entry['result'].topic_groups):
+            was_matched = entry['result'].matched
+            entry['result'] = match_mod.evaluate(
+                entry['item'], know,
+                case_id=case.case_id if case is not None else None,
+                groups=entry['scope'].groups,
+            )
+            if entry['result'].matched and not was_matched:
+                summary['flagged'] += 1
+
     summary['posts'] = len(scopes)
     summary['out_of_scope'] = sum(
         1 for e in candidates if not e['scope'].assessable and not e['result'].matched)
 
     # --- pass three: paid, in priority order ------------------------------
+    gaps = {}
     #
     # Matched first. The lexicon stopped being the gate and became the queue:
     # a hit is the one direction a word list is reliable in, so a run that runs
@@ -638,10 +685,13 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             entry['verdict'] = classify_mod.from_match_only(result, know.versions)
             continue
 
+        # Every community the post concerns. Keeping only the last one gave a
+        # post about Yazidis and Assyrians half its background.
         background = ''
         if case is not None:
-            for slug in (result.topic_groups or entry['scope'].groups):
-                background = case.background_for(slug) or background
+            background = '\n\n'.join(dict.fromkeys(
+                b for b in (case.background_for(slug) for slug in
+                            (result.topic_groups or entry['scope'].groups)) if b))
 
         # Written down before the attempt, not after it.
         #
@@ -681,6 +731,7 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
                 severity_guidance=know.severity_guidance,
                 allowed_categories=know.allowed_categories,
                 guidance=picked,
+                case_context=case.trigger if case is not None else '',
             )
         except Exception as exc:                          # noqa: BLE001
             # Not swallowed into a match-only verdict here. `classify`
@@ -699,6 +750,9 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
             continue
         jobs_mod.complete(conn, job_id, verdict.as_payload(result))
         entry['verdict'] = verdict
+        if verdict.key_phrase and not result.matched:
+            _note_gap(gaps, item, verdict, result.topic_groups or entry['scope'].groups,
+                      know.allowed_categories)
 
         # Reserve the estimate, settle on what it cost. The estimate is
         # what the budget check above had to work from -- you cannot know
@@ -741,6 +795,12 @@ def run(ctx, *, items: list, case_id=None, classify: bool = True, submit: bool =
         # here, and marking these seen can no longer lose an item that was never
         # queued.
         remember(conn, collected_digests, case_key)
+
+    # What the lexicon missed: hate the model found where no curated term or
+    # trope matched. Proposals for a curator, never added on their own.
+    if gaps:
+        outbox_mod.enqueue(conn, 'lexicon-gaps/', {'gaps': list(gaps.values())})
+        summary['lexicon_gaps'] = len(gaps)
 
     outbox_mod.enqueue(conn, 'scan-log/', {
         # The case this run worked. It is what lets the platform stamp the case

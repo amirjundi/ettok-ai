@@ -36,6 +36,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from . import guidance as guidance_mod
+from .normalize import normalize
 
 log = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ log = logging.getLogger(__name__)
 # the instructions, the fields asked for, the guidance included. The same
 # comment under the same lexicon can get a different answer because this
 # moved, and a reviewer comparing two runs has to be able to see that.
-PROMPT_VERSION = '2026-09-20'
+PROMPT_VERSION = '2026-10-15'
 
 TIER_MATCHED_ONLY = 'matched_only'
 TIER_CLASSIFIED = 'classified'
@@ -114,6 +115,9 @@ _SCHEMA = {
         # Named, so something can act on it. A prose reason cannot be
         # turned into a retrieval.
         'missing': {'type': 'array', 'items': {'type': 'string'}},
+        # The words that carry the attack, copied from the comment. What a
+        # curator needs to see when no term on the list matched it.
+        'key_phrase': {'type': 'string'},
     },
     'required': ['is_hate_speech', 'reason'],
 }
@@ -185,6 +189,9 @@ class Verdict:
     # 0 is the original reading. Each successful retrieval makes a new
     # revision, and a new assessment rather than a retry of the old one.
     context_revision: int = 0
+    # The words the model says carry the attack. Only kept when they really
+    # are in the comment; used to propose lexicon additions, never to judge.
+    key_phrase: str = ''
     # What this call actually cost, as the host measured it. None where nothing
     # was spent (no model ran) or where the host could not say, which the
     # caller has to tell apart from zero.
@@ -311,7 +318,7 @@ _UNPUBLISHED = (
 
 def build_prompt(item: dict, match, group_background: str = '',
                  policy: str = '', severity_guidance: str = '',
-                 examples: list = None) -> str:
+                 examples: list = None, case_context: str = '') -> str:
     """Assemble the classification prompt for one item.
 
     Everything here is either the item, or something that matched the item. The
@@ -386,6 +393,14 @@ def build_prompt(item: dict, match, group_background: str = '',
     if group_background:
         lines += ['', f'ABOUT THE COMMUNITY CONCERNED: {group_background}']
 
+    # What the case is following: the anniversary, the incident, the viral
+    # video. Without it a comment that only makes sense against the event is
+    # judged as if the event never happened.
+    if (case_context or '').strip():
+        lines += ['', 'WHAT THIS MONITORING CASE IS FOLLOWING (background on the '
+                      'event, not evidence about this comment): '
+                      + case_context.strip()]
+
     if match.fired_terms:
         lines += ['', 'TERMS THAT MATCHED:']
         lines += [
@@ -455,7 +470,9 @@ def build_prompt(item: dict, match, group_background: str = '',
         'media, referent, event -- name them rather than describing them, so '
         'somebody can go and fetch them), '
         'unresolved (true if nothing is missing and the words still carry two '
-        'readings that the evidence does not choose between).',
+        'readings that the evidence does not choose between), '
+        'key_phrase (if it is hate speech, the shortest run of words in the '
+        'comment that carries the attack, copied exactly; empty otherwise).',
     ]
     return '\n'.join(lines)
 
@@ -513,7 +530,8 @@ def _checked_category(value, allowed) -> str:
 
 def classify(ctx, item: dict, match, *, versions: dict, group_background: str = '',
              policy: str = '', severity_guidance: str = '',
-             allowed_categories=None, guidance: dict = None) -> Verdict:
+             allowed_categories=None, guidance: dict = None,
+             case_context: str = '') -> Verdict:
     """Ask the model, once, in isolation.
 
     Falls back to the match-only verdict on any failure. A classifier that cannot
@@ -522,7 +540,8 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
     """
     guidance = guidance or {}
     prompt = build_prompt(item, match, group_background, policy,
-                          severity_guidance, guidance.get('examples') or [])
+                          severity_guidance, guidance.get('examples') or [],
+                          case_context=case_context)
 
     try:
         result = ctx.llm.complete_structured(
@@ -572,6 +591,12 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
     unread_image = bool(item.get('parent_media_unread'))
 
     unresolved = bool(parsed.get('unresolved'))
+
+    # Checked against the comment, because a phrase the model paraphrased or
+    # invented would be proposed to curators as something people wrote.
+    key_phrase = str(parsed.get('key_phrase') or '').strip()
+    if key_phrase and normalize(key_phrase) not in normalize(item.get('text', '')):
+        key_phrase = ''
 
     # Only the kinds that exist. A model inventing a sixth would otherwise
     # send the retrieval pass looking for something nothing can fetch, and
@@ -632,6 +657,7 @@ def classify(ctx, item: dict, match, *, versions: dict, group_background: str = 
         missing=(sorted(set(missing))
                  if state in (STATE_NEEDS_CONTEXT, STATE_NEEDS_VISUAL) else []),
         context_revision=int(item.get('context_revision') or 0),
+        key_phrase=key_phrase if verdict is True else '',
         tier=TIER_CLASSIFIED,
         example_ids=guidance.get('ids') or [],
         retrieval_version=guidance.get('retrieval_version', ''),

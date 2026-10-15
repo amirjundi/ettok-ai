@@ -97,6 +97,32 @@ def post_concerns(parent_text: str, markers_by_group: dict) -> list:
     )
 
 
+# Terms this short match inside unrelated words when tested as a substring.
+SHORT_TERM_CHARS = 3
+# One optional conjunction or preposition, then an optional article: the
+# prefixes Arabic writes onto the front of a word.
+_PROCLITIC = '(?:[وفبلك]?(?:ال)?)'
+
+
+def _contains(candidate: str, haystack: str) -> bool:
+    """Whether a plain-text term occurs in normalized text.
+
+    A substring for anything longer than three letters, which is what lets one
+    entry catch its prefixed and suffixed forms. A three-letter term tested
+    that way fires inside unrelated longer words, so it has to stand as its own
+    word, allowing for the prefixes Arabic attaches.
+
+    ponytail: suffixed forms of a short term (a pronoun on the end) no longer
+    match; a curator adds them as variants, or writes the term as a regex.
+    """
+    needle = normalize(candidate)
+    if not needle:
+        return False
+    if len(needle) > SHORT_TERM_CHARS or ' ' in needle:
+        return needle in haystack
+    return re.search(rf'(?<!\w){_PROCLITIC}{re.escape(needle)}(?!\w)', haystack) is not None
+
+
 def match_terms(text: str, terms: list, *, groups_in_context: list) -> tuple:
     """Match the lexicon against one comment.
 
@@ -121,7 +147,7 @@ def match_terms(text: str, terms: list, *, groups_in_context: list) -> tuple:
             hit = bool(compiled.search(haystack))
         else:
             candidates = [raw, *(term.get('variants') or [])]
-            hit = any(normalize(c) and normalize(c) in haystack for c in candidates)
+            hit = any(_contains(c, haystack) for c in candidates)
 
         if not hit:
             continue
@@ -275,15 +301,20 @@ def in_scope(row: dict, case_id=None) -> bool:
     return case_id is not None and int(row_case) == int(case_id)
 
 
-def evaluate(item: dict, knowledge, case_id=None) -> Match:
+def evaluate(item: dict, knowledge, case_id=None, groups=None) -> Match:
     """Match one item against everything the platform sent that applies here.
 
     `case_id` narrows the vocabulary to general plus this case's own. Omitted,
     only the general vocabulary applies.
+
+    `groups` adds communities the post is already known to concern, from the
+    model's scope check. Topic markers only recognise the posts a curator
+    anticipated; without this, a post the model placed under a community still
+    had its context-only terms and community tropes switched off.
     """
     parent = item.get('parent_post_text', '') or ''
     markers = knowledge.group_markers()
-    groups = post_concerns(parent, markers)
+    groups = sorted(set(post_concerns(parent, markers)) | set(groups or []))
 
     relevant_tropes = []
     for slug in groups or ['']:
