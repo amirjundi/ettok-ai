@@ -39,7 +39,7 @@ def read_terminal_tool(
 ) -> str:
     """Return the in-app terminal's contents (+ line metadata) as a JSON string."""
     return read_pane(callback, (("start", start_line, 0), ("count", count, 1)), (
-        "read_terminal is only available in the Hermes desktop app.",
+        "read_terminal is only available in the Ettok desktop app.",
         "start_line and count must be integers.",
         "Failed to read terminal: ",
         "No in-app terminal is open, or the read timed out.",

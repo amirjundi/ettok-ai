@@ -622,7 +622,7 @@ def run_backup(args) -> None:
     hermes_root = get_default_hermes_root()
 
     if not hermes_root.is_dir():
-        print(f"Error: Hermes home directory not found at {hermes_root}")
+        print(f"Error: Ettok home directory not found at {hermes_root}")
         sys.exit(1)
 
     try:
@@ -993,7 +993,7 @@ def run_import(args) -> None:
         if restored_profiles:
             print("\nTo re-enable gateway services for profiles:")
             for pname in restored_profiles:
-                print(f"  hermes -p {pname} gateway install")
+                print(f"  ettok -p {pname} gateway install")
         _revive_gateway_after_import(hermes_root)
         print("Done. Your Ettok configuration has been restored.")
 

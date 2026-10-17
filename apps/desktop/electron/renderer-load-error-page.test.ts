@@ -9,15 +9,15 @@ test('error page names the failure and carries a Reload button', () => {
     errorCode: -6,
     errorDescription: 'The desktop renderer bundle is incomplete after the last update (2 missing file(s)).',
     missingAssets: ['assets/app-C0ffee.js', 'assets/shiki-block-DeadBeef.js'],
-    repairHint: 'hermes desktop --force-build'
+    repairHint: 'ettok desktop --force-build'
   })
 
-  assert.match(html, /Hermes couldn.t start the desktop UI/)
+  assert.match(html, /Ettok couldn.t start the desktop UI/)
   assert.match(html, /incomplete after the last update \(2 missing file\(s\)\)/)
   assert.match(html, /-6/)
   assert.match(html, /assets\/app-C0ffee\.js/)
   assert.match(html, /assets\/shiki-block-DeadBeef\.js/)
-  assert.match(html, /hermes desktop --force-build/)
+  assert.match(html, /ettok desktop --force-build/)
   assert.match(html, /Reload/)
   assert.match(html, /location\.reload\(\)/)
 })

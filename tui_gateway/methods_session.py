@@ -1685,7 +1685,7 @@ def _(rid, params: dict, session: dict) -> dict:
     project = _project_info_for_cwd(_display_session_cwd(session))
     title = (meta.get("title") or "").strip()
     lines = [
-        "Hermes TUI Status", "", f"Session ID: {key}", f"Path: {display_hermes_home()}",
+        "Ettok TUI Status", "", f"Session ID: {key}", f"Path: {display_hermes_home()}",
         *([f"Project: {project['name']}"] if project else []), *([f"Title: {title}"] if title else []),
         f"Model: {model} ({provider})", f"Created: {created.strftime('%Y-%m-%d %H:%M')}",
         f"Last Activity: {updated.strftime('%Y-%m-%d %H:%M')}",

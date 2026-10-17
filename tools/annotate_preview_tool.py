@@ -24,7 +24,7 @@ def annotate_preview_tool(
 ) -> str:
     """Put one annotation up, take one down, or clear them all."""
     if callback is None:
-        return tool_error("annotate_preview is only available in the Hermes desktop app.")
+        return tool_error("annotate_preview is only available in the Ettok desktop app.")
     verb = (action or "add").strip().lower()
     if verb not in ACTIONS:
         return tool_error(f"action must be one of: {', '.join(ACTIONS)}.")

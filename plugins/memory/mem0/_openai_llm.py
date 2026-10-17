@@ -39,7 +39,7 @@ class DirectOpenAILLM(OpenAILLM):
         LLMBase.__init__(self, config)
         api_key = self.config.api_key or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError("OpenAI API key is required for the Hermes Mem0 OSS provider")
+            raise ValueError("OpenAI API key is required for the Ettok Mem0 OSS provider")
         from openai import OpenAI
         self.client = OpenAI(api_key=api_key, base_url=self.config.openai_base_url or os.getenv("OPENAI_BASE_URL") or "https://api.openai.com/v1")
 

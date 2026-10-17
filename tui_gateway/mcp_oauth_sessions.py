@@ -57,7 +57,7 @@ def _start_loopback_listener(flow) -> "http.server.HTTPServer":
                 self.end_headers()
                 return
             qs = parse_qs(parsed.query)
-            body = b"<h1>Authorization received</h1><p>You can close this tab and return to Hermes.</p>"
+            body = b"<h1>Authorization received</h1><p>You can close this tab and return to Ettok.</p>"
             status = 200
             try:
                 flow.deliver_callback(

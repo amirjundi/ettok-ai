@@ -22,7 +22,7 @@ def tour_tool(action: str = "", surface: Optional[str] = None, selector: Optiona
               callback: Optional[Callable] = None) -> str:
     """Dispatch one tour action to the desktop renderer and return its outcome."""
     if callback is None:
-        return tool_error("tour is only available in the Hermes desktop app.")
+        return tool_error("tour is only available in the Ettok desktop app.")
     verb = (action or "").strip().lower()
     if verb not in ACTIONS:
         return tool_error(f"action must be one of: {', '.join(ACTIONS)}.")

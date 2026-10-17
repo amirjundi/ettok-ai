@@ -57,7 +57,7 @@ def _(rid, params: dict) -> dict:
     if not available:
         return _ok(rid, {
             "available": False, "success": False,
-            "error": "No image generation backend configured (run `hermes tools` to enable one)."})
+            "error": "No image generation backend configured (run `ettok tools` to enable one)."})
     prompt = str(params.get("prompt") or "").strip()
     if not prompt:
         return _err(rid, 4071, "prompt required")

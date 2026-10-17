@@ -224,9 +224,9 @@ _REQUEST_REJECTIONS: tuple[tuple[Callable[[Any], bool], str], ...] = (
     (lambda r: r.role not in {"leaf", "orchestrator"}, "role must be 'leaf' or 'orchestrator'."),
     (lambda r: r.timeout_seconds is not None, "Per-launch timeout is not supported; configure delegation timeout explicitly."),
     (lambda r: r.working_directory is not None,
-     "working_directory is not supported because Hermes delegates use isolated task environments."),
+     "working_directory is not supported because Ettok delegates use isolated task environments."),
     (lambda r: bool(r.blocked_tools),
-     "Per-tool blocking is not supported; use allowed_toolsets. Hermes always blocks unsafe child tools."),
+     "Per-tool blocking is not supported; use allowed_toolsets. Ettok always blocks unsafe child tools."),
 )
 
 

@@ -27,7 +27,7 @@ def setup_mcp_tool(server: str = "", action: str = "install", reason: str = "", 
         # the model backs off without burning iterations. The breaker resets once the fresh session
         # initializes (_run_stdio/_run_http call _reset_server_error).
         return tool_error(
-            "setup_mcp is only available in the Hermes desktop app. Use the "
+            "setup_mcp is only available in the Ettok desktop app. Use the "
             "terminal instead: `ettok mcp install <name>` for catalog entries, "
             "`ettok mcp login <name>` for OAuth.")
 

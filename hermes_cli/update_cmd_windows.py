@@ -269,7 +269,7 @@ def _format_venv_python_holders_message(matches: list[tuple[int, str, str]]) -> 
     See #90778.
     """
     hint_by_subcommand = {
-        "serve": "  ← Hermes backend (if the Desktop app is open, close it)",
+        "serve": "  ← Ettok backend (if the Desktop app is open, close it)",
         "dashboard": "  ← ettok dashboard (stop it: ettok dashboard stop, or close that terminal)",
         "gateway": "  ← gateway",
     }
@@ -282,7 +282,7 @@ def _format_venv_python_holders_message(matches: list[tuple[int, str, str]]) -> 
     lines.append(
         "\n  On Windows these keep native extension files (.pyd) locked, so the\n"
         "  dependency update would fail partway and leave a broken install.\n"
-        "  Close the Hermes desktop app / other Hermes terminals, then re-run:\n    ettok update\n"
+        "  Close the Ettok desktop app / other Ettok terminals, then re-run:\n    ettok update\n"
         "  (or use `ettok update --force-venv` to proceed anyway at your own risk)"
     )
     return "\n".join(lines)

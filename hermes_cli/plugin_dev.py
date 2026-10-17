@@ -227,7 +227,7 @@ def _check_manifest_v2(report: "DoctorReport", manifest: Any) -> None:
     mv = getattr(manifest, "manifest_version", 1)
     if mv > SUPPORTED_MANIFEST_VERSION:
         report.warning(
-            f"manifest_version {mv} is newer than this Hermes supports "
+            f"manifest_version {mv} is newer than this Ettok supports "
             f"({SUPPORTED_MANIFEST_VERSION}); unknown fields are ignored")
 
     api_version = getattr(manifest, "api_version", None)
@@ -267,7 +267,7 @@ def _check_manifest_v2(report: "DoctorReport", manifest: Any) -> None:
     if missing:
         report.warning(
             "declared python_dependencies not installed: " + ", ".join(missing)
-            + " — Hermes never auto-installs plugin dependencies; install manually: pip install "
+            + " — Ettok never auto-installs plugin dependencies; install manually: pip install "
             + " ".join(f"'{m}'" for m in missing))
 
     schema = getattr(manifest, "config_schema", {}) or {}

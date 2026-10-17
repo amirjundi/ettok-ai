@@ -94,7 +94,7 @@ def build_dashboard_parser(
     # surfaces that merely share this server.
     serve_parser = subparsers.add_parser(
         "serve",
-        help="Start the Hermes backend server (headless; powers the desktop app and remote backends)",
+        help="Start the Ettok backend server (headless; powers the desktop app and remote backends)",
         description="Run the Ettok backend server — the JSON-RPC/WebSocket gateway the "
             "desktop app and remote clients connect to. Headless: it never opens "
             "a browser UI.")

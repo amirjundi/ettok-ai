@@ -472,7 +472,7 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
             - run{' '}
           </Text>
           <Text bold color={t.color.warn}>
-            {info.update_command || 'hermes update'}
+            {info.update_command || 'ettok update'}
           </Text>
           <Text bold={false} color={t.color.warn} dimColor>
             {' '}

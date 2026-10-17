@@ -567,7 +567,7 @@ def _quarantine_running_hermes_exe(
             f"  ⚠ Could not quarantine {shim.name} ({last_exc.__class__.__name__}: "
             f"another process is holding it open).")
         print(
-            "    Close Hermes Desktop, exit other `hermes` REPLs, stop the "
+            "    Close Ettok Desktop, exit other `hermes` REPLs, stop the "
             "gateway, or pause AV scanning, then re-run `ettok update`.")
         if failed_out is not None:
             failed_out.append(shim.name)

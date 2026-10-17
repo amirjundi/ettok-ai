@@ -21,7 +21,7 @@ CLOSE_TERMINAL_SCHEMA = {
     "name": "close_terminal",
     "description": (
         "Hide a background process's terminal tab (process keeps running) in "
-        "the Hermes desktop GUI (the tabs mirroring terminal(background=true) runs). "
+        "the Ettok desktop GUI (the tabs mirroring terminal(background=true) runs). "
         "This does NOT kill the process — it only drops the tab/view; the output "
         "keeps buffering and the user can reopen it from the status stack. Use it "
         "to tidy up when a background process's live terminal is no longer worth "

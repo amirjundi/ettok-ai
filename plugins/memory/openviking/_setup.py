@@ -274,7 +274,7 @@ def _print_openviking_ready(message: str, path: Optional[Path] = None) -> None:
     _say(message)
     if path is not None:
         _say(f"Config file: {path}")
-    print("  Start a new Hermes session to activate.\n")
+    print("  Start a new Ettok session to activate.\n")
 
 
 def _run_existing_profile_setup(*, profiles: list, select, cancelled, config: dict, provider_config: dict, env_path: Path) -> bool | object:
@@ -343,7 +343,7 @@ def _run_create_profile_setup(*, prompt, select, cancelled, config: dict, provid
         return False
 
     save_choice = select("  Save OpenViking config",
-                         [("Keep in Hermes only", "write values only to Hermes .env"),
+                         [("Keep in Ettok only", "write values only to Ettok .env"),
                           ("Mirror to OpenViking store", "write ~/.openviking/ovcli.conf.<name> and link it")],
                          default=1, cancel_returns=cancelled)
     if save_choice == cancelled:
@@ -358,7 +358,7 @@ def _run_create_profile_setup(*, prompt, select, cancelled, config: dict, provid
         return True
 
     _save_hermes_only_config(config=config, provider_config=provider_config, env_path=env_path, values=values)
-    _print_openviking_ready("Connection saved to Hermes .env.")
+    _print_openviking_ready("Connection saved to Ettok .env.")
     return True
 
 

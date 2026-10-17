@@ -400,14 +400,19 @@ build-backend = "setuptools.build_meta"
 # an operator reads `hermes` in a terminal and reasonably concludes they
 # installed the wrong thing.
 #
-# Verified safe: nothing in the runtime invokes a `hermes` binary. Every match
-# for "hermes" in agent/, hermes_cli/, gateway/, cron/ and tools/ is a module
-# name, a mode string or a client identifier, never a subprocess. Internal module
-# names stay as they are -- renaming 1853 files would conflict with every
+# The `hermes*` names below are internal and never advertised. The runtime does
+# invoke a `hermes` binary: cron delivery, gateway self-update, kanban dispatch,
+# relaunch and profile wrappers use `shutil.which("hermes")`, and the Windows
+# updater and installers expect `venv\Scripts\hermes.exe`. Dropping them broke
+# the Windows installer, which refuses to continue without hermes.exe. Internal
+# module names stay as they are -- renaming 1853 files would conflict with every
 # upstream merge and no user ever sees them.
 ettok = "hermes_cli.main:main"
 ettok-agent = "run_agent:main"
 ettok-acp = "acp_adapter.entry:main"
+hermes = "hermes_cli.main:main"
+hermes-agent = "run_agent:main"
+hermes-acp = "acp_adapter.entry:main"
 
 [tool.uv]
 override-dependencies = [

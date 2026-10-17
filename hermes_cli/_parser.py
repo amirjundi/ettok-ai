@@ -61,13 +61,13 @@ _EPILOGUE = """
 Examples:
     hermes                        Start interactive chat
     ettok chat -q "Hello"        Single query mode
-    hermes --tui                  Launch the modern TUI (or set display.interface: tui)
+    ettok --tui                  Launch the modern TUI (or set display.interface: tui)
     hermes --cli                  Force the classic REPL (overrides display.interface: tui)
     hermes -c                     Resume the most recent session
     hermes -c "my project"        Resume a session by name (latest in lineage)
     hermes --resume <session_id>  Resume a specific session by ID
     hermes --resume latest        Resume the most recent session (same as -c)
-    hermes --tui --resume latest --in ./dir   Resume ./dir's latest session in the TUI
+    ettok --tui --resume latest --in ./dir   Resume ./dir's latest session in the TUI
     ettok setup                  Run setup wizard
     ettok logout                 Clear stored authentication
     ettok auth add <provider>    Add a pooled credential

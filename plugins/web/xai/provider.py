@@ -74,7 +74,7 @@ class XAIWebSearchProvider(BaseWebSearchProvider):
         api_key = str(creds.get("api_key") or "").strip()
         base_url = str(creds.get("base_url") or "https://api.x.ai/v1").strip().rstrip("/")
         if not api_key:
-            return _fail("No xAI credentials found. Run `hermes auth` to sign in with xAI Grok OAuth, or set XAI_API_KEY.")
+            return _fail("No xAI credentials found. Run `ettok auth` to sign in with xAI Grok OAuth, or set XAI_API_KEY.")
         # Same clamp range as web_search_tool so explicit limits aren't downgraded.
         limit = max(1, min(_coerce(int, limit, 5), 100))
         cfg = _load_xai_web_config()

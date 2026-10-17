@@ -18,7 +18,7 @@ def focus_pane_tool(pane: str) -> str:
         return tool_error(f"pane must be one of: {', '.join(PANES)}.")
     return desktop_ui.emit_or_error(
         "pane.reveal", {"pane": name}, f"Failed to focus the {name} pane: ",
-        "Pane focus is only available in the Hermes desktop app.", {"success": True, "pane": name})
+        "Pane focus is only available in the Ettok desktop app.", {"success": True, "pane": name})
 
 
 registry.register(
@@ -27,7 +27,7 @@ registry.register(
     schema={
         "name": "focus_pane",
         "description": (
-            "Reveal and focus a Hermes desktop pane when the user asks to see it: "
+            "Reveal and focus a Ettok desktop pane when the user asks to see it: "
             "chat, files, terminal, review (git diff), or sessions. For URLs/"
             "files use the desktop_preview tool instead."
         ),
@@ -57,7 +57,7 @@ import json  # noqa: F401,E402
 FOCUS_PANE_SCHEMA = {
     "name": "focus_pane",
     "description": (
-        "Reveal and focus a Hermes desktop pane when the user asks to see it: "
+        "Reveal and focus a Ettok desktop pane when the user asks to see it: "
         "chat, files, terminal, review (git diff), or sessions. For URLs/"
         "files use the desktop_preview tool instead."
     ),

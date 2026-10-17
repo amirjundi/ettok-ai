@@ -87,7 +87,7 @@ def _local_runtime_hint(reason: str | None) -> str:
     if "no module named" in text and any(m in text for m in ("hindsight'", 'hindsight"', "hindsight_embed")):
         return (
             f" Install the embedded runtime with: uv pip install --python "
-            f"{sys.executable} hindsight-all — or run 'hermes memory setup'. "
+            f"{sys.executable} hindsight-all — or run 'ettok memory setup'. "
             "(local_embedded needs the 'hindsight-all' package, which provides the "
             "top-level 'hindsight' module; 'hindsight-client' alone only covers "
             "cloud / local_external.)"

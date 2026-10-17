@@ -53,7 +53,7 @@ _INITIALIZE_PARAMS = {
     "clientInfo": {"name": "hermes-agent", "title": "Ettok AI", "version": "0.0.0"},
 }
 _DEPRECATED_CLI_ERROR = (
-    "Hermes ACP mode requires the NEW GitHub Copilot CLI (github.com/github/copilot-cli), but the binary it just "
+    "Ettok ACP mode requires the NEW GitHub Copilot CLI (github.com/github/copilot-cli), but the binary it just "
     "spawned is the deprecated `gh copilot` extension.\n\n"
     "Install the new CLI:\n  npm install -g @github/copilot\n  # then verify with: copilot --help\n\n"
     "If `copilot` already resolves to the new CLI but you still see this,\npoint Ettok at it explicitly:\n"
@@ -417,7 +417,7 @@ class CopilotACPClient:
             except Exception as exc:
                 response = _jsonrpc_error(message_id, -32602, str(exc))
         else:
-            response = _jsonrpc_error(message_id, -32601, f"ACP client method '{method}' is not supported by Hermes yet.")
+            response = _jsonrpc_error(message_id, -32601, f"ACP client method '{method}' is not supported by Ettok yet.")
         process.stdin.write(json.dumps(response) + "\n")
         process.stdin.flush()
         return True

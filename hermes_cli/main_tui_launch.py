@@ -59,9 +59,9 @@ def _print_tui_exit_summary(session_id: Optional[str], active_session_file: Opti
         if db is not None:
             db.close()
 
-    print(f"\nResume this session with:\n  hermes --tui --resume {target}")
+    print(f"\nResume this session with:\n  ettok --tui --resume {target}")
     if title:
-        print(f'  hermes --tui -c "{title}"')
+        print(f'  ettok --tui -c "{title}"')
     print(f"\nSession:        {target}")
     if title:
         print(f"Title:          {title}")
@@ -414,7 +414,7 @@ def _ensure_tui_workspace(tui_dir: Path) -> None:
         "Recovery:\n"
         "  1. From the Ettok checkout, run `git restore -- ui-tui`\n"
         "  2. Run `npm install --silent --no-fund --no-audit --progress=false`\n"
-        "  3. Retry `hermes --tui`\n"
+        "  3. Retry `ettok --tui`\n"
         "If the checkout is still inconsistent, run `ettok update --force`.",
         file=sys.stderr)
     sys.exit(1)

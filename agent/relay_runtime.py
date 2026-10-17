@@ -1215,7 +1215,7 @@ def _configured_plugin_inputs(relay: Any) -> tuple[dict[str, Any], list[Any]] | 
         with config_path.open("rb") as config_file:
             config = tomllib.load(config_file)
         if "dynamic_plugins" in config:
-            raise ValueError("Hermes [[dynamic_plugins]] records are unsupported; use Relay [[plugins.dynamic]] records")
+            raise ValueError("Ettok [[dynamic_plugins]] records are unsupported; use Relay [[plugins.dynamic]] records")
         dynamic_plugins = relay.plugin.load_dynamic_plugin_activation_specs(config_path) if "plugins" in config else []
         return {k: v for k, v in config.items() if k != "plugins"}, dynamic_plugins
     except Exception as exc:

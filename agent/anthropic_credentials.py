@@ -567,7 +567,7 @@ def run_hermes_oauth_login_pure() -> Optional[Dict[str, Any]]:
 
 def read_hermes_oauth_credentials() -> Optional[Dict[str, Any]]:
     """Read Hermes-managed OAuth credentials from ~/.hermes/.anthropic_oauth.json."""
-    data = _load_json_if_exists(_get_hermes_oauth_file(), "Hermes OAuth credentials")
+    data = _load_json_if_exists(_get_hermes_oauth_file(), "Ettok OAuth credentials")
     return data if data is not None and data.get("accessToken") else None
 
 

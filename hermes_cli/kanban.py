@@ -307,7 +307,7 @@ def _cmd_init(args: argparse.Namespace) -> int:
             print(f"  {name}")
     else:
         print("No profiles found under ~/.hermes/profiles/.\n"
-              "Create one with `hermes -p <name> setup` before assigning tasks.")
+              "Create one with `ettok -p <name> setup` before assigning tasks.")
     print(
         "\nNext step: start the gateway so ready tasks actually get picked up.\n"
         "  ettok gateway start\n\n"
@@ -332,7 +332,7 @@ def _cmd_assignees(args: argparse.Namespace) -> int:
     if _json_out(args, data):
         return 0
     if not data:
-        print("(no assignees — create a profile with `hermes -p <name> setup`)")
+        print("(no assignees — create a profile with `ettok -p <name> setup`)")
         return 0
     print(f"{'NAME':20s}  {'ON DISK':8s}  COUNTS")
     for entry in data:

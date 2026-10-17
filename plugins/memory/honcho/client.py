@@ -540,7 +540,7 @@ def get_honcho_client(config: HonchoClientConfig | None = None) -> Honcho:
 
     if not config.api_key and not config.base_url:
         raise ValueError("Honcho API key not found. Get your API key at https://app.honcho.dev, "
-                         "then run 'hermes honcho setup' or set HONCHO_API_KEY. "
+                         "then run 'ettok honcho setup' or set HONCHO_API_KEY. "
                          "For local instances, set HONCHO_BASE_URL instead.")
 
     return slot.get(lambda: _build_client(config))
@@ -555,7 +555,7 @@ def _build_client(config: HonchoClientConfig) -> "Honcho":
         from honcho import Honcho
     except ImportError:
         raise ImportError("honcho-ai is required for Honcho integration. Install it with: pip install honcho-ai  "
-                          "(or run `hermes honcho setup` to configure).")
+                          "(or run `ettok honcho setup` to configure).")
 
     # config.yaml honcho.base_url / timeout fill whatever honcho.json left unset.
     base_url, timeout = config.base_url, config.timeout

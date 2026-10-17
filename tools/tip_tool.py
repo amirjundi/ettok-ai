@@ -29,7 +29,7 @@ def tip_tool(text: str, selector: str, title: str = "", side: str = "") -> str:
     except Exception as exc:
         return tool_error(f"Failed to show the tip: {exc}")
     if not ok:
-        return tool_error("tip is only available in the Hermes desktop app.")
+        return tool_error("tip is only available in the Ettok desktop app.")
     return json.dumps({"success": True, "selector": selector}, ensure_ascii=False)
 
 

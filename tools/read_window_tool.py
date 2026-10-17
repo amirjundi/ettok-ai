@@ -15,7 +15,7 @@ from tools.registry import registry
 def read_window_below_tool(callback: Optional[Callable] = None) -> str:
     """Return the window underneath the Ettok window as a JSON string."""
     return read_pane(callback, (), (
-        "read_window_below is only available in the Hermes desktop app.",
+        "read_window_below is only available in the Ettok desktop app.",
         "",
         "Failed to read the window below: ",
         "Could not determine the window underneath (the desktop app did "
@@ -26,7 +26,7 @@ def read_window_below_tool(callback: Optional[Callable] = None) -> str:
 READ_WINDOW_BELOW_SCHEMA = {
     "name": "read_window_below",
     "description": (
-        "Identify the app window directly behind the Hermes desktop window "
+        "Identify the app window directly behind the Ettok desktop window "
         "(what the user is working in). JSON: {window: {app, title, bounds, "
         "id}, frontmost, platform}. title may be empty when the OS withholds "
         "it (noted in `note`); where windows cannot be enumerated at all, "

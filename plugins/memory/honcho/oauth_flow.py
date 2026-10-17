@@ -151,7 +151,7 @@ _CALLBACK_PAGE = (
     "display:flex;align-items:center;justify-content:center;height:100vh;margin:0'><div>{body}</div>"
 )
 _CALLBACK_HTML = _CALLBACK_PAGE.format(
-    title="Honcho connected", body="Connected to Honcho. You can close this tab and return to Hermes."
+    title="Honcho connected", body="Connected to Honcho. You can close this tab and return to Ettok."
 ).encode()
 _CALLBACK_ERROR_HTML = _CALLBACK_PAGE.format(  # ``{error}`` is filled per request
     title="Honcho sign-in failed", body="Sign-in was not completed ({error}). You can close this tab and re-run setup."

@@ -167,7 +167,7 @@ export function handleStatusEvent(ctx: GatewayEventContext): boolean {
   }
 
   if (event.type === 'error') {
-    const errorMessage = payload?.message || 'Hermes reported an error'
+    const errorMessage = payload?.message || 'Ettok reported an error'
     const looksLikeProviderSetup = isProviderSetupErrorMessage(errorMessage)
 
     // A turn that errors out has also ended — drop any open blocking prompt
@@ -205,7 +205,7 @@ export function handleStatusEvent(ctx: GatewayEventContext): boolean {
       notify({
         id: `gateway-error:${errorMessage}`,
         kind: 'error',
-        title: 'Hermes error',
+        title: 'Ettok error',
         message: errorMessage
       })
     }

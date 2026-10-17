@@ -570,7 +570,7 @@ def _refresh_access_token(
             "Nous Portal detected refresh-token reuse and revoked this session.\n"
             "This usually means an external process (monitoring script, "
             "custom self-heal hook, or another Ettok install sharing "
-            "~/.hermes/auth.json) called POST /api/oauth/token with Hermes's "
+            "~/.hermes/auth.json) called POST /api/oauth/token with Ettok's "
             "refresh token without persisting the rotated token back.\n"
             "Nous refresh tokens are single-use — only Ettok may call the "
             "refresh endpoint. For health checks, use `ettok auth status` "

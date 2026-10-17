@@ -43,13 +43,13 @@ def _is_auth_error(exc: BaseException) -> bool:
 
 _REAUTH_REQUIRED_MESSAGE = (
     "Honcho OAuth grant is revoked and cannot be refreshed; "
-    "re-authenticate with 'hermes honcho setup'."
+    "re-authenticate with 'ettok honcho setup'."
 )
 
 
 def _auth_error_message(exc: BaseException) -> str:
     return (f"Honcho rejected our credentials and a forced token refresh did not recover: {_redact_tokens(str(exc))}. "
-            "Re-authenticate with 'hermes honcho setup'.")
+            "Re-authenticate with 'ettok honcho setup'.")
 
 
 class SessionAuthMixin:

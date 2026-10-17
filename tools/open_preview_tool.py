@@ -40,7 +40,7 @@ def open_preview_tool(url: str, label: str = "") -> str:
         "preview.open",
         {"url": target, "label": label},
         "Failed to open the preview pane: ",
-        "The preview pane is only available in the Hermes desktop app.",
+        "The preview pane is only available in the Ettok desktop app.",
         {"success": True, "url": target, "label": label})
 
 
@@ -53,7 +53,7 @@ import json  # noqa: F401,E402
 OPEN_PREVIEW_SCHEMA = {
     "name": "open_preview",
     "description": (
-        "Open something in the preview pane beside the chat in the Hermes desktop "
+        "Open something in the preview pane beside the chat in the Ettok desktop "
         "app. Use this when the user asks to see a page, dev server, or file in the "
         "preview pane — e.g. \"open cnn.com in the preview pane\" or \"preview "
         "localhost:3000\". Accepts a web URL (a bare domain like www.cnn.com is fine), "

@@ -183,4 +183,4 @@ def register(ctx) -> None:
     ctx.register_hook("post_tool_call", _on_post_tool_call)
     ctx.register_hook("on_session_end", _on_session_end)
     ctx.register_command("disk-cleanup", handler=_handle_slash,
-                         description="Track and clean up ephemeral Hermes session files.")
+                         description="Track and clean up ephemeral Ettok session files.")

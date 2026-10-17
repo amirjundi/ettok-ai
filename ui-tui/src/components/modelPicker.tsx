@@ -286,7 +286,7 @@ export function ModelPicker({
                         authenticated: false,
                         models: [],
                         total_models: 0,
-                        warning: p.key_env ? `paste ${p.key_env} to activate` : 'run `hermes model` to configure'
+                        warning: p.key_env ? `paste ${p.key_env} to activate` : 'run `ettok model` to configure'
                       }
                     : p
                 )

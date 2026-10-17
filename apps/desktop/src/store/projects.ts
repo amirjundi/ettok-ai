@@ -273,7 +273,7 @@ async function gatewayRequest<T>(method: string, params: Record<string, unknown>
   }
 
   if (!gateway) {
-    throw new Error('Hermes gateway is not connected')
+    throw new Error('Ettok gateway is not connected')
   }
 
   return gateway.request<T>(method, params)
@@ -331,7 +331,7 @@ async function activeProjectsContext(profile = projectProfile()): Promise<Active
   }
 
   if (!gateway || gateway !== activeGateway() || profile !== normalizeProfileKey($activeGatewayProfile.get())) {
-    throw new Error('Active Hermes profile changed while connecting')
+    throw new Error('Active Ettok profile changed while connecting')
   }
 
   return { gateway, profile }

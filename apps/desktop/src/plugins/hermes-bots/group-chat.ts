@@ -1253,7 +1253,7 @@ export function groupSpeakerLabel(name?: null | string) {
     return renamed
   }
 
-  return trimmed.toLowerCase() === 'default' ? 'Hermes' : trimmed
+  return trimmed.toLowerCase() === 'default' ? 'Ettok' : trimmed
 }
 
 /** Trim a room log + its watermarks to the retained window, keeping

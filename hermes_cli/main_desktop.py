@@ -483,7 +483,7 @@ def _ensure_desktop_exe_launchable(desktop_dir: Path, packaged_executable: Optio
         return restored, True
 
     print("  ✗ No usable backup was found to restore.")
-    print("    Run `ettok desktop --force-build` to rebuild, or re-run the Hermes")
+    print("    Run `ettok desktop --force-build` to rebuild, or re-run the Ettok")
     print("    installer to repair the install.")
     return None, False
 
@@ -1124,7 +1124,7 @@ def _desktop_linux_sandbox_fixup(packaged_executable: Path) -> bool:
 
     sandbox, st = _sandbox_helper_lstat(packaged_executable)
     if not sandbox.exists():
-        print(f"✗ Hermes Desktop is missing Electron's Linux sandbox helper: {sandbox}")
+        print(f"✗ Ettok Desktop is missing Electron's Linux sandbox helper: {sandbox}")
         return False
     # Reject symlinks — chown/chmod must not follow an attacker-controlled link.
     if st is None:
@@ -1143,7 +1143,7 @@ def _desktop_linux_sandbox_fixup(packaged_executable: Path) -> bool:
 
     sudo = shutil.which("sudo")
     if not sudo:
-        print("✗ Hermes Desktop requires sudo to configure Electron's Linux sandbox helper.")
+        print("✗ Ettok Desktop requires sudo to configure Electron's Linux sandbox helper.")
         return False
 
     print("→ Configuring Electron Linux sandbox helper (sudo required)...")
@@ -1389,7 +1389,7 @@ def _build_desktop_app(desktop_dir: Path, *, source_mode: bool, npm: str, env: d
         print(f"  Run manually:  cd apps/desktop && npm run {build_script}")
         if sys.platform == "win32":
             print("  If this says \"Access is denied\" on Ettok.exe, close any")
-            print("  running Hermes desktop window and retry.")
+            print("  running Ettok desktop window and retry.")
         print("  If the log shows Electron download retries, rebuild via a mirror:")
         print("    ELECTRON_MIRROR=<mirror-base-url> ettok desktop --force-build")
         sys.exit(build_result.returncode or 1)
@@ -1520,7 +1520,7 @@ def cmd_gui(args: argparse.Namespace):
     # macOS-only one-shot: create a self-signed code-signing identity so TCC
     # grants survive rebuilds, then exit without building/launching.
     if getattr(args, "setup_tcc_identity", False):
-        identity = getattr(args, "identity", None) or "Ettok Local Signing"
+        identity = getattr(args, "identity", None) or "Hermes Local Signing"
         sys.exit(0 if _desktop_macos_setup_tcc_identity(identity) else 1)
 
     packaged_executable = _desktop_packaged_executable(desktop_dir)
@@ -1569,7 +1569,7 @@ def cmd_gui(args: argparse.Namespace):
         return
 
     if source_mode:
-        print("→ Launching Hermes Desktop from source build...")
+        print("→ Launching Ettok Desktop from source build...")
         launch_command = [npm, "exec", "--", "electron", "."]
     else:
         if packaged_executable is None:
@@ -1581,6 +1581,6 @@ def cmd_gui(args: argparse.Namespace):
     if getattr(args, "local", False):
         launch_command.append("--local")
     if not source_mode:
-        print(f"→ Launching packaged Hermes Desktop: {' '.join(launch_command)}")
+        print(f"→ Launching packaged Ettok Desktop: {' '.join(launch_command)}")
     launch_result = subprocess.run(launch_command, cwd=desktop_dir, env=env, check=False)
     sys.exit(launch_result.returncode)

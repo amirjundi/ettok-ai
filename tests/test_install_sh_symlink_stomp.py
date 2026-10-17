@@ -27,26 +27,23 @@ INSTALL_SH = REPO_ROOT / "scripts" / "install.sh"
 
 
 def _extract_setup_path_shim_block() -> str:
-    """Return the install.sh shim-write block used by setup_path()."""
+    """Return setup_path()'s write_launcher() helper plus the loop that calls it."""
     text = INSTALL_SH.read_text()
-    match = re.search(
-        r"(?P<block>mkdir -p \"\$command_link_dir\".*?chmod \+x \"\$command_link_dir/hermes\")",
-        text,
-        re.DOTALL,
-    )
-    assert match is not None, (
+    fn = re.search(r"^    write_launcher\(\) \{\n.*?^    \}\n", text, re.DOTALL | re.MULTILINE)
+    loop = re.search(r"^    for name in ettok hermes; do\n.*?^    done\n", text, re.DOTALL | re.MULTILINE)
+    assert fn is not None and loop is not None, (
         "Could not locate the setup_path shim-write block in scripts/install.sh"
     )
-    return match["block"]
+    return fn.group(0) + loop.group(0)
 
 
 def test_setup_path_shim_block_removes_old_link_before_writing() -> None:
     """Static guard: the rm must precede the cat heredoc, not follow it."""
     block = _extract_setup_path_shim_block()
-    rm_idx = block.find('rm -f "$command_link_dir/hermes"')
-    cat_idx = block.find('cat > "$command_link_dir/hermes" <<EOF')
+    rm_idx = block.find('rm -f "$path"')
+    cat_idx = block.find('cat > "$path" <<EOF')
     assert rm_idx != -1, (
-        "setup_path() must `rm -f` $command_link_dir/hermes before the "
+        "write_launcher() must `rm -f` the launcher path before the "
         "`cat >` heredoc, otherwise an existing symlink (left by older "
         "installs) will be followed and the pip entry point overwritten. "
         "See #21454."
@@ -90,7 +87,10 @@ def test_re_running_setup_path_block_preserves_pip_entry_point(tmp_path: Path) -
 
     block = _extract_setup_path_shim_block()
     # Drive the block with the real env vars setup_path() sets.
-    script = f'set -e\nHERMES_BIN={pip_entry!s}\ncommand_link_dir={command_link_dir!s}\n{block}\n'
+    script = (
+        f'set -e\nHERMES_BIN={pip_entry!s}\ncommand_link_dir={command_link_dir!s}\n'
+        f'USE_VENV=false\nINSTALL_DIR={tmp_path!s}\nHERMES_ENTRYPOINT={tmp_path / "hermes"!s}\n{block}\n'
+    )
     result = subprocess.run(
         ["bash", "-c", script],
         capture_output=True,

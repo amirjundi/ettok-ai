@@ -57,7 +57,7 @@ def _render_distribution_plan(plan) -> None:
     if mf.author:
         print(f"  Author:   {mf.author}")
     if mf.hermes_requires:
-        print(f"  Requires: Hermes {mf.hermes_requires}")
+        print(f"  Requires: Ettok {mf.hermes_requires}")
     print(f"  Source:   {plan.provenance}")
     print(f"  Target:   {plan.target_dir}")
     if plan.existing:
@@ -110,7 +110,7 @@ def _profile_status(args):
         print(f"Gateway:        {'running' if p.gateway_running else 'stopped'}")
         print(f"Skills:         {p.skill_count} installed")
         if p.alias_path:
-            print(f"Alias:          {p.alias_name or p.name} → hermes -p {p.name}")
+            print(f"Alias:          {p.alias_name or p.name} → ettok -p {p.name}")
     print()
 
 
@@ -192,7 +192,7 @@ def _profile_create(args):
         if collision:
             print(f"\n⚠ Cannot create alias '{name}' — {collision}")
             print(f"  Choose a custom alias:  ettok profile alias {name} --name <custom>")
-            print(f"  Or access via flag:     hermes -p {name} chat")
+            print(f"  Or access via flag:     ettok -p {name} chat")
         else:
             wrapper_path = create_wrapper_script(name)
             if wrapper_path:
@@ -327,7 +327,7 @@ def _profile_show(args):
             print(f"Installed from: {dist_source}")
         print(f"  (run `ettok profile info {name}` for full manifest)")
     if alias_name:
-        print(f"Alias:   {alias_name} → hermes -p {name}  ({_wrapper_path(alias_name)})")
+        print(f"Alias:   {alias_name} → ettok -p {name}  ({_wrapper_path(alias_name)})")
     print()
 
 
@@ -425,9 +425,9 @@ def _profile_install(args):
         if plan.has_cron:
             print(
                 "  Cron jobs were included but are NOT scheduled automatically.\n"
-                f"  Review them with:  hermes -p {plan.manifest.name} cron list"
+                f"  Review them with:  ettok -p {plan.manifest.name} cron list"
             )
-        print(f"\n  Use with:      hermes -p {plan.manifest.name} chat")
+        print(f"\n  Use with:      ettok -p {plan.manifest.name} chat")
     except (DistributionError, ValueError) as e:
         _die(f"Error: {e}")
 
@@ -458,7 +458,7 @@ def _profile_update(args):
         plan = update_distribution(canon, force_config=force_config)
         print(f"\n✓ Updated '{plan.manifest.name}' → v{plan.manifest.version}")
         if plan.has_cron:
-            print(f"  Cron files were refreshed.  Review with:  hermes -p {plan.manifest.name} cron list")
+            print(f"  Cron files were refreshed.  Review with:  ettok -p {plan.manifest.name} cron list")
     except (DistributionError, ValueError) as e:
         _die(f"Error: {e}")
 
@@ -467,7 +467,7 @@ _INFO_FIELDS = (
     ("description", "Description:  "),
     ("author", "Author:       "),
     ("license", "License:      "),
-    ("hermes_requires", "Requires:     Hermes "),
+    ("hermes_requires", "Requires:     Ettok "),
     ("source", "Source:       "),
     ("installed_at", "Installed:    "),
 )

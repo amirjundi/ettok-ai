@@ -73,7 +73,7 @@ def _failed_document(url: str, error: str) -> Dict[str, Any]:
 
 
 def _missing_key_error(action: str) -> str:
-    return f"TAVILY_API_KEY is not set. Get a key at https://app.tavily.com/home or select Tavily in `hermes tools` for opt-in keyless {action}."
+    return f"TAVILY_API_KEY is not set. Get a key at https://app.tavily.com/home or select Tavily in `ettok tools` for opt-in keyless {action}."
 
 
 def _auth(action: str) -> tuple[Optional[str], Optional[str], str]:

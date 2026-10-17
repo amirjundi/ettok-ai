@@ -159,7 +159,7 @@ def _get_firecrawl_client() -> Any:
     def _unconfigured_message() -> str:
         message = "Web tools are not configured. Set FIRECRAWL_API_KEY for cloud Firecrawl or set FIRECRAWL_API_URL for a self-hosted Firecrawl instance."
         if _backend_helpers.managed_nous_tools_enabled():
-            return message + " With your Nous subscription you can also use the Tool Gateway. run `hermes tools` and select Nous Subscription as the web provider."
+            return message + " With your Nous subscription you can also use the Tool Gateway. run `ettok tools` and select Nous Subscription as the web provider."
         return message + " " + _backend_helpers.nous_tool_gateway_unavailable_message("managed Firecrawl web tools")
 
     # (resolved config, log detail, error message) per selection state; the message is built lazily.

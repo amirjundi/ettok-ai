@@ -250,7 +250,7 @@ export function themeToneHex(tone: string): string {
 // ── Defaults ─────────────────────────────────────────────────────────
 
 const BRAND: ThemeBrand = {
-  name: 'Hermes Agent',
+  name: 'Ettok AI',
   icon: 'ℹ',
   prompt: '❯',
   welcome: 'Type your message or /help for commands.',

@@ -281,7 +281,7 @@ export function resolveVenvPython(updateRoot: string): string | null {
  */
 export function formatBlockerMessage(result: VenvBlockerScanResult): string {
   const lines = [
-    'Update aborted: another Hermes process is using this installation.',
+    'Update aborted: another Ettok process is using this installation.',
     '',
     'These processes must be stopped before updating:',
     ''
@@ -314,10 +314,10 @@ export function formatProbeFailedMessage(error?: string): string {
     : ''
 
   return (
-    'Update aborted: Desktop could not verify the Hermes installation is free.' +
+    'Update aborted: Desktop could not verify the Ettok installation is free.' +
     timeoutDetail +
     '\n\n' +
-    'Close other Hermes windows and terminals, then retry.  If the problem\n' +
-    'persists, run `hermes update` in a terminal for detailed diagnostics.'
+    'Close other Ettok windows and terminals, then retry.  If the problem\n' +
+    'persists, run `ettok update` in a terminal for detailed diagnostics.'
   )
 }

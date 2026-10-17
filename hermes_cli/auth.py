@@ -2040,7 +2040,7 @@ def _get_azure_foundry_auth_status() -> Dict[str, Any]:
                     "is skipped here. Run `ettok doctor` to verify token acquisition."
                 ) if installed else (
                     "azure-identity not installed. Install with: "
-                    "pip install azure-identity  (or rely on Hermes' "
+                    "pip install azure-identity  (or rely on Ettok' "
                     "lazy-install at first use)."))
         except Exception as exc:
             info["logged_in"] = False

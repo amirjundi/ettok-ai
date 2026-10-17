@@ -98,7 +98,7 @@ def _restart_mechanism(supervisor: str, profile: str) -> str:
 def describe_restart_mechanism(mechanism: str, profile: str) -> str:
     """Human-readable description of a restart mechanism id."""
     return _MECHANISM_DESCRIPTIONS.get(mechanism) or (
-        f"hermes -p {profile} gateway restart" if profile != "default" else "ettok gateway restart"
+        f"ettok -p {profile} gateway restart" if profile != "default" else "ettok gateway restart"
     )
 
 
@@ -383,7 +383,7 @@ def report_unaccounted_runtimes(outcomes: list[dict[str, Any]]) -> bool:
     print("    Restart them manually, then verify:")
     if any(o.get("kind") not in _SERVE_KINDS for o in missed):
         print("      ettok gateway restart                # active profile")
-        print("      hermes -p <profile> gateway restart   # named profile")
+        print("      ettok -p <profile> gateway restart   # named profile")
     if any(o.get("kind") in _SERVE_KINDS for o in missed):
         # A serve/dashboard is not reachable by any `gateway restart` command: name the process, not the wrong verb.
         # See #100479.

@@ -122,7 +122,7 @@ _OPENVIKING_RESPONDED_FAILURE_PREFIX = "OpenViking server responded"
 # Identity probe states; "modern" and "legacy" are the two identified ones.
 _OPENVIKING_IDENTIFIED_STATES = frozenset({"modern", "legacy"})
 _RETRY_LATER = (
-    "OpenViking memory is temporarily unavailable; Hermes will retry on a later access or when the config changes."
+    "OpenViking memory is temporarily unavailable; Ettok will retry on a later access or when the config changes."
 )
 _FIX_ENDPOINT = "OpenViking memory is temporarily unavailable; correct the endpoint and reload the configuration."
 _HTTPX_MISSING = "httpx not installed — OpenViking plugin disabled"
@@ -640,7 +640,7 @@ def _normalize_openviking_url(url: str) -> str:
         blocked = _openviking_endpoint_is_always_blocked(candidate)
     except Exception as exc:
         logger.debug("OpenViking endpoint safety validation failed", exc_info=True)
-        raise _OpenVikingEndpointError("OpenViking endpoint safety validation failed; Hermes refused the connection.") from exc
+        raise _OpenVikingEndpointError("OpenViking endpoint safety validation failed; Ettok refused the connection.") from exc
     if blocked:
         raise _OpenVikingEndpointError(
             f"OpenViking endpoint {_openviking_endpoint_label(candidate)} targets a blocked metadata address."
@@ -965,7 +965,7 @@ def _start_local_openviking_server(endpoint: str) -> tuple[str, str]:
     # An occupied port only prevents spawning — it never proves the listener is OpenViking.
     if _local_openviking_port_is_open(host, port):
         return _LOCAL_SERVER_OCCUPIED, (
-            f"Port {host}:{port} is occupied by {_describe_local_port_listener(host, port)}. Hermes did not start "
+            f"Port {host}:{port} is occupied by {_describe_local_port_listener(host, port)}. Ettok did not start "
             "openviking-server because the listener has not passed OpenViking's /health check."
         )
     server_cmd = shutil.which("openviking-server")
@@ -1495,7 +1495,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
         self._failed_refresh = (settings_key, time.monotonic())
         if health_state == "responded":
             logger.warning(
-                "%s OpenViking memory is temporarily unavailable; Hermes will retry on a later access (after cooldown) or when the config changes.",
+                "%s OpenViking memory is temporarily unavailable; Ettok will retry on a later access (after cooldown) or when the config changes.",
                 health_message,
             )
         else:
@@ -2613,7 +2613,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
                 recovery_note=(
                     "Inspect session_uri before recovery. If history/archive_* exists, do not retry. If messages.jsonl contains "
                     "the fact and no archive exists, run recovery_command with the same OpenViking profile and credentials as "
-                    "Hermes. Otherwise, do not resubmit automatically; report the uncertain state to the user."
+                    "Ettok. Otherwise, do not resubmit automatically; report the uncertain state to the user."
                 ),
             )
         try:

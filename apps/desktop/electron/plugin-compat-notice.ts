@@ -131,8 +131,8 @@ export function pendingNotice(hermesHome: string, userData: string): PendingNoti
     : `${names.length} plugin${names.length === 1 ? '' : 's'} import${names.length === 1 ? 's' : ''} module paths that stop working on ${report.removal_date}.`
 
   const detail = report.in_effect
-    ? `${list}\n\nUpdate the plugin(s), or force-load them with plugins.allow_deprecated_imports: true in config.yaml (they will still break once the compatibility layer is removed).\n\nFull list: hermes plugins compat`
-    : `${list}\n\nCheck for plugin updates or notify the author before ${report.removal_date}. After that date these plugins are not loaded.\n\nFull list: hermes plugins compat`
+    ? `${list}\n\nUpdate the plugin(s), or force-load them with plugins.allow_deprecated_imports: true in config.yaml (they will still break once the compatibility layer is removed).\n\nFull list: ettok plugins compat`
+    : `${list}\n\nCheck for plugin updates or notify the author before ${report.removal_date}. After that date these plugins are not loaded.\n\nFull list: ettok plugins compat`
 
   return { key, title, message, detail }
 }

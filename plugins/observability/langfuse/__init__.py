@@ -206,7 +206,7 @@ def _build_client() -> Optional[Langfuse]:
     if Langfuse is None:
         logger.warning(
             "Langfuse plugin is enabled but the langfuse SDK is unavailable; "
-            "tracing is disabled. Run `hermes tools` and configure Langfuse "
+            "tracing is disabled. Run `ettok tools` and configure Langfuse "
             "Observability to reinstall it."
         )
         return None
@@ -523,14 +523,14 @@ def _start_root_trace(task_key: str, *, task_id: str, session_id: str, platform:
     trace_ctx: Dict[str, Any] = {"trace_id": trace_id, **({"session_id": session_id} if session_id else {})}
 
     def open_root():
-        ctx = client.start_as_current_observation(trace_context=trace_ctx, name="Hermes turn", as_type="chain",
+        ctx = client.start_as_current_observation(trace_context=trace_ctx, name="Ettok turn", as_type="chain",
                                                   input=trace_input, metadata=metadata, end_on_exit=False)
         return ctx, ctx.__enter__()
 
     root_ctx = root_span = None
     if propagate_attributes is not None:
         try:
-            with propagate_attributes(session_id=session_id or task_key, trace_name="Hermes turn",
+            with propagate_attributes(session_id=session_id or task_key, trace_name="Ettok turn",
                                       tags=["hermes", "langfuse"]):
                 root_ctx, root_span = open_root()
         except Exception:

@@ -18,20 +18,23 @@ from unittest.mock import patch
 
 INSTALL_SH = Path(__file__).resolve().parent.parent / "scripts" / "install.sh"
 
-ACP_BLOCK = re.compile(
-    r'(    rm -f "\$command_link_dir/hermes-acp".*?'
-    r'log_success "Installed hermes-acp launcher[^\n]*\n)',
-    re.S,
-)
+WRITE_LAUNCHER_FN = re.compile(r'(^    write_launcher\(\) \{\n.*?^    \}\n)', re.S | re.M)
+LAUNCHER_LOOP = re.compile(r'(^    for name in ettok hermes; do\n.*?^    done\n)', re.S | re.M)
+
+
+def _extract_launcher_block() -> str:
+    """The write_launcher() helper plus the setup_path() loop that calls it."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    fn, loop = WRITE_LAUNCHER_FN.search(text), LAUNCHER_LOOP.search(text)
+    assert fn and loop, (
+        "could not locate write_launcher() or its launcher loop in scripts/install.sh — "
+        "if it was renamed, update this test with it"
+    )
+    return fn.group(1) + loop.group(1)
 
 
 def _extract_acp_shim_block() -> str:
-    match = ACP_BLOCK.search(INSTALL_SH.read_text(encoding="utf-8"))
-    assert match, (
-        "could not locate the hermes-acp launcher block in scripts/install.sh — "
-        "if it was renamed, update this test with it"
-    )
-    return match.group(1)
+    return _extract_launcher_block()
 
 
 def _run_block(tmp_path: Path, use_venv: str) -> Path:
@@ -133,20 +136,8 @@ def test_acp_launcher_does_not_follow_a_symlink_into_the_venv(tmp_path):
 # hermes-agent launcher regression (#74819)
 # ---------------------------------------------------------------------------
 
-HERMES_AGENT_BLOCK = re.compile(
-    r'(rm -f "\$command_link_dir/hermes-agent".*?'
-    r'log_success "Installed hermes-agent launcher[^\n]*\n)',
-    re.S,
-)
-
-
 def _extract_hermes_agent_shim_block() -> str:
-    match = HERMES_AGENT_BLOCK.search(INSTALL_SH.read_text(encoding="utf-8"))
-    assert match, (
-        "could not locate the hermes-agent launcher block in scripts/install.sh — "
-        "if it was renamed, update this test with it"
-    )
-    return match.group(1)
+    return _extract_launcher_block()
 
 
 def _run_hermes_agent_block(tmp_path: Path, use_venv: str) -> Path | None:
@@ -212,3 +203,13 @@ def test_hermes_agent_launcher_cleanup_on_uninstall(tmp_path):
         removed = remove_wrapper_script()
 
     assert local_shim in removed, "local hermes-agent wrapper must be removed"
+
+
+def test_ettok_launchers_match_their_hermes_twins(tmp_path):
+    """`ettok*` is what users type; `hermes*` stays for runtime callers. Same target."""
+    acp = _run_block(tmp_path, "true")
+    bin_dir = acp.parent
+    for name in ("", "-acp", "-agent"):
+        ettok, hermes = bin_dir / f"ettok{name}", bin_dir / f"hermes{name}"
+        assert ettok.is_file() and hermes.is_file(), name
+        assert ettok.read_text(encoding="utf-8") == hermes.read_text(encoding="utf-8"), name

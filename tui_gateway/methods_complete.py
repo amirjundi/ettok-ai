@@ -301,7 +301,7 @@ def _(rid, params: dict) -> dict:
     if not (pconfig := PROVIDER_REGISTRY.get(slug)):
         return _err(rid, 4002, f"unknown provider: {slug}")
     if pconfig.auth_type != "api_key":
-        return _err(rid, 4003, f"{pconfig.name} uses {pconfig.auth_type} auth — run `hermes model` to configure")
+        return _err(rid, 4003, f"{pconfig.name} uses {pconfig.auth_type} auth — run `ettok model` to configure")
     if not pconfig.api_key_env_vars:
         return _err(rid, 4004, f"no env var defined for {pconfig.name}")
     # Save the key to ~/.hermes/.env via the unified credential lifecycle so any stale config.yaml mirror of

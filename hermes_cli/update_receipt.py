@@ -370,5 +370,5 @@ def print_fleet_version_matrix(fleet: list[dict[str, Any]]) -> bool:
         if any_down:
             print("  ⚠ Down gateways stopped serving messaging entirely — restart them:")
         print("      ettok gateway restart                # active profile")
-        print("      hermes -p <profile> gateway restart   # named profile")
+        print("      ettok -p <profile> gateway restart   # named profile")
     return any_stale or any_down

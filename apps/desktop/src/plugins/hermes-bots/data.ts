@@ -65,7 +65,7 @@ const BOT_ATTENTION_CLASSES: ReadonlySet<string> = new Set<AttentionClass>([
 export const BOT_ATTENTION_HINTS: Record<string, string> = {
   provider_auth_or_access: 'Sign in again for this profile',
   provider_quota_limit: 'Quota or balance exhausted',
-  missing_config: 'Provider not configured — run hermes model',
+  missing_config: 'Provider not configured — run ettok model',
   agent_blocked: 'Bot is blocked — see its last message'
 }
 
@@ -1080,7 +1080,7 @@ export function newBotChat(bot: RosterRow) {
     host.notify?.({
       kind: 'error',
       message:
-        getPluginCtx()?.i18n?.t('bot.openAnotherChatUnsupported') ?? 'Update Hermes Desktop to open another Bot chat.'
+        getPluginCtx()?.i18n?.t('bot.openAnotherChatUnsupported') ?? 'Update Ettok Desktop to open another Bot chat.'
     })
 
     return
@@ -1092,7 +1092,7 @@ export function newBotChat(bot: RosterRow) {
     host.notify?.({
       kind: 'error',
       message:
-        getPluginCtx()?.i18n?.t('bot.openAnotherChatUnsupported') ?? 'Update Hermes Desktop to open another Bot chat.'
+        getPluginCtx()?.i18n?.t('bot.openAnotherChatUnsupported') ?? 'Update Ettok Desktop to open another Bot chat.'
     })
 
     return

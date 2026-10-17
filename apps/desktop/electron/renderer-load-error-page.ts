@@ -102,10 +102,10 @@ export function buildRendererLoadErrorPage(details: RendererLoadErrorDetails = {
   const code =
     details.errorCode === undefined || details.errorCode === null ? '' : ` (${escapeHtml(details.errorCode)})`
 
-  const title = 'Hermes couldn\u2019t start the desktop UI'
+  const title = 'Ettok couldn\u2019t start the desktop UI'
   const description = escapeHtml(details.errorDescription || 'The desktop renderer failed to load.')
   const url = details.url ? `<p><code>${escapeHtml(details.url)}</code></p>` : ''
-  const repair = details.repairHint ? `<p>Repair with: <code>hermes desktop --force-build</code></p>` : ''
+  const repair = details.repairHint ? `<p>Repair with: <code>ettok desktop --force-build</code></p>` : ''
 
   return `<!doctype html>
 <html lang="en">
@@ -164,7 +164,7 @@ export function buildRendererLoadErrorPage(details: RendererLoadErrorDetails = {
   ${missingAssetsList(details.missingAssets)}
   ${repair}
   <p>If this keeps happening, check <code>logs/desktop.log</code> and try
-  <code>hermes desktop --force-build</code>, then restart the app.</p>
+  <code>ettok desktop --force-build</code>, then restart the app.</p>
   ${reloadButtonJs(details)}
 </main>
 </body>

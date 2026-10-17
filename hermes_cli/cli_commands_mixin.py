@@ -889,7 +889,7 @@ class CLICommandsMixin:
                 wrapper_path = create_wrapper_script(imported)
                 if wrapper_path:
                     print(f"  Wrapper created: {wrapper_path}")
-        print(f"  Use it: hermes -p {imported}")
+        print(f"  Use it: ettok -p {imported}")
 
     # ---- /stop, /agents -------------------------------------------------------------------
     def _handle_stop_command(self):

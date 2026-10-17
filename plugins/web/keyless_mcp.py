@@ -48,7 +48,7 @@ def _is_rate_limitish(message: str) -> bool:
 
 def _fail_msg(vendor: str, kind: str, exc: Any, *, other_backends: bool = True) -> str:
     label, env_key, site = _VENDOR_HINTS[vendor]
-    alt = " or another web backend via `hermes tools`" if other_backends else ""
+    alt = " or another web backend via `ettok tools`" if other_backends else ""
     return f"Keyless {label} {kind} failed: {exc}. Set {env_key} ({site}){alt} for reliable service."
 
 

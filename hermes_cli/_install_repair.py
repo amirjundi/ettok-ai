@@ -93,7 +93,7 @@ def _venv_scripts_dir(root: Path) -> Path | None:
 
 #: Launcher names install.ps1's Set-PathVariable exposes from the managed binary dir (the default
 #: Ettok root's ``bin``, next to uv.exe). Keep in lockstep with scripts/install.ps1.
-_WINDOWS_BIN_LAUNCHERS = ("hermes", "hermes-acp")
+_WINDOWS_BIN_LAUNCHERS = ("ettok", "ettok-acp", "hermes", "hermes-acp")
 
 
 def _launcher_present(target: Path, name: str) -> bool:

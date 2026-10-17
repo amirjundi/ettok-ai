@@ -561,7 +561,7 @@ class TestAuthNotice:
         provider._base_context_cache = ""
 
         first = provider.prefetch("what did we decide about the schema?")
-        assert "hermes honcho setup" in first
+        assert "ettok honcho setup" in first
         assert "paused" in first
 
         second = provider.prefetch("and the follow-up question?")
@@ -899,7 +899,7 @@ class TestInitAuthFailureNotice:
 
         assert provider._manager is None
         notice = provider.prefetch("what did we decide about the schema?")
-        assert "hermes honcho setup" in notice
+        assert "ettok honcho setup" in notice
         assert "paused" in notice
 
     def test_notice_is_emitted_exactly_once(self, tmp_path, monkeypatch):
@@ -908,7 +908,7 @@ class TestInitAuthFailureNotice:
         _wire_init(tmp_path, monkeypatch, client)
         provider = _initialized_provider()
 
-        assert "hermes honcho setup" in provider.prefetch("first question")
+        assert "ettok honcho setup" in provider.prefetch("first question")
         # Retries keep failing, but the same episode never re-arms the notice.
         for query in ("second question", "third question"):
             assert provider.prefetch(query) == ""
@@ -931,7 +931,7 @@ class TestInitAuthFailureNotice:
         assert provider._manager is None
         assert client.peer.called  # failure hit session setup, not peer setup
         notice = provider.prefetch("what happened before the grant died?")
-        assert "hermes honcho setup" in notice
+        assert "ettok honcho setup" in notice
 
     def test_tools_lazy_init_reports_auth_error(self, tmp_path, monkeypatch):
         client = MagicMock()
@@ -948,7 +948,7 @@ class TestInitAuthFailureNotice:
         client.peer.side_effect = Exception("HTTP 401 Unauthorized")
         path = _wire_init(tmp_path, monkeypatch, client)
         provider = _initialized_provider()
-        assert "hermes honcho setup" in provider.prefetch("first question")
+        assert "ettok honcho setup" in provider.prefetch("first question")
 
         _relogin(path)
         client.peer.side_effect = None

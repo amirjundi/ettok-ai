@@ -398,7 +398,7 @@ def build_peer_parser(subparsers) -> None:
         description="Register other Ettok gateways as peers and message their agents. "
             "'ettok peer dm <peer>[/<agent>] \"...\"' delivers into the remote "
             "agent's canonical Bot Chat over the peer's API server and prints "
-            "the reply — the cross-machine twin of 'hermes -p <bot> chat'. "
+            "the reply — the cross-machine twin of 'ettok -p <bot> chat'. "
             "The peer must run the api_server platform; its API_SERVER_KEY is "
             "stored locally as a credential in ~/.hermes/.env.",
         epilog=(

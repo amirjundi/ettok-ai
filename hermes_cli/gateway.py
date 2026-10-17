@@ -4493,7 +4493,7 @@ def _guard_official_docker_root_gateway() -> None:
     print(
         "  The image entrypoint normally drops privileges to the 'hermes' user. "
         "If you override entrypoint in Docker Compose, include "
-        "/opt/hermes/docker/entrypoint.sh before the Hermes command."
+        "/opt/hermes/docker/entrypoint.sh before the Ettok command."
     )
     print(
         "  Running the gateway as root can leave root-owned files in "
@@ -5184,7 +5184,7 @@ def _setup_weixin():
     _print_info_lines(
         "  1. Ettok will open Tencent iLink QR login in this terminal.",
         "  2. Use WeChat to scan and confirm the QR code.",
-        "  3. Hermes will store the returned account_id/token in ~/.hermes/.env.",
+        "  3. Ettok will store the returned account_id/token in ~/.hermes/.env.",
         "  4. This adapter supports native text, image, video, and document delivery.",
     )
 
@@ -5937,7 +5937,7 @@ _NO_BACKEND_MESSAGES = {
     ("install", "s6"): (None,
         "Per-profile gateways are auto-registered when you create a profile.", "",
         "  ettok profile create <name>     # creates the s6 service slot",
-        "  hermes -p <name> gateway start   # bring it up via s6",
+        "  ettok -p <name> gateway start   # bring it up via s6",
         "  ettok status                    # see currently-supervised gateways"),
     ("install", "container"): (0,
         "Service installation is not needed inside a Docker container.",
@@ -5953,7 +5953,7 @@ _NO_BACKEND_MESSAGES = {
     ("uninstall", "s6"): (None,
         "Per-profile gateways are auto-unregistered when you delete the profile.", "",
         "  ettok profile delete <name>     # tears down the s6 service slot",
-        "  hermes -p <name> gateway stop    # stop without deleting the profile"),
+        "  ettok -p <name> gateway stop    # stop without deleting the profile"),
     ("uninstall", "container"): (0,
         "Service uninstall is not applicable inside a Docker container.",
         "To stop the gateway, stop or remove the container:", "",

@@ -111,7 +111,7 @@ def remove_path_from_shell_configs():
 
 
 def remove_wrapper_script():
-    """Remove the hermes wrapper script if it exists."""
+    """Remove the ettok/hermes wrapper scripts if they exist."""
     def _unlink_ours(wrapper: Path) -> bool:
         # Only our wrapper (contains a hermes_cli / hermes-agent reference).
         content = wrapper.read_text(encoding="utf-8")
@@ -120,7 +120,7 @@ def remove_wrapper_script():
     candidates = (
         bin_dir / name
         for bin_dir in (Path.home() / ".local" / "bin", Path("/usr/local/bin"))
-        for name in ("hermes", "hermes-acp", "hermes-agent"))
+        for name in ("ettok", "ettok-acp", "ettok-agent", "hermes", "hermes-acp", "hermes-agent"))
     return _remove_each((w for w in candidates if w.exists()), _unlink_ours)
 
 
@@ -443,7 +443,7 @@ def run_gui_uninstall(args):
     print()
     if agent_is_installed(hermes_home):
         print(color("Kept intact:", Colors.GREEN, Colors.BOLD))
-        print(f"  • The Hermes agent at {hermes_home / 'hermes-agent'}")
+        print(f"  • The Ettok agent at {hermes_home / 'hermes-agent'}")
         print(f"  • Your config, sessions, and secrets under {hermes_home}")
         print()
 
@@ -574,9 +574,9 @@ def _print_uninstall_dry_run(*, project_root: Path, hermes_home: Path, full_unin
     print("  • Desktop Chat GUI artifacts")
     print(f"  • Code checkout: {project_root}")
     if not full_uninstall:
-        print(f"  • Keep Hermes config/data: {hermes_home}")
+        print(f"  • Keep Ettok config/data: {hermes_home}")
     else:
-        print(f"  • Hermes config/data: {hermes_home}")
+        print(f"  • Ettok config/data: {hermes_home}")
         profiles = _discover_named_profiles() if _is_default_hermes_home(hermes_home) else []
         if profiles:
             print("  • Named profiles (interactive uninstall asks before removing):")
@@ -640,12 +640,12 @@ def _perform_uninstall(
              Path(os.path.expandvars(str(hermes_home))), include_managed_bin=sweep_managed_bin),
          "Removed from User PATH: {}", "No Ettok-owned PATH entries in User environment"),
         (windows, "Removing HERMES_HOME / HERMES_GIT_BASH_PATH User env vars...",
-         remove_hermes_env_vars_windows, "Removed User env var: {}", "No Hermes-set User env vars to remove"),
+         remove_hermes_env_vars_windows, "Removed User env var: {}", "No Ettok-set User env vars to remove"),
         (True, "Removing hermes command...", remove_wrapper_script, "Removed {}", "No wrapper script found"),
         (windows, "Removing Windows hermes launchers...",
          remove_windows_bin_launchers, "Removed {}", "No Windows hermes launchers found"),
         (True, "Removing Ettok-managed node/npm/npx symlinks...",
-         lambda: remove_node_symlinks(hermes_home), "Removed {}", "No Hermes-managed node/npm/npx symlinks found"),
+         lambda: remove_node_symlinks(hermes_home), "Removed {}", "No Ettok-managed node/npm/npx symlinks found"),
     ):
         if on_this_platform:
             _remove_step(label, remove, success_fmt, none_msg)

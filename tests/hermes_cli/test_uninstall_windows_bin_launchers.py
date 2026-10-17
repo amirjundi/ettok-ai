@@ -86,7 +86,7 @@ def test_launcher_names_stay_in_lockstep_with_install_ps1():
 
     assert staged == set(_WINDOWS_BIN_LAUNCHERS)
     for name in _WINDOWS_BIN_LAUNCHERS:
-        assert name.startswith("hermes")  # never a generic name it could clobber
+        assert name.startswith(("ettok", "hermes"))  # never a generic name it could clobber
 
 
 class TestManagedBinPathMarker:

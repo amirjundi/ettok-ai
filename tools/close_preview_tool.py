@@ -11,7 +11,7 @@ def close_preview_tool(url: str = "") -> str:
     target = _normalize_target(url or "")
     return desktop_ui.emit_or_error(
         "preview.close", {"url": target}, "Failed to close the preview pane: ",
-        "The preview pane is only available in the Hermes desktop app.", {"success": True, "url": target},
+        "The preview pane is only available in the Ettok desktop app.", {"success": True, "url": target},
     )
 
 
@@ -24,7 +24,7 @@ import json  # noqa: F401,E402
 CLOSE_PREVIEW_SCHEMA = {
     "name": "close_preview",
     "description": (
-        "Close the preview pane beside the chat in the Hermes desktop app, or one "
+        "Close the preview pane beside the chat in the Ettok desktop app, or one "
         "tab inside it. Use this when the user asks to close, hide, or dismiss the "
         "preview — e.g. \"close the preview pane\", \"close cnn.com\", \"hide the "
         "preview\". Omit url to close the whole pane (every tab). Pass a web URL, "

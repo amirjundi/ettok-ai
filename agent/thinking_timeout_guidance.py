@@ -45,7 +45,7 @@ def build_thinking_timeout_guidance(provider: str, model: str, model_label: Opti
         f"known issue with reasoning models (like {label}) behind cloud "
         "gateways (NVIDIA NIM, OpenAI, Anthropic, DeepSeek). Workarounds in priority order:\n"
         f"1. Set `providers.{provider}.models.{model}.stale_timeout_seconds: 900` "
-        "in `~/.hermes/config.yaml` to extend the per-call timeout. (Hermes's built-in floor is 600s for known "
+        "in `~/.hermes/config.yaml` to extend the per-call timeout. (Ettok's built-in floor is 600s for known "
         "reasoning models — if you still see this after raising, the upstream cap is even shorter.)\n2. Lower "
         "`reasoning_budget` or set `reasoning_effort: medium` on this model if the provider supports it.\n3. Use a "
         "smaller / faster reasoning model if the task doesn't require deep thinking."

@@ -1054,7 +1054,7 @@ def _restart_manual_gateways(out: _GatewayRestartOutcome, _drain_budget) -> None
             print(f"  → Stopped {unmapped_count} manual gateway process(es)")
             print("    Restart manually: ettok gateway run")
             if unmapped_count > 1:
-                print("    (or: hermes -p <profile> gateway run  for each profile)")
+                print("    (or: ettok -p <profile> gateway run  for each profile)")
 
 
 def _force_kill_stuck_gateways(killed_pids) -> None:

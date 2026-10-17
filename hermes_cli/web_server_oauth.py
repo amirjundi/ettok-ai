@@ -53,7 +53,7 @@ def _anthropic_oauth_status() -> Dict[str, Any]:
     except Exception:
         hermes_creds = None
     if hermes_creds and hermes_creds.get("accessToken"):
-        return _token_status("hermes_pkce", f"Hermes PKCE ({_get_hermes_oauth_file()})", hermes_creds)
+        return _token_status("hermes_pkce", f"Ettok PKCE ({_get_hermes_oauth_file()})", hermes_creds)
 
     env_var_order: tuple = ("ANTHROPIC_API_KEY", "ANTHROPIC_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN")
     try:
