@@ -27,6 +27,13 @@ def _setup_args(p) -> None:
     p.add_argument('--name', help='Name the administrator will see when approving')
 
 
+def _score_args(p) -> None:
+    p.add_argument('--csv', default='',
+                   help='Also write one row per entry to this file, for the pilot report')
+    p.add_argument('--limit', type=int, default=0,
+                   help='Score only the first N entries (each costs a model call)')
+
+
 def _selectors_args(p) -> None:
     p.add_argument('page', help='A post page saved from the browser (.html)')
     p.add_argument('--platform', default='facebook')
@@ -68,6 +75,7 @@ COMMANDS = {
     'setup':     ('Set this machine up: platform, pairing, model, schedule', _setup_args, True),
     'doctor':    ('Check everything this agent needs in order to work', _no_args, True),
     'eval':      ('Run the gold set against the live lexicon', _no_args, False),
+    'score':     ('Score the whole agent against the labelled gold set', _score_args, False),
     'selectors': ('Check the extraction selectors against a saved page', _selectors_args, False),
     'status':    ('Show pairing, open cases and the delivery queue', _no_args, True),
     'accounts':  ('Account health, and lifting a quarantine', _accounts_args, False),
@@ -110,6 +118,7 @@ def handle_cli(args) -> int:
         'connect': _connect,
         'doctor': _doctor,
         'eval': _eval,
+        'score': _score,
         'selectors': _selectors,
         'status': _status,
         'accounts': _accounts,
@@ -525,6 +534,61 @@ def _eval(args) -> int:
             print(f'  - {term}')
 
     return 0 if not report['failures'] else 1
+
+
+def _score(args) -> int:
+    """Precision, recall and misses on the platform's human-labelled examples.
+
+    `eval` asks whether the free tier behaves on sentences we wrote down. This
+    asks the pilot's question about the whole agent, model included, on content
+    people labelled -- and it spends a model call per entry to answer it.
+    """
+    import csv
+    import types
+
+    from agent.plugin_llm import PluginLlm
+
+    from .detect import goldscore
+    from .platform import knowledge as knowledge_mod
+    from .platform.client import PlatformClient
+
+    cfg = _load_config(args)
+    if not cfg.is_paired:
+        print('Not paired with a platform yet. Run:  ettok ettok setup')
+        return 1
+
+    client = PlatformClient(cfg)
+    try:
+        know = knowledge_mod.fetch(client)
+        entries = client.gold().get('entries') or []
+    except Exception as exc:                                      # noqa: BLE001
+        print(f'Could not fetch the gold set: {exc}')
+        return 1
+    if args.limit:
+        entries = entries[:args.limit]
+    if not entries:
+        print('The gold set is empty. Fill the EXAMPLES sheet of the curator '
+              'workbook and import it on the platform first.')
+        return 1
+
+    # ponytail: outside a chat there is no plugin context, so the CLI builds the
+    # one piece of it detection uses. Same host facade, same trust policy.
+    ctx = types.SimpleNamespace(llm=PluginLlm(plugin_id='ettok'))
+    print(f'Scoring {len(entries)} entries -- one model call each.')
+    rows = goldscore.run(ctx, know, entries, progress=lambda n, total, row: print(
+        f'  {n}/{total}  label {row["label"]:<9} agent {row["predicted"]}', flush=True))
+    print()
+    print(goldscore.describe(rows))
+
+    if args.csv:
+        with open(args.csv, 'w', newline='', encoding='utf-8-sig') as fh:
+            writer = csv.DictWriter(fh, fieldnames=[
+                'id', 'label', 'predicted', 'finding', 'state', 'target_group',
+                'dialect', 'hard_case', 'reason'], restval='', extrasaction='ignore')
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f'\nWrote {args.csv}')
+    return 0
 
 
 def _selectors(args) -> int:

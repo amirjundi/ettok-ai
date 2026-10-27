@@ -239,6 +239,9 @@ class PlatformClient:
     def accounts(self) -> dict:
         return self.request('GET', 'accounts/').data
 
+    def gold(self) -> dict:
+        return self.request('GET', 'gold/').data
+
     def claim_case(self, case_id: int, *, release: bool = False) -> dict:
         """Take a case so no other agent is handed the same work, or give it back.
 
