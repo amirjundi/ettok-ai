@@ -2724,8 +2724,7 @@ export const ja = defineLocale({
       'セッショントークンまたはブラウザーサインインでリモートバックエンドを使用します。ローカルインストールは開始されません。',
     installLocalTitle: 'Ettok をローカルにインストール',
     installLocalDesc: 'Ettok をダウンロードし、Python 環境を作成して、このコンピューターでバックエンドを実行します。',
-    localStartUnavailable:
-      'ローカルインストールを開始できません。Ettok Desktop を再起動して、もう一度お試しください。',
+    localStartUnavailable: 'ローカルインストールを開始できません。Ettok Desktop を再起動して、もう一度お試しください。',
     remoteSetupTitle: '既存の Ettok に接続',
     remoteSetupDesc:
       'ゲートウェイ URL を入力してください。Ettok Desktop がトークンとブラウザーサインインのどちらが必要かを検出します。',
@@ -3133,8 +3132,7 @@ export const ja = defineLocale({
       address: 'アドレス',
       addressPlaceholder: 'アドレスを入力',
       blankPageBody: '上のアドレス欄に入力するか、Ettok にページを開くよう頼んでください。',
-      finishedRestarting: message =>
-        `Ettok がプレビューサーバーの再起動を完了しました${message ? `: ${message}` : ''}`,
+      finishedRestarting: message => `Ettok がプレビューサーバーの再起動を完了しました${message ? `: ${message}` : ''}`,
       failedRestarting: message => `サーバーの再起動に失敗しました: ${message}`,
       unknownError: '不明なエラー',
       restartedTitle: 'プレビューサーバーが再起動しました',

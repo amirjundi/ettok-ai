@@ -3088,8 +3088,7 @@ export const en: Translations = {
     errorTitle: 'Update didn’t finish',
     errorBody: 'No worries — nothing was lost. You can try again now.',
     blockerTitle: 'Close local previews to update Ettok?',
-    blockerBody:
-      'Ettok needs to stop these local previews before updating. This will not modify or delete your files.',
+    blockerBody: 'Ettok needs to stop these local previews before updating. This will not modify or delete your files.',
     foreignBlockerTitle: 'Close other processes to update Ettok',
     foreignBlockerBody:
       'Ettok can’t safely close these processes automatically. Close the app, terminal, or service that owns each one, then try the update again.',
@@ -3137,8 +3136,7 @@ export const en: Translations = {
     installTo: 'Will install to',
     retryAfterRun: 'I’ve run it -- retry',
     setupChoiceTitle: 'Set up Ettok Desktop',
-    setupChoiceDesc:
-      'Connect this app to a Ettok gateway you already run, or install Ettok locally on this computer.',
+    setupChoiceDesc: 'Connect this app to a Ettok gateway you already run, or install Ettok locally on this computer.',
     connectExistingTitle: 'Connect to existing Ettok',
     connectExistingShort: 'Connect existing',
     connectExistingDesc: 'Use a remote backend with a session token or browser sign-in. No local install will start.',

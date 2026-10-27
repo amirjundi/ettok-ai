@@ -69,9 +69,7 @@ const renderBillingError = (
     case 'remote_spending_disabled':
       // Account-wide switch is OFF (dual-emitted error/code). A billing admin can
       // turn it on from the portal's Hermes Agent page; this is NOT a per-terminal stop.
-      sys(
-        "Remote spending is off for this account — a billing admin can turn it on from the portal's Ettok AI page."
-      )
+      sys("Remote spending is off for this account — a billing admin can turn it on from the portal's Ettok AI page.")
 
       break
 

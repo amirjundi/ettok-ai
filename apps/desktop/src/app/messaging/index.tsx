@@ -914,8 +914,7 @@ const PLATFORM_INTRO: Record<string, string> = {
   matrix: 'Sign in to your homeserver with the bot account, then copy the access token, user ID, and homeserver URL.',
   signal:
     'Run a signal-cli REST bridge somewhere reachable, then point Ettok at the URL and the registered phone number.',
-  whatsapp:
-    'Start the WhatsApp bridge that ships with Ettok, scan the QR code on first run, then enable the platform.',
+  whatsapp: 'Start the WhatsApp bridge that ships with Ettok, scan the QR code on first run, then enable the platform.',
   bluebubbles:
     'Run BlueBubbles Server on a Mac with iMessage, expose its API, then point Ettok at the URL with the server password.',
   homeassistant:
