@@ -75,6 +75,21 @@ def test_loads_and_registers_its_tools_when_enabled(hermes_home):
         assert tool in registered, f'{tool} was not registered (have: {sorted(registered)})'
 
 
+def test_the_installers_enable_step_turns_monitoring_on(hermes_home):
+    """What install.sh and install.ps1 run on a fresh home, with nobody at the keyboard.
+
+    Without it the agent had no Ettok tools and no monitoring instructions, and
+    told operators it was a general assistant.
+    """
+    from hermes_cli.plugins_cmd import cmd_enable
+
+    cmd_enable('ettok')
+    manager = _load(hermes_home)
+
+    assert manager._plugins['ettok'].enabled
+    assert 'ettok_submit' in manager._plugin_tool_names
+
+
 def test_registers_the_operator_cli(hermes_home):
     _enable(hermes_home, 'ettok')
     manager = _load(hermes_home)

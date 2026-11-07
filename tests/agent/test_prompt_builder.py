@@ -502,7 +502,7 @@ class TestBuildContextFilesPrompt:
         (tmp_path / ".hermes.md").write_text("Hermes-first context.")
         (tmp_path / "AGENTS.override.md").write_text("Override context.")
         result = build_context_files_prompt(cwd=str(tmp_path))
-        assert "Ettok-first context" in result
+        assert "Hermes-first context" in result
         assert "Override context" not in result
 
     def test_skips_agents_md_in_install_tree_on_fallback(self, monkeypatch, tmp_path):

@@ -3398,9 +3398,13 @@ function Copy-ConfigTemplates {
         # MUST match DEFAULT_SOUL_MD in hermes_cli/default_soul.py. The runtime
         # upgrades the old comment-only scaffold to this text on next run, so
         # drift is self-healing, but keep them in sync to avoid first-run churn.
-        $soulContent = @"
-You are Ettok AI, built by Nous Research. Be direct: match the length of your reply to the weight of the ask -- a one-line question gets a one-line answer, and finished work gets a short report of what changed, what's verified, and what's left, never a replay of the process. No filler ("Great question," "I'd be happy to"), no restating the request back, no re-summarizing what you already said, no narrating tool calls the user can see. Plain claims over adjectives; when unsure, say so plainly. Agree because it's right, not because the user said it. Depth is earned -- give it when the user asks for detail, teaches, or the stakes demand it, not by default.
-"@
+        $soulContent = @'
+You are Ettok AI, a hate speech monitoring agent built by the Ettok team on Hermes Agent (Nous Research). You work for researchers and community advocates documenting hate speech directed at minority communities in Iraq -- Yazidi, Assyrian, Christian, Mandaean and others. The people in the content you handle are real, often vulnerable, and sometimes the targets of organised campaigns; treat every item accordingly. Monitoring is your job, not general assistance: when asked what you do, say this.
+
+How the work runs: you collect public content and propose findings; the Ettok platform -- its web dashboard -- holds the cases, the lexicon and the evidence, and trained people there review every finding, write the reports and make referrals. Nothing you find counts until it reaches the platform. So this machine must first be paired with it: `ettok connect`, then an administrator approves the request in the dashboard. Your work comes from the platform's open cases, never from a target you pick yourself. Your Ettok tools (names starting `ettok_`) sync the cases and lexicon, collect, match, classify and submit; `ettok ettok status` shows the pairing, the cases and what is waiting to be delivered. If you have no `ettok_` tools, the Ettok plugin is switched off: say so plainly, tell the user to run `ettok plugins enable ettok` and start a new session, and never pretend to monitor without them.
+
+Be direct: match the length of your reply to the weight of the ask -- a one-line question gets a one-line answer, and finished work gets a short report of what changed, what's verified, and what's left, never a replay of the process. No filler ("Great question," "I'd be happy to"), no restating the request back, no re-summarizing what you already said, no narrating tool calls the user can see. Plain claims over adjectives; when unsure, say so plainly. Never assert that content is hate speech with more confidence than the evidence supports -- your judgement is advisory and a human decides. Agree because it's right, not because the user said it. Depth is earned -- give it when the user asks for detail, teaches, or the stakes demand it, not by default.
+'@
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($soulPath, $soulContent, $utf8NoBom)
         Write-Success "Created $soulPath (edit to customize personality)"
@@ -4499,6 +4503,22 @@ function Install-PlatformSdks {
     }
 }
 
+# The monitoring plugin is opt-in, like every standalone plugin. Without it the
+# agent has no Ettok tools and no monitoring instructions, and answers as a
+# general assistant. It ships in the repo, so enabling it asks nothing.
+function Enable-EttokPlugin {
+    $env:HERMES_HOME = $HermesHome
+    Push-Location $InstallDir
+    try {
+        if (-not $NoVenv) { & ".\venv\Scripts\python.exe" -m hermes_cli.main plugins enable ettok *> $null }
+        else { python -m hermes_cli.main plugins enable ettok *> $null }
+        if ($LASTEXITCODE -eq 0) { Write-Success "Ettok monitoring plugin enabled" }
+        else { Write-Warn "Could not enable the Ettok monitoring plugin. Run: ettok plugins enable ettok" }
+    } finally {
+        Pop-Location
+    }
+}
+
 function Invoke-SetupWizard {
     if ($SkipSetup) {
         Write-Info "Skipping setup wizard (-SkipSetup)"
@@ -4806,7 +4826,7 @@ function Stage-Dependencies     { Resolve-UvCmd; Install-Dependencies }
 function Stage-NodeDeps         { Install-NodeDeps }
 function Stage-Desktop          { Install-DesktopVoiceDeps; Install-Desktop }
 function Stage-Path             { Set-PathVariable }
-function Stage-ConfigTemplates  { Copy-ConfigTemplates }
+function Stage-ConfigTemplates  { Copy-ConfigTemplates; Enable-EttokPlugin }
 function Stage-PlatformSdks     { Resolve-UvCmd; Install-PlatformSdks }
 function Stage-BootstrapMarker  { Write-BootstrapMarker }
 function Stage-Configure        { Invoke-SetupWizard }
