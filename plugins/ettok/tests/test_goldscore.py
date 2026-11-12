@@ -58,3 +58,26 @@ def test_ambiguous_is_reported_apart_and_empty_sets_do_not_divide_by_zero():
     t = goldscore.tally(rows)
     assert t['ambiguous'] == {'hate': 1}
     assert t['precision'] is None and t['f1'] is None
+
+
+def test_an_empty_reply_is_retried_once_then_recorded_and_the_run_goes_on(monkeypatch):
+    """What stopped the first real run at entry 53 and lost the 52 answers before it."""
+    calls = {}
+
+    def flaky(ctx, item, match, **kw):
+        calls[item['text']] = calls.get(item['text'], 0) + 1
+        if item['text'] == 'dead' or (item['text'] == 'blip' and calls['blip'] == 1):
+            raise classify_mod.ProviderUnavailable('the JSON object must be str, not NoneType')
+        return classify_mod.Verdict(state=POS)
+
+    monkeypatch.setattr(goldscore.scope_mod, 'assess', lambda ctx, **kw: scope_mod.Scope(
+        status=scope_mod.STATUS_IN_SCOPE, groups=['yazidi']))
+    monkeypatch.setattr(goldscore.classify_mod, 'classify', flaky)
+
+    rows = goldscore.run(None, Knowledge(), [
+        entry(1, 'blip', 'hate'), entry(2, 'dead', 'hate'), entry(3, 'after', 'hate')])
+    t = goldscore.tally(rows)
+
+    assert [r['predicted'] for r in rows] == ['hate', 'failed', 'hate']
+    assert calls['dead'] == 2
+    assert t['failed'] == 1 and t['entries'] == 2 and t['true_positives'] == 2

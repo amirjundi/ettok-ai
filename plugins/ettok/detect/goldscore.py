@@ -81,8 +81,8 @@ def run(ctx, know, entries: list, *, progress=None) -> list:
         verdict = None
         if scope.assessable or result.matched:
             groups = result.topic_groups or scope.groups
-            verdict = classify_mod.classify(
-                ctx, item, result, versions=know.versions,
+            kwargs = dict(
+                versions=know.versions,
                 group_background='\n\n'.join(dict.fromkeys(
                     backgrounds[g] for g in groups if backgrounds.get(g))),
                 policy=know.policy_text,
@@ -90,6 +90,21 @@ def run(ctx, know, entries: list, *, progress=None) -> list:
                 allowed_categories=know.allowed_categories,
                 guidance=guidance_mod.select(know.examples or [], match=result, groups=groups),
             )
+            # One retry, then recorded and passed over: an empty reply from the
+            # provider is neither a hit nor a miss, and losing a whole run to one
+            # of them threw away every answer already paid for.
+            try:
+                try:
+                    verdict = classify_mod.classify(ctx, item, result, **kwargs)
+                except classify_mod.ProviderUnavailable:
+                    verdict = classify_mod.classify(ctx, item, result, **kwargs)
+            except classify_mod.ProviderUnavailable as exc:
+                row.update(predicted='failed', finding=False, state='failed',
+                           reason=f'no answer from the model: {exc}')
+                rows.append(row)
+                if progress:
+                    progress(n, len(entries), row)
+                continue
 
         guess = predicted(verdict)
         row.update(
@@ -108,7 +123,7 @@ def run(ctx, know, entries: list, *, progress=None) -> list:
 
 def tally(rows: list) -> dict:
     """Precision, recall and the rest over hate/benign labels; ambiguous apart."""
-    scored = [r for r in rows if r['predicted'] != 'skipped']
+    scored = [r for r in rows if r['predicted'] not in ('skipped', 'failed')]
     hate = [r for r in scored if r['label'] == 'hate']
     benign = [r for r in scored if r['label'] == 'benign']
 
@@ -125,7 +140,8 @@ def tally(rows: list) -> dict:
           if precision and recall else None)
     return {
         'entries': len(scored),
-        'skipped': len(rows) - len(scored),
+        'skipped': sum(r['predicted'] == 'skipped' for r in rows),
+        'failed': sum(r['predicted'] == 'failed' for r in rows),
         'hate': len(hate), 'benign': len(benign),
         'true_positives': tp, 'false_positives': fp,
         'false_negatives': fn, 'true_negatives': tn,
@@ -158,7 +174,8 @@ def describe(rows: list) -> str:
     pct = lambda v: '-' if v is None else f'{v:.0%}'     # noqa: E731
     lines = [
         f"{t['entries']} entries scored ({t['hate']} hate, {t['benign']} benign, "
-        f"{sum(t['ambiguous'].values())} ambiguous), {t['skipped']} skipped",
+        f"{sum(t['ambiguous'].values())} ambiguous), {t['skipped']} skipped as guidance examples, "
+        f"{t['failed']} with no answer from the model",
         f"  precision {pct(t['precision'])}   recall {pct(t['recall'])}   "
         f"F1 {pct(t['f1'])}   accuracy {pct(t['accuracy'])}",
         f"  false positives {t['false_positives']}   false negatives {t['false_negatives']}   "
